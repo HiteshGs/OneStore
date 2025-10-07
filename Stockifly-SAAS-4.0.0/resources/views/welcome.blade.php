@@ -84,6 +84,7 @@
             window.config = {
                 'path': '{{ url('/') }}',
                 'download_lang_csv_url': "{{ route('api.extra.langs.download') }}",
+                'has_fixed_purchase_code': {{ config('app.fixed_purchase_code') ? 'true' : 'false' }},
                 'invoice_url': "{{ route('api.extra.pdf.v1', '') }}",
                 'pos_invoice_css': "{{ asset('css/pos_invoice_css.css') }}",
                 'verify_purchase_background': "{{ asset('images/verify_purchase_background.svg') }}",

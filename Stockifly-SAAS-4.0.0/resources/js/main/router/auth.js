@@ -15,6 +15,8 @@ export default [
         meta: {
             requireUnauth: true,
             menuKey: (route) => "verify_product",
+            skipWhenFixed: true,
+
         },
     },
     {

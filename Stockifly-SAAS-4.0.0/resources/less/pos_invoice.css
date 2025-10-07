@@ -2,9 +2,13 @@
     text-align: center;
     border-bottom: 1px dotted #ddd !important;
 }
-
+.a4-invoice {
+    max-width: 210mm;    /* A4 width */
+    margin: 0 auto;
+  }
+  
 .invoice-logo {
-    width: 200px;
+    width: 100px;
 }
 
 .company-details {
@@ -14,7 +18,7 @@
 }
 
 .company-address {
-    white-space: pre;
+    white-space: break-spaces;
     margin-bottom: 0px;
 }
 
@@ -78,3 +82,20 @@
 .discount-details p {
     margin-bottom: 0px;
 }
+@media print {
+    @page {
+      size: A4;
+      margin: 12mm;      /* adjust as you like */
+    }
+  
+    /* Override any inline widths from old code */
+    #pos-invoice .a4-invoice {
+      max-width: 210mm !important;
+      width: 210mm !important;
+    }
+  
+    /* Optional: nicer print tables */
+    table { page-break-inside: auto; }
+    tr, td, th { page-break-inside: avoid; }
+  }
+  

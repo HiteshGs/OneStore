@@ -81,6 +81,18 @@ const router = createRouter({
     scrollBehavior: () => ({ left: 0, top: 0 }),
 });
 
+if (window.config.has_fixed_purchase_code) {
+    // stop showing /admin/verify
+    router.beforeEach((to, from, next) => {
+      // if someone hits verify manually, send them to login
+      if (to.name === 'verify.main') {
+        return next({ name: 'admin.login' });
+      }
+      // keep the normal auth/permission flow
+      return next();
+    });
+}
+
 // Including SuperAdmin Routes
 const superadminRouteFilePath = appType == "saas" ? "superadmin" : "";
 if (appType == "saas") {

@@ -10,6 +10,7 @@ const modules = () => {
     const allModules = ref([]);
     const rules = ref({});
     const purchaseCode = ref("");
+    console.log("purchaseCode", purchaseCode.value);
     const errorMessage = ref("");
     const successMessage = ref("");
     const loading = ref(false);
