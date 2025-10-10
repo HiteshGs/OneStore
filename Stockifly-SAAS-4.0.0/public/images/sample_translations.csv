@@ -537,6 +537,7 @@
 "en","product","by_sales","By Sales"
 "en","product","unit_sold","Unit Sold"
 "en","product","import_products","Import Products"
+"en","product","import_products_custom_fields_master","Import Master Product"
 "en","stock","order_type","Order Type"
 "en","stock","order_date","Order Date"
 "en","stock","warehouse","Warehouse"
