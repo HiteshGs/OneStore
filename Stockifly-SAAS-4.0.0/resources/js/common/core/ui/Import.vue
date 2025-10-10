@@ -21,7 +21,7 @@
         </a-col>
       </a-row>
 
-      <!-- Upload + options -->
+      <!-- Upload + optional options -->
       <a-row :gutter="16" class="mb-10">
         <a-col :xs="24">
           <a-form layout="vertical">
@@ -45,8 +45,7 @@
               </a-upload>
             </a-form-item>
 
-            <!-- Advanced options (optional UI controls) -->
-            <a-collapse class="mb-2">
+            <a-collapse v-if="!hideOptions" class="mb-2">
               <a-collapse-panel :header="$t('common.options')" key="opts">
                 <a-space direction="vertical" style="width: 100%">
                   <a-form-item :label="$t('product.store_unknown_columns_as_custom_fields')">
@@ -86,29 +85,40 @@ import { useI18n } from "vue-i18n";
 import apiAdmin from "../../composable/apiAdmin";
 import UploadFile from "./file/UploadFile.vue";
 import { message, notification } from "ant-design-vue";
-import common from "../../composable/common"; // for appSetting rtl
+import common from "../../composable/common";
 
 export default defineComponent({
-  props: ["pageTitle", "sampleFileUrl", "importUrl"],
+  props: {
+    pageTitle: String,
+    sampleFileUrl: String,
+    importUrl: { type: String, required: true },
+    /**
+     * Extra fields to append to FormData (e.g., { use_custom_field_master: '1' })
+     */
+    extraFields: { type: Object, default: () => ({}) },
+    /**
+     * Hide the options panel if you want a minimal dialog.
+     */
+    hideOptions: { type: Boolean, default: false },
+  },
   emits: ["onUploadSuccess"],
   components: { CloudDownloadOutlined, UploadFile, UploadOutlined },
   setup(props, { emit }) {
-    const { loading, rules } = apiAdmin(); // we only reuse loading/rules here
+    const { loading, rules } = apiAdmin();
     const { t } = useI18n();
     const { appSetting } = common();
 
     const fileList = ref([]);
     const visible = ref(false);
 
-    // Optional toggles (match backend flags)
+    // default toggles (keep or hide via hideOptions)
     const storeUnknownAsCustom = ref(true);
     const autoCreateMasters = ref(false);
     const autoCreateTaxes = ref(false);
 
     const beforeUpload = (file) => {
-      // keep only the latest file
-      fileList.value = [file];
-      return false; // prevent auto-upload
+      fileList.value = [file]; // keep only one
+      return false;
     };
 
     const importItems = async () => {
@@ -121,19 +131,15 @@ export default defineComponent({
       const blob = f.originFileObj || f;
       const fd = new FormData();
       fd.append("file", blob, f.name || "import.csv");
+
+      // common flags (your backend may or may not use these)
       fd.append("store_unknown_as_custom", storeUnknownAsCustom.value ? "1" : "0");
       fd.append("auto_create_masters", autoCreateMasters.value ? "1" : "0");
       fd.append("auto_create_taxes", autoCreateTaxes.value ? "1" : "0");
 
-      // Debug payload
-      // eslint-disable-next-line no-console
-      console.log("IMPORT DEBUG (direct) ->", {
-        name: f.name,
-        size: blob.size,
-        type: blob.type,
-        store_unknown_as_custom: storeUnknownAsCustom.value ? "1" : "0",
-        auto_create_masters: autoCreateMasters.value ? "1" : "0",
-        auto_create_taxes: autoCreateTaxes.value ? "1" : "0",
+      // NEW: forward any extra flags provided by parent (like use_custom_field_master=1)
+      Object.entries(props.extraFields || {}).forEach(([k, v]) => {
+        fd.append(k, v);
       });
 
       loading.value = true;
@@ -142,14 +148,13 @@ export default defineComponent({
           headers: { "Content-Type": "multipart/form-data" },
         });
 
-        // Success toast
         notification.success({
           placement: appSetting.value.rtl ? "bottomLeft" : "bottomRight",
           message: t("common.success"),
           description: t("messages.imported_successfully"),
         });
 
-        // Optional summary panel
+        // Optional: show a summary if backend returns it
         const summary = res?.data?.data?.summary || res?.data?.summary;
         if (summary) {
           const { inserted = 0, customSaved = 0, autoCreated = {} } = summary;
@@ -157,7 +162,6 @@ export default defineComponent({
           const brds = (autoCreated.brands || []).join(", ");
           const unts = (autoCreated.units || []).join(", ");
           const txes = (autoCreated.taxes || []).join(", ");
-
           const lines = [
             `${t("common.inserted")}: ${inserted}`,
             `${t("product.custom_fields_saved")}: ${customSaved}`,
@@ -176,15 +180,13 @@ export default defineComponent({
         }
 
         handleCancel();
-        emit("onUploadSuccess"); // parent will call setUrlData()
+        emit("onUploadSuccess");
       } catch (err) {
         const status = err?.response?.status;
         const data = err?.response?.data;
         const msg = data?.error?.message || data?.message || "Unknown error";
-
         // eslint-disable-next-line no-console
-        console.error("IMPORT DEBUG FAIL (direct):", { status, data, err });
-
+        console.error("IMPORT FAIL:", { status, data, err });
         message.error(msg);
       } finally {
         loading.value = false;
@@ -195,14 +197,9 @@ export default defineComponent({
     const handleCancel = () => { fileList.value = []; visible.value = false; };
 
     return {
-      // state
       fileList, visible, loading, rules,
-      // toggles
       storeUnknownAsCustom, autoCreateMasters, autoCreateTaxes,
-      // methods
-      showModal, handleCancel, beforeUpload, importItems,
-      // i18n helper in template
-      t,
+      beforeUpload, importItems, showModal, handleCancel,
     };
   },
 });

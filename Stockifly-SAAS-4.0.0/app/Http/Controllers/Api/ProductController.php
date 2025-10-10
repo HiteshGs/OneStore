@@ -502,48 +502,20 @@ class ProductController extends ApiBaseController
 
     // App/Http/Controllers/Api/ProductController.php
 
-public function import(ImportRequest $request)
-{
-    try {
-        // QUICK ASSERTION: did Laravel receive the file?
-        if (!$request->hasFile('file')) {
-            \Log::warning('Import called without file', [
-                'all' => $request->all(),
-                'files' => $request->files->all(),
-            ]);
-
-            return response()->json([
-                'message' => 'Import failed',
-                'error' => [
-                    'message' => 'No file received under key "file".',
-                    'details' => [
-                        'file' => ['Upload a .csv or .xlsx file using field name "file".']
-                    ],
-                ],
-            ], 400);
-        }
-
-        // If the ImportRequest has strict mimes, make sure they match your CSV/XLSX.
-        // Run the import:
-        Excel::import(new \App\Imports\ProductImport(), $request->file('file'));
-
-        return \Examyou\RestAPI\ApiResponse::make('Imported Successfully', []);
-    } catch (\Throwable $e) {
-        \Log::error('Product import failed', [
-            'ex' => $e,
-            'message' => $e->getMessage(),
-        ]);
-
-        // 422 so frontend shows the message and field errors if any
-        return response()->json([
-            'message' => 'Import failed',
-            'error' => [
-                'message' => $e->getMessage(),
-            ],
-        ], 422);
-    }
-}
+    public function import(ImportRequest $request)
+    {
+        if ($request->hasFile('file')) {
+            $useMaster = $request->boolean('use_custom_field_master', false);
     
+            Excel::import(
+                new \App\Imports\ProductImport(useCustomFieldMaster: $useMaster),
+                $request->file('file')
+            );
+        }
+    
+        return ApiResponse::make('Imported Successfully', []);
+    }
+        
 
     public function checkProductVariant(CheckVariantRequest $request)
     {

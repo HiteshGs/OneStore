@@ -53,6 +53,15 @@
                             importUrl="products/import"
                             @onUploadSuccess="setUrlData"
                         />
+                        <ImportProducts
+  :pageTitle="$t('product.import_products_custom_fields_master')"
+  :sampleFileUrl="sampleFileUrl"
+  importUrl="products/import"
+  :extraFields="{
+    use_custom_field_master: '1'
+  }"
+/>
+
                     </template>
                     <a-button
                         v-if="
