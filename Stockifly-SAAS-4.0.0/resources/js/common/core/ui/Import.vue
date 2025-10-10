@@ -6,22 +6,21 @@
         </a-button>
         <a-modal v-model:open="visible" :title="pageTitle">
             <a-row :gutter="16" class="mb-10">
-                <a-col :xs="24" :sm="24" :md="24" :lg="24">
+                <a-col :xs="24">
                     <a-typography-paragraph>
                         <ul>
                             <li>
                                 <a-typography-link :href="sampleFileUrl" target="_blank">
-                                    {{
-                                        $t("messages.click_here_to_download_sample_file")
-                                    }}
+                                    {{ $t("messages.click_here_to_download_sample_file") }}
                                 </a-typography-link>
                             </li>
                         </ul>
                     </a-typography-paragraph>
                 </a-col>
             </a-row>
-            <a-row :gutter="16">
-                <a-col :xs="24" :sm="24" :md="24" :lg="24">
+
+            <a-row :gutter="16" class="mb-10">
+                <a-col :xs="24">
                     <a-form layout="vertical">
                         <a-form-item
                             :label="$t('common.file')"
@@ -37,16 +36,20 @@
                                 :maxCount="1"
                             >
                                 <a-button :loading="loading">
-                                    <template #icon>
-                                        <UploadOutlined></UploadOutlined>
-                                    </template>
+                                    <template #icon><UploadOutlined /></template>
                                     {{ $t("common.upload") }}
                                 </a-button>
                             </a-upload>
                         </a-form-item>
+
+                        <!-- OPTIONAL: toggle. You can remove this block if you don’t want UI control -->
+                        <a-form-item :label="$t('Store unknown columns as custom fields')">
+                            <a-switch v-model:checked="storeUnknownAsCustom" />
+                        </a-form-item>
                     </a-form>
                 </a-col>
             </a-row>
+
             <template #footer>
                 <a-button type="primary" :loading="loading" @click="importItems">
                     {{ $t("common.import") }}
@@ -58,6 +61,7 @@
         </a-modal>
     </div>
 </template>
+
 <script>
 import { defineComponent, ref } from "vue";
 import { CloudDownloadOutlined, UploadOutlined } from "@ant-design/icons-vue";
@@ -68,27 +72,24 @@ import UploadFile from "./file/UploadFile.vue";
 export default defineComponent({
     props: ["pageTitle", "sampleFileUrl", "importUrl"],
     emits: ["onUploadSuccess"],
-    components: {
-        CloudDownloadOutlined,
-        UploadFile,
-        UploadOutlined,
-    },
+    components: { CloudDownloadOutlined, UploadFile, UploadOutlined },
     setup(props, { emit }) {
         const { addEditFileRequestAdmin, loading, rules } = apiAdmin();
         const { t } = useI18n();
         const fileList = ref([]);
         const visible = ref(false);
+        const storeUnknownAsCustom = ref(true); // optional
 
         const beforeUpload = (file) => {
-            fileList.value = [...fileList.value, file];
+            fileList.value = [file]; // keep only the latest one
             return false;
         };
 
         const importItems = () => {
             const formData = {};
-            if (fileList && fileList.value && fileList.value[0] != undefined) {
-                formData.file = fileList.value[0];
-            }
+            if (fileList.value[0]) formData.file = fileList.value[0];
+            // optional flag passed to backend
+            formData.store_unknown_as_custom = storeUnknownAsCustom.value ? "1" : "0";
 
             loading.value = true;
 
@@ -96,34 +97,20 @@ export default defineComponent({
                 url: props.importUrl,
                 data: formData,
                 successMessage: t("messages.imported_successfully"),
-                success: (res) => {
+                success: () => {
                     handleCancel();
-
                     emit("onUploadSuccess");
                 },
             });
         };
 
-        const showModal = () => {
-            visible.value = true;
-        };
-
-        const handleCancel = (e) => {
-            fileList.value = [];
-            visible.value = false;
-        };
+        const showModal = () => { visible.value = true; };
+        const handleCancel = () => { fileList.value = []; visible.value = false; };
 
         return {
-            fileList,
-            rules,
-            loading,
-
-            visible,
-            showModal,
-            handleCancel,
-            importItems,
-
-            beforeUpload,
+            fileList, rules, loading,
+            visible, showModal, handleCancel, importItems,
+            beforeUpload, storeUnknownAsCustom
         };
     },
 });

@@ -6,6 +6,7 @@ use App\Classes\Common;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\ProductCustomField;
 use App\Models\ProductDetails;
 use App\Models\Tax;
 use App\Models\Unit;
@@ -18,6 +19,35 @@ use Illuminate\Support\Str;
 
 class ProductImport implements ToArray, WithHeadingRow
 {
+    /**
+     * Columns treated as "standard". Any other non-empty column found in the CSV
+     * will be stored as a custom field (product_custom_fields).
+     */
+    protected array $standardColumns = [
+        // product-level
+        'name',
+        'description',
+        'barcode_symbology',
+        'item_code',
+        'category',
+        'brand',
+        'unit',
+        'warehouse',
+
+        // details-level
+        'tax',
+        'mrp',
+        'purchase_price',
+        'sales_price',
+        'purchase_tax_type',
+        'sales_tax_type',
+        'stock_quantitiy_alert',
+        'opening_stock',
+        'opening_stock_date',
+        'wholesale_price',
+        'wholesale_quantity',
+    ];
+
     public function array(array $products)
     {
         DB::transaction(function () use ($products) {
@@ -104,22 +134,22 @@ class ProductImport implements ToArray, WithHeadingRow
                     $wholesalePrice = trim($product['wholesale_price']);
                     $allWarehouses = Warehouse::select('id')->get();
 
+                    // Resolve the "target" warehouse to attach custom fields to
                     if (array_key_exists('warehouse', $product)) {
-                        $warehouse = Warehouse::where('name', $product['warehouse'])->first();
+                        $namedWarehouse = Warehouse::where('name', $product['warehouse'])->first();
                         $currentWarehouse = warehouse();
-
-                        $createdWarehouseId = $warehouse && $warehouse->id ? $warehouse->id : $currentWarehouse->id;
+                        $createdWarehouseId = $namedWarehouse && $namedWarehouse->id ? $namedWarehouse->id : $currentWarehouse->id;
                     } else {
-                        $warehouse = warehouse();
-                        $createdWarehouseId = $warehouse->id;
+                        $currentWarehouse = warehouse();
+                        $createdWarehouseId = $currentWarehouse->id;
                     }
 
+                    // Create product
                     $newProduct = new Product();
                     $newProduct->name = $productName;
                     $newProduct->warehouse_id = $createdWarehouseId;
                     $newProduct->slug = Str::slug($productName, '-');
                     $newProduct->barcode_symbology = $barcodeSymbology;
-                    // $newProduct->item_code = (int) $itemCode;
                     $newProduct->item_code = $itemCode;
                     $newProduct->category_id = $category->id;
                     $newProduct->brand_id = $brand->id;
@@ -155,6 +185,7 @@ class ProductImport implements ToArray, WithHeadingRow
                         $wholesalePrice = is_numeric($wholesalePrice) ? $wholesalePrice : null;
                     }
 
+                    // Create ProductDetails for all warehouses
                     foreach ($allWarehouses as $allWarehouse) {
                         $newProductDetails = new ProductDetails();
                         $newProductDetails->warehouse_id = $allWarehouse->id;
@@ -174,8 +205,54 @@ class ProductImport implements ToArray, WithHeadingRow
 
                         Common::recalculateOrderStock($newProductDetails->warehouse_id, $newProduct->id);
                     }
+
+                    /**
+                     * NEW: Save extra CSV columns as product_custom_fields
+                     * - Use the chosen/created warehouse ($createdWarehouseId)
+                     * - Upsert on (product_id, warehouse_id, field_name)
+                     */
+                    $this->saveCustomFields($product, $newProduct->id, (int)$createdWarehouseId);
                 }
             }
         });
+    }
+
+    /**
+     * Persist unknown CSV columns into product_custom_fields (UPSERT).
+     * Uses withoutGlobalScopes() because ProductCustomField has CompanyScope
+     * and a current_warehouse global scope which would otherwise filter out rows.
+     */
+    protected function saveCustomFields(array $row, int $productId, int $warehouseId): void
+    {
+        foreach ($row as $col => $val) {
+            $fieldName = trim((string)$col);
+
+            // skip empty header keys and standard/known columns
+            if ($fieldName === '' || in_array($fieldName, $this->standardColumns, true)) {
+                continue;
+            }
+
+            if ($val === null) {
+                continue;
+            }
+
+            $fieldValue = is_scalar($val) ? (string)$val : json_encode($val);
+            $fieldValue = trim($fieldValue);
+            if ($fieldValue === '') {
+                continue;
+            }
+
+            // UPSERT by composite key
+            ProductCustomField::withoutGlobalScopes()->updateOrCreate(
+                [
+                    'product_id'   => $productId,
+                    'warehouse_id' => $warehouseId,
+                    'field_name'   => $fieldName,
+                ],
+                [
+                    'field_value'  => mb_substr($fieldValue, 0, 191),
+                ]
+            );
+        }
     }
 }

@@ -503,11 +503,12 @@ class ProductController extends ApiBaseController
     public function import(ImportRequest $request)
     {
         if ($request->hasFile('file')) {
-            Excel::import(new ProductImport, request()->file('file'));
+            $store = filter_var($request->input('store_unknown_as_custom', true), FILTER_VALIDATE_BOOL);
+            Excel::import(new ProductImport(storeUnknownAsCustom: $store), $request->file('file'));
         }
-
         return ApiResponse::make('Imported Successfully', []);
     }
+    
 
     public function checkProductVariant(CheckVariantRequest $request)
     {

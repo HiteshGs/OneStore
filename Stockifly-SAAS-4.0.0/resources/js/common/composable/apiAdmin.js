@@ -27,7 +27,6 @@ const api = () => {
         axiosAdmin
             .post(url, formData)
             .then(response => {
-                // Toastr Notificaiton
                 if (configObject.successMessage) {
                     notification.success({
                         placement: appSetting.value.rtl ? "bottomLeft" : "bottomRight",
@@ -35,7 +34,6 @@ const api = () => {
                         description: configObject.successMessage
                     });
                 }
-
                 success(response.data);
                 loading.value = false;
                 rules.value = {};
@@ -49,33 +47,25 @@ const api = () => {
                     if (err.error && typeof err.error.details != "undefined") {
                         var keys = Object.keys(err.error.details);
                         for (var i = 0; i < keys.length; i++) {
-                            // Escape dot that comes with error in array fields
                             var key = keys[i].replace(".", "\\.");
-
                             errorRules[key] = {
                                 required: true,
                                 message: err.error.details[keys[i]][0],
                             };
                         }
                     }
-
                     rules.value = errorRules;
                     message.error(t("common.fix_errors"));
                 }
 
                 if (err && err.message) {
                     message.error(err.message);
-                    err = {
-                        error: {
-                            ...err
-                        }
-                    }
+                    err = { error: { ...err } }
                 }
 
                 if (configObject.error) {
                     configObject.error(err);
                 }
-
                 loading.value = false;
             });
     }
@@ -85,23 +75,23 @@ const api = () => {
         const { url, data, success } = configObject;
         const formData = new FormData();
 
-        // Replace undefined values to null
+        // Robust append: support both files and plain values
         forEach(data, function (value, key) {
-            if (value == undefined) {
-                formData.append(key, null);
+            if (value === undefined || value === null) {
+                formData.append(key, "");
+            } else if (value?.originFileObj) {
+                const file = value.originFileObj;
+                formData.append(key, file, value.name || file.name);
             } else {
-                formData.append(key, value.originFileObj);
+                formData.append(key, value);
             }
         });
 
         axiosAdmin
             .post(url, formData, {
-                headers: {
-                    "Content-Type": "multipart/form-data",
-                },
+                headers: { "Content-Type": "multipart/form-data" },
             })
             .then(response => {
-                // Toastr Notificaiton
                 if (configObject.successMessage) {
                     notification.success({
                         placement: appSetting.value.rtl ? "bottomLeft" : "bottomRight",
@@ -109,7 +99,6 @@ const api = () => {
                         description: configObject.successMessage
                     });
                 }
-
                 success(response.data);
                 loading.value = false;
                 rules.value = {};
@@ -123,43 +112,30 @@ const api = () => {
                     if (err.error && typeof err.error.details != "undefined") {
                         var keys = Object.keys(err.error.details);
                         for (var i = 0; i < keys.length; i++) {
-                            // Escape dot that comes with error in array fields
                             var key = keys[i].replace(".", "\\.");
-
                             errorRules[key] = {
                                 required: true,
                                 message: err.error.details[keys[i]][0],
                             };
                         }
                     }
-
                     rules.value = errorRules;
                     message.error(t("common.fix_errors"));
                 }
 
                 if (err && err.message) {
                     message.error(err.message);
-                    err = {
-                        error: {
-                            ...err
-                        }
-                    }
+                    err = { error: { ...err } }
                 }
 
                 if (configObject.error) {
                     configObject.error(err);
                 }
-
                 loading.value = false;
             });
     }
 
-    return {
-        loading,
-        rules,
-        addEditRequestAdmin,
-        addEditFileRequestAdmin
-    };
+    return { loading, rules, addEditRequestAdmin, addEditFileRequestAdmin };
 }
 
 export default api;
