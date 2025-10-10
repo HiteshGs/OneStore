@@ -1136,7 +1136,7 @@ class LangTrans
             'by_sales' => 'By Sales',
             'unit_sold' => 'Unit Sold',
             'import_products' => 'Import Products',
-            'import_products_custom_fields_master' => 'Import MasterProducts',
+            'import_products_custom_fields_master' => 'Import Master Product',
             'total_purchase_price' => 'Total Purchase Price',
             'total_sales_price' => 'Total Sales Price',
             'product_type' => 'Product Type',
