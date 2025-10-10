@@ -505,16 +505,24 @@ class ProductController extends ApiBaseController
     public function import(ImportRequest $request)
     {
         if ($request->hasFile('file')) {
-            $useMaster = $request->boolean('use_custom_field_master', false);
+            // flags coming from UI
+            $saveUnknown           = $request->boolean('store_unknown_as_custom', true);
+            $useMaster             = $request->boolean('use_custom_field_master', false);
+            $autoCreateMasterNames = $request->boolean('auto_create_custom_fields', false);
     
-            Excel::import(
-                new \App\Imports\ProductImport(useCustomFieldMaster: $useMaster),
+            \Maatwebsite\Excel\Facades\Excel::import(
+                new \App\Imports\ProductImport(
+                    saveUnknownColumns: $saveUnknown,
+                    useCustomFieldMaster: $useMaster,
+                    autoCreateCustomFieldNames: $autoCreateMasterNames
+                ),
                 $request->file('file')
             );
         }
     
-        return ApiResponse::make('Imported Successfully', []);
+        return \Examyou\RestAPI\ApiResponse::make('Imported Successfully', []);
     }
+    
         
 
     public function checkProductVariant(CheckVariantRequest $request)

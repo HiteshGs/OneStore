@@ -47,20 +47,32 @@
                                 {{ $t("product.add") }}
                             </a-button>
                         </SubscriptionModuleVisibility>
-                        <ImportProducts
-                            :pageTitle="$t('product.import_products')"
-                            :sampleFileUrl="sampleFileUrl"
-                            importUrl="products/import"
-                            @onUploadSuccess="setUrlData"
-                        />
-                        <ImportProducts
-  :pageTitle="$t('product.import_products_custom_fields_master')"
+                      <ImportProducts
+  :pageTitle="$t('product.import_products')"
   :sampleFileUrl="sampleFileUrl"
   importUrl="products/import"
-  :extraFields="{
-    use_custom_field_master: '1'
+  :extraFields="{ 
+    store_unknown_as_custom: '1', 
+    use_custom_field_master: '0',
+    auto_create_custom_fields: '0'
   }"
+  @onUploadSuccess="setUrlData"
 />
+
+<!-- Example: second button that enforces whitelist and auto-creates missing names -->
+<ImportProducts
+  :pageTitle="$t('product.import_products_using_custom_fields_master')"
+  :sampleFileUrl="sampleFileUrl"
+  importUrl="products/import"
+  :extraFields="{ 
+    store_unknown_as_custom: '1',
+    use_custom_field_master: '1',
+    auto_create_custom_fields: '1'
+  }"
+  :hideOptions="true"
+  @onUploadSuccess="setUrlData"
+/>
+
 
                     </template>
                     <a-button
