@@ -26,7 +26,7 @@ class ImportRequest extends FormRequest
 	{
 
 		$rules = [
-			'file'    => 'required',
+			'file' => 'required|file|mimes:csv,txt,xlsx,xls|max:20480',
 		];
 
 		return $rules;

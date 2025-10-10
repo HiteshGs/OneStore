@@ -85,24 +85,58 @@ export default defineComponent({
             return false;
         };
 
-        const importItems = () => {
-            const formData = {};
-            if (fileList.value[0]) formData.file = fileList.value[0];
-            // optional flag passed to backend
-            formData.store_unknown_as_custom = storeUnknownAsCustom.value ? "1" : "0";
+       const importItems = async () => {
+  const f = fileList.value?.[0];
+  if (!f) {
+    message.error(t("common.file") + " " + t("common.required"));
+    return;
+  }
 
-            loading.value = true;
+  const blob = f.originFileObj || f;              // Ant Design Upload stores real file in originFileObj
+  const fd = new FormData();
+  fd.append("file", blob, f.name || "import.csv"); // include filename!
+  fd.append(
+    "store_unknown_as_custom",
+    storeUnknownAsCustom.value ? "1" : "0"
+  );
 
-            addEditFileRequestAdmin({
-                url: props.importUrl,
-                data: formData,
-                successMessage: t("messages.imported_successfully"),
-                success: () => {
-                    handleCancel();
-                    emit("onUploadSuccess");
-                },
-            });
-        };
+  // Debug: verify what you're sending
+  // eslint-disable-next-line no-console
+  console.log("IMPORT DEBUG (direct) ->", {
+    name: f.name,
+    size: blob.size,
+    type: blob.type,
+    store_unknown_as_custom: storeUnknownAsCustom.value ? "1" : "0",
+  });
+
+  loading.value = true;
+  try {
+    await axiosAdmin.post(props.importUrl, fd, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    notification.success({
+      placement: appSetting.value.rtl ? "bottomLeft" : "bottomRight",
+      message: t("common.success"),
+      description: t("messages.imported_successfully"),
+    });
+
+    handleCancel();
+    emit("onUploadSuccess");
+  } catch (err) {
+    const status = err?.response?.status;
+    const data = err?.response?.data;
+    const msg = data?.error?.message || data?.message || "Unknown error";
+
+    // eslint-disable-next-line no-console
+    console.error("IMPORT DEBUG FAIL (direct):", { status, data, err });
+
+    message.error(msg);
+  } finally {
+    loading.value = false;
+  }
+};
+
 
         const showModal = () => { visible.value = true; };
         const handleCancel = () => { fileList.value = []; visible.value = false; };
