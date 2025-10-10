@@ -21,48 +21,78 @@ class ProductImport implements ToArray, WithHeadingRow
 {
     /**
      * Columns treated as "standard". Any other non-empty column found in the CSV
-     * will be stored as a custom field (product_custom_fields).
-     *
-     * NOTE: We include both old and new names here so customs truly only get
-     * unknown columns.
+     * will be stored as a custom field (product_custom_fields) when
+     * request('store_unknown_as_custom') is truthy.
      */
     protected array $standardColumns = [
         // product-level (old/new)
-        'name', 'description', 'barcode_symbology', 'item_code',
-        'category', 'brand', 'unit', 'unit_name', 'unit_code', 'warehouse', 'slug',
-        'sku', 'barcode', 'image_url',
+        'name','description','barcode_symbology','item_code',
+        'category','brand','unit','unit_name','unit_code','warehouse','slug',
+        'sku','barcode','image_url',
 
         // details-level (old/new)
-        'tax', 'tax_label', 'tax_rate', 'mrp',
-        'purchase_price', 'sales_price',
-        'purchase_tax_type', 'sales_tax_type',
-        'purchase_price_tax_mode', 'sales_price_tax_mode',
-        'stock_quantitiy_alert', 'quantity_alert',
-        'opening_stock', 'opening_stock_qty',
-        'opening_stock_unit', 'opening_stock_date',
-        'wholesale_price', 'wholesale_quantity',
+        'tax','tax_label','tax_rate','mrp',
+        'purchase_price','sales_price',
+        'purchase_tax_type','sales_tax_type',
+        'purchase_price_tax_mode','sales_price_tax_mode',
+        'stock_quantitiy_alert','quantity_alert',
+        'opening_stock','opening_stock_qty',
+        'opening_stock_unit','opening_stock_date',
+        'wholesale_price','wholesale_quantity',
     ];
 
-    public function array(array $products)
+    /** Summary counters for UI feedback */
+    protected int $inserted = 0;
+    protected int $customSaved = 0;
+    protected array $autoCreated = [
+        'categories' => [],
+        'brands'     => [],
+        'units'      => [],
+        'taxes'      => [],
+    ];
+
+    public function incInserted(): void { $this->inserted++; }
+    public function incCustomSaved(int $n = 1): void { $this->customSaved += $n; }
+    public function noteAuto(string $type, string $name): void { $this->autoCreated[$type][$name] = true; }
+
+    public function summary(): array
     {
-        DB::transaction(function () use ($products) {
+        return [
+            'inserted'    => $this->inserted,
+            'customSaved' => $this->customSaved,
+            'autoCreated' => [
+                'categories' => array_keys($this->autoCreated['categories']),
+                'brands'     => array_keys($this->autoCreated['brands']),
+                'units'      => array_keys($this->autoCreated['units']),
+                'taxes'      => array_keys($this->autoCreated['taxes']),
+            ],
+        ];
+    }
+
+    public function array(array $rows)
+    {
+        DB::transaction(function () use ($rows) {
             $user = user();
 
-            foreach ($products as $row) {
+            // Flags from request
+            $storeUnknownAsCustom = request()->boolean('store_unknown_as_custom', false);
+            $autoCreateMasters    = request()->boolean('auto_create_masters', false);
+            $autoCreateTaxes      = request()->boolean('auto_create_taxes', false);
+
+            foreach ($rows as $row) {
                 // Normalize row so both old and new CSVs work
                 $product = $this->normalizeRow($row);
 
-                // Minimal required fields after normalization
+                // Minimal required fields after normalization (keep your original rules)
                 $required = [
-                    'name', 'barcode_symbology', 'item_code',
-                    'category', 'brand', 'unit',
-                    'mrp', 'purchase_price', 'sales_price',
-                    'purchase_tax_type', 'sales_tax_type',
-                    'opening_stock', 'opening_stock_date',
-                    'wholesale_price', 'wholesale_quantity',
-                    'stock_quantitiy_alert', // from quantity_alert if provided
+                    'name','barcode_symbology','item_code',
+                    'category','brand','unit',
+                    'mrp','purchase_price','sales_price',
+                    'purchase_tax_type','sales_tax_type',
+                    'opening_stock','opening_stock_date',
+                    'wholesale_price','wholesale_quantity',
+                    'stock_quantitiy_alert',
                 ];
-
                 foreach ($required as $key) {
                     if (!array_key_exists($key, $product)) {
                         throw new ApiException("Field missing from header: {$key}");
@@ -70,140 +100,164 @@ class ProductImport implements ToArray, WithHeadingRow
                 }
 
                 $productName = trim((string) $product['name']);
+                if ($productName === '') {
+                    // empty name row; ignore
+                    continue;
+                }
 
-                if ($productName !== '') {
-                    // Uniqueness by name (kept from your logic)
-                    $productCount = Product::where('name', $productName)->count();
-                    if ($productCount > 0) {
-                        throw new ApiException('Product ' . $productName . ' Already Exists');
-                    }
+                // Name uniqueness (same as your original)
+                if (Product::where('name', $productName)->exists()) {
+                    throw new ApiException('Product ' . $productName . ' Already Exists');
+                }
 
-                    // Category
-                    $categoryName = trim((string) $product['category']);
-                    $category = Category::where('name', $categoryName)->first();
-                    if (!$category) {
+                // Category
+                $categoryName = trim((string) $product['category']);
+                $category = Category::where('name', $categoryName)->first();
+                if (!$category) {
+                    if ($autoCreateMasters) {
+                        $category = Category::firstOrCreate(
+                            ['name' => $categoryName, 'company_id' => company()->id],
+                            ['slug' => Str::slug($categoryName)]
+                        );
+                        $this->noteAuto('categories', $categoryName);
+                    } else {
                         throw new ApiException('Category Not Found... ' . $categoryName);
                     }
+                }
 
-                    // Brand
-                    $brandName = trim((string) $product['brand']);
-                    $brand = Brand::where('name', $brandName)->first();
-                    if (!$brand) {
+                // Brand
+                $brandName = trim((string) $product['brand']);
+                $brand = Brand::where('name', $brandName)->first();
+                if (!$brand) {
+                    if ($autoCreateMasters) {
+                        $brand = Brand::firstOrCreate(
+                            ['name' => $brandName, 'company_id' => company()->id],
+                            ['slug' => Str::slug($brandName)]
+                        );
+                        $this->noteAuto('brands', $brandName);
+                    } else {
                         throw new ApiException('Brand Not Found... ' . $brandName);
                     }
+                }
 
-                    // Unit (we normalize to 'unit' = unit_name)
-                    $unitName = trim((string) $product['unit']);
-                    $unit = Unit::where('name', $unitName)->first();
-                    if (!$unit) {
+                // Unit (normalized to 'unit' = unit_name)
+                $unitName = trim((string) $product['unit']);
+                $unit = Unit::where('name', $unitName)->first();
+                if (!$unit) {
+                    if ($autoCreateMasters) {
+                        $unit = Unit::firstOrCreate(
+                            ['name' => $unitName, 'company_id' => company()->id],
+                            ['short_name' => $unitName]
+                        );
+                        $this->noteAuto('units', $unitName);
+                    } else {
                         throw new ApiException('Unit Not Found... ' . $unitName);
                     }
+                }
 
-                    $barcodeSymbology = trim((string) $product['barcode_symbology']);
-                    if ($barcodeSymbology === "" || !in_array($barcodeSymbology, ['CODE128', 'CODE39'])) {
-                        throw new ApiException('Barcode symoblogy must be CODE128 or CODE39');
-                    }
+                // Barcode symbology
+                $barcodeSymbology = trim((string) $product['barcode_symbology']);
+                if ($barcodeSymbology === "" || !in_array($barcodeSymbology, ['CODE128', 'CODE39'])) {
+                    throw new ApiException('Barcode symoblogy must be CODE128 or CODE39');
+                }
 
-                    $itemCode = trim((string) $product['item_code']);
-                    $isItemCodeAlreadyExists = Product::where('item_code', $itemCode)->count();
-                    if ($isItemCodeAlreadyExists > 0) {
-                        throw new ApiException('Item Code ' . $itemCode . ' Already Exists');
-                    }
+                // Item code uniqueness
+                $itemCode = trim((string) $product['item_code']);
+                if (Product::where('item_code', $itemCode)->exists()) {
+                    throw new ApiException('Item Code ' . $itemCode . ' Already Exists');
+                }
 
-                    // Tax
-                    $taxName = trim((string)($product['tax'] ?? ''));
-                    $tax = null;
-                    if ($taxName !== '') {
-                        $tax = Tax::where('name', $taxName)->first();
-                        if (!$tax) {
-                            throw new ApiException('Tax Not Found');
-                        }
-                    } elseif (!empty($product['tax_label']) || isset($product['tax_rate'])) {
-                        // If tax_label/tax_rate provided, create or fetch
-                        $label = (string)($product['tax_label'] ?? 'Tax');
-                        $rate  = isset($product['tax_rate']) ? (float)$product['tax_rate'] : 0.0;
-                        $tax = Tax::firstOrCreate(
-                            ['name' => $label],
-                            ['rate' => $rate]
-                        );
-                    }
+                // Tax resolve (by name, or by tax_label/tax_rate)
+                $tax = $this->resolveTax($product, $autoCreateTaxes);
 
-                    // Tax type validation (after normalization to inclusive/exclusive)
-                    $purchaseTaxType = trim((string) $product['purchase_tax_type']);
-                    if ($tax && !in_array(strtolower($purchaseTaxType), ['exclusive', 'inclusive'])) {
+                // Tax types
+                $purchaseTaxType = trim((string) $product['purchase_tax_type']);
+                $salesTaxType    = trim((string) $product['sales_tax_type']);
+                if ($tax) {
+                    if (!in_array(strtolower($purchaseTaxType), ['exclusive','inclusive'])) {
                         throw new ApiException('Purchase Tax Type must be inclusive or exclusive');
                     }
-
-                    $salesTaxType = trim((string) $product['sales_tax_type']);
-                    if ($tax && !in_array(strtolower($salesTaxType), ['exclusive', 'inclusive'])) {
+                    if (!in_array(strtolower($salesTaxType), ['exclusive','inclusive'])) {
                         throw new ApiException('Sales Tax Type must be inclusive or exclusive');
                     }
+                }
 
-                    // Warehouse resolution
-                    $allWarehouses = Warehouse::select('id')->get();
-                    if (array_key_exists('warehouse', $product) && trim((string)$product['warehouse']) !== '') {
-                        $warehouse = Warehouse::where('name', $product['warehouse'])->first();
-                        $currentWarehouse = warehouse();
-                        $createdWarehouseId = $warehouse && $warehouse->id ? $warehouse->id : $currentWarehouse->id;
-                    } else {
-                        $warehouse = warehouse();
-                        $createdWarehouseId = $warehouse->id;
+                // Warehouse for product owner record
+                if (array_key_exists('warehouse', $product) && trim((string)$product['warehouse']) !== '') {
+                    $inputWarehouse = Warehouse::where('name', $product['warehouse'])->first();
+                    $currentWarehouse = warehouse();
+                    $createdWarehouseId = $inputWarehouse && $inputWarehouse->id ? $inputWarehouse->id : $currentWarehouse->id;
+                } else {
+                    $createdWarehouseId = warehouse()->id;
+                }
+
+                // Create product
+                $newProduct = new Product();
+                $newProduct->name          = $productName;
+                $newProduct->warehouse_id  = $createdWarehouseId;
+                $newProduct->slug          = Str::slug($productName, '-');
+                $newProduct->barcode_symbology = $barcodeSymbology;
+                $newProduct->item_code     = $itemCode;
+                $newProduct->category_id   = $category->id;
+                $newProduct->brand_id      = $brand->id;
+                $newProduct->unit_id       = $unit->id;
+                $newProduct->user_id       = $user->id;
+                // Optional fields if present
+                if (!empty($product['description'])) {
+                    $newProduct->description = (string)$product['description'];
+                }
+                if (!empty($product['image_url'])) {
+                    $newProduct->image = (string)$product['image_url'];
+                }
+                $newProduct->save();
+                $this->incInserted();
+
+                // Numeric cleaning
+                $mrp            = $this->numericOrNull($product['mrp']);
+                $purchasePrice  = $this->numericOrZero($product['purchase_price']);
+                $salesPrice     = $this->numericOrZero($product['sales_price']);
+                $wholesalePrice = $this->numericOrNull($product['wholesale_price']);
+
+                $stockQuantityAlert = trim((string)$product['stock_quantitiy_alert']);
+                $stockQuantityAlert = ($stockQuantityAlert !== '') ? (int)$stockQuantityAlert : null;
+
+                $openingStock = trim((string)$product['opening_stock']);
+                $openingStock = ($openingStock !== '') ? (int)$openingStock : null;
+
+                $wholesaleQuantity = trim((string)$product['wholesale_quantity']);
+                $wholesaleQuantity = ($wholesaleQuantity !== '') ? (int)$wholesaleQuantity : null;
+
+                $openingStockDate = trim((string)$product['opening_stock_date']);
+                $openingStockDate = ($openingStockDate !== '') ? $openingStockDate : null;
+
+                // Create ProductDetails for all warehouses (your original behavior)
+                $allWarehouses = Warehouse::select('id')->get();
+                foreach ($allWarehouses as $allWarehouse) {
+                    $details = new ProductDetails();
+                    $details->warehouse_id       = $allWarehouse->id;
+                    $details->product_id         = $newProduct->id;
+                    $details->tax_id             = $tax ? $tax->id : null;
+                    $details->purchase_tax_type  = $purchaseTaxType !== '' ? strtolower($purchaseTaxType) : 'exclusive';
+                    $details->sales_tax_type     = $salesTaxType !== '' ? strtolower($salesTaxType) : 'exclusive';
+                    $details->mrp                = $mrp;
+                    $details->purchase_price     = $purchasePrice;
+                    $details->sales_price        = $salesPrice;
+                    $details->stock_quantitiy_alert = $stockQuantityAlert;
+                    $details->opening_stock      = $openingStock;
+                    $details->opening_stock_date = $openingStockDate;
+                    $details->wholesale_price    = $wholesalePrice;
+                    $details->wholesale_quantity = $wholesaleQuantity;
+                    $details->save();
+
+                    Common::recalculateOrderStock($details->warehouse_id, $newProduct->id);
+                }
+
+                // Save extra CSV columns as product_custom_fields (UPSERT) if enabled
+                if ($storeUnknownAsCustom) {
+                    $saved = $this->saveCustomFields($row, $newProduct->id, (int)$createdWarehouseId);
+                    if ($saved > 0) {
+                        $this->incCustomSaved($saved);
                     }
-
-                    // Create product
-                    $newProduct = new Product();
-                    $newProduct->name = $productName;
-                    $newProduct->warehouse_id = $createdWarehouseId;
-                    $newProduct->slug = Str::slug($productName, '-');
-                    $newProduct->barcode_symbology = $barcodeSymbology;
-                    $newProduct->item_code = $itemCode;
-                    $newProduct->category_id = $category->id;
-                    $newProduct->brand_id = $brand->id;
-                    $newProduct->unit_id = $unit->id;
-                    $newProduct->user_id = $user->id;
-                    $newProduct->save();
-
-                    // Numeric cleaning
-                    $mrp = $this->numericOrNull($product['mrp']);
-                    $purchasePrice = $this->numericOrZero($product['purchase_price']);
-                    $salesPrice = $this->numericOrZero($product['sales_price']);
-                    $wholesalePrice = $this->numericOrNull($product['wholesale_price']);
-
-                    $stockQuantityAlert = trim((string)$product['stock_quantitiy_alert']);
-                    $stockQuantityAlert = ($stockQuantityAlert !== '') ? (int)$stockQuantityAlert : null;
-
-                    $openingStock = trim((string)$product['opening_stock']);
-                    $openingStock = ($openingStock !== '') ? (int)$openingStock : null;
-
-                    $wholesaleQuantity = trim((string)$product['wholesale_quantity']);
-                    $wholesaleQuantity = ($wholesaleQuantity !== '') ? (int)$wholesaleQuantity : null;
-
-                    $openingStockDate = trim((string)$product['opening_stock_date']);
-                    $openingStockDate = ($openingStockDate !== '') ? $openingStockDate : null;
-
-                    // Create ProductDetails for all warehouses (your original behavior)
-                    foreach ($allWarehouses as $allWarehouse) {
-                        $newProductDetails = new ProductDetails();
-                        $newProductDetails->warehouse_id = $allWarehouse->id;
-                        $newProductDetails->product_id = $newProduct->id;
-                        $newProductDetails->tax_id = $tax ? $tax->id : null;
-                        $newProductDetails->purchase_tax_type = $purchaseTaxType !== '' ? strtolower($purchaseTaxType) : 'exclusive';
-                        $newProductDetails->sales_tax_type = $salesTaxType !== '' ? strtolower($salesTaxType) : 'exclusive';
-                        $newProductDetails->mrp = $mrp;
-                        $newProductDetails->purchase_price = $purchasePrice;
-                        $newProductDetails->sales_price = $salesPrice;
-                        $newProductDetails->stock_quantitiy_alert = $stockQuantityAlert;
-                        $newProductDetails->opening_stock = $openingStock;
-                        $newProductDetails->opening_stock_date = $openingStockDate;
-                        $newProductDetails->wholesale_price = $wholesalePrice;
-                        $newProductDetails->wholesale_quantity = $wholesaleQuantity;
-                        $newProductDetails->save();
-
-                        Common::recalculateOrderStock($newProductDetails->warehouse_id, $newProduct->id);
-                    }
-
-                    // Save extra CSV columns as product_custom_fields (UPSERT)
-                    $this->saveCustomFields($row, $newProduct->id, (int)$createdWarehouseId);
                 }
             }
         });
@@ -216,12 +270,12 @@ class ProductImport implements ToArray, WithHeadingRow
     {
         $r = $row; // keep original
 
-        // If description missing, make it empty (no longer strictly required)
+        // Ensure description key
         if (!array_key_exists('description', $r)) {
             $r['description'] = '';
         }
 
-        // unit_name/unit_code -> unit (use name)
+        // unit_name/unit_code -> unit (prefer name)
         if (!isset($r['unit']) || trim((string)$r['unit']) === '') {
             if (!empty($r['unit_name'])) {
                 $r['unit'] = $r['unit_name'];
@@ -253,7 +307,7 @@ class ProductImport implements ToArray, WithHeadingRow
             $r['tax'] = $r['tax_label'];
         }
 
-        // Ensure mandatory presence (defaults)
+        // Default fallbacks for expected keys
         foreach ([
             'purchase_tax_type' => 'exclusive',
             'sales_tax_type'    => 'exclusive',
@@ -280,47 +334,118 @@ class ProductImport implements ToArray, WithHeadingRow
     protected function mapTaxMode(string $mode): string
     {
         $m = strtolower(trim($mode));
-        if (in_array($m, ['with tax', 'inclusive', 'include'])) {
+        if (in_array($m, ['with tax','inclusive','include'])) {
             return 'inclusive';
         }
-        if (in_array($m, ['without tax', 'exclusive', 'exclude'])) {
+        if (in_array($m, ['without tax','exclusive','exclude'])) {
             return 'exclusive';
         }
-        // fallback to exclusive
         return 'exclusive';
     }
 
     protected function numericOrZero($val): float
     {
         if ($val === null || $val === '') return 0.0;
-        $s = str_replace([',', '-'], '', (string)$val);
+        $s = str_replace([',','-'], '', (string)$val);
         return is_numeric($s) ? (float)$s : 0.0;
     }
 
     protected function numericOrNull($val): ?float
     {
         if ($val === null || $val === '') return null;
-        $s = str_replace([',', '-'], '', (string)$val);
+        $s = str_replace([',','-'], '', (string)$val);
         return is_numeric($s) ? (float)$s : null;
     }
 
     /**
-     * Persist unknown CSV columns into product_custom_fields (UPSERT).
-     * Uses withoutGlobalScopes() because ProductCustomField has CompanyScope
-     * and a current_warehouse global scope.
+     * Resolve Tax by name (`tax`) or by (`tax_label`,`tax_rate`).
+     * If $autoCreate is true, create missing taxes.
      */
-    protected function saveCustomFields(array $row, int $productId, int $warehouseId): void
+    protected function resolveTax(array $product, bool $autoCreate): ?Tax
     {
+        $taxNameRaw = trim((string)($product['tax'] ?? ''));
+        $labelRaw   = trim((string)($product['tax_label'] ?? ''));
+        $rateRaw    = $product['tax_rate'] ?? null;
+        $rate       = is_numeric($rateRaw) ? (float)$rateRaw : null;
+
+        // Case 1: explicit `tax` name provided
+        if ($taxNameRaw !== '') {
+            // If the "name" is actually numeric, treat it as a rate (e.g., "18")
+            if (is_numeric($taxNameRaw)) {
+                $rate  = (float)$taxNameRaw;
+                $label = ($labelRaw !== '') ? $labelRaw : "Tax {$rate}%";
+                $existing = Tax::where('name', $label)->first();
+                if ($existing) return $existing;
+
+                if (!$autoCreate) {
+                    throw new ApiException('Tax Not Found');
+                }
+
+                $tax = Tax::firstOrCreate(
+                    ['name' => $label, 'company_id' => company()->id],
+                    ['rate' => $rate ?? 0.0]
+                );
+                $this->noteAuto('taxes', $label);
+                return $tax;
+            }
+
+            $found = Tax::where('name', $taxNameRaw)->first();
+            if ($found) return $found;
+
+            if (!$autoCreate) {
+                throw new ApiException('Tax Not Found');
+            }
+
+            $tax = Tax::firstOrCreate(
+                ['name' => $taxNameRaw, 'company_id' => company()->id],
+                ['rate' => $rate ?? 0.0]
+            );
+            $this->noteAuto('taxes', $taxNameRaw);
+            return $tax;
+        }
+
+        // Case 2: label+rate path
+        if ($labelRaw !== '' || $rate !== null) {
+            $label = ($labelRaw !== '') ? $labelRaw : "Tax " . ($rate ?? 0.0) . "%";
+            $found = Tax::where('name', $label)->first();
+            if ($found) return $found;
+
+            if (!$autoCreate) {
+                throw new ApiException('Tax Not Found');
+            }
+
+            $tax = Tax::firstOrCreate(
+                ['name' => $label, 'company_id' => company()->id],
+                ['rate' => $rate ?? 0.0]
+            );
+            $this->noteAuto('taxes', $label);
+            return $tax;
+        }
+
+        // No tax data provided
+        return null;
+    }
+
+    /**
+     * Persist unknown CSV columns into product_custom_fields (UPSERT).
+     * Returns how many fields were saved/updated.
+     */
+    protected function saveCustomFields(array $row, int $productId, int $warehouseId): int
+    {
+        $saved = 0;
+
         foreach ($row as $col => $val) {
             $fieldName = trim((string)$col);
+
             // skip empty header keys and standard/known columns
             if ($fieldName === '' || in_array($fieldName, $this->standardColumns, true)) {
                 continue;
             }
+
+            // ignore null/empty values
             if ($val === null) {
                 continue;
             }
-
             $fieldValue = is_scalar($val) ? (string)$val : json_encode($val);
             $fieldValue = trim($fieldValue);
             if ($fieldValue === '') {
@@ -337,6 +462,10 @@ class ProductImport implements ToArray, WithHeadingRow
                     'field_value'  => mb_substr($fieldValue, 0, 191),
                 ]
             );
+
+            $saved++;
         }
+
+        return $saved;
     }
 }
