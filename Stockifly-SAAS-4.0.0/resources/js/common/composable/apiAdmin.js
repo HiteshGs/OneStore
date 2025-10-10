@@ -5,137 +5,127 @@ import { message, notification } from "ant-design-vue";
 import common from "../composable/common";
 
 const api = () => {
-    const loading = ref(false);
-    const rules = ref({});
-    const { t } = useI18n();
-    const { appSetting } = common();
+  const loading = ref(false);
+  const rules = ref({});
+  const { t } = useI18n();
+  const { appSetting } = common();
 
-    const addEditRequestAdmin = (configObject) => {
-        loading.value = true;
-        const { url, data, success } = configObject;
-        var formData = {};
+  const successToast = (desc) => {
+    if (!desc) return;
+    notification.success({
+      placement: appSetting.value.rtl ? "bottomLeft" : "bottomRight",
+      message: t("common.success"),
+      description: desc,
+    });
+  };
 
-        // Replace undefined values to null
-        forEach(data, function (value, key) {
-            if (value == undefined) {
-                formData[key] = null;
-            } else {
-                formData[key] = value;
-            }
-        });
+  const extractError = (err) => {
+    // Axios puts payload under err.response
+    const resp = err?.response || {};
+    const status = resp.status;
+    const data = resp.data || {};
+    // Common API shapes:
+    // { message, error: { message, details: { field: [msg] } } }
+    const topMsg =
+      data?.error?.message ||
+      data?.message ||
+      (typeof data === "string" ? data : null) ||
+      "Unknown error";
+    const details = data?.error?.details || {};
+    return { status, data, topMsg, details };
+  };
 
-        axiosAdmin
-            .post(url, formData)
-            .then(response => {
-                if (configObject.successMessage) {
-                    notification.success({
-                        placement: appSetting.value.rtl ? "bottomLeft" : "bottomRight",
-                        message: t("common.success"),
-                        description: configObject.successMessage
-                    });
-                }
-                success(response.data);
-                loading.value = false;
-                rules.value = {};
-            })
-            .catch(errorResponse => {
-                var err = errorResponse.data;
-                const errorCode = errorResponse.status;
-                var errorRules = {};
+  const addEditRequestAdmin = (configObject) => {
+    loading.value = true;
+    const { url, data, success } = configObject;
+    const formData = {};
 
-                if (errorCode == 422) {
-                    if (err.error && typeof err.error.details != "undefined") {
-                        var keys = Object.keys(err.error.details);
-                        for (var i = 0; i < keys.length; i++) {
-                            var key = keys[i].replace(".", "\\.");
-                            errorRules[key] = {
-                                required: true,
-                                message: err.error.details[keys[i]][0],
-                            };
-                        }
-                    }
-                    rules.value = errorRules;
-                    message.error(t("common.fix_errors"));
-                }
+    forEach(data, (value, key) => {
+      formData[key] = value === undefined ? null : value;
+    });
 
-                if (err && err.message) {
-                    message.error(err.message);
-                    err = { error: { ...err } }
-                }
+    axiosAdmin
+      .post(url, formData)
+      .then((response) => {
+        successToast(configObject.successMessage);
+        success(response.data);
+        loading.value = false;
+        rules.value = {};
+      })
+      .catch((err) => {
+        const { status, topMsg, details } = extractError(err);
 
-                if (configObject.error) {
-                    configObject.error(err);
-                }
-                loading.value = false;
-            });
-    }
+        // Build rules for 422 validation payloads
+        if (status === 422 && details && typeof details === "object") {
+          const errorRules = {};
+          Object.keys(details).forEach((k) => {
+            const key = k.replace(".", "\\.");
+            errorRules[key] = { required: true, message: details[k][0] };
+          });
+          rules.value = errorRules;
+          message.error(t("common.fix_errors"));
+        } else {
+          message.error(topMsg);
+        }
 
-    const addEditFileRequestAdmin = (configObject) => {
-        loading.value = true;
-        const { url, data, success } = configObject;
-        const formData = new FormData();
+        // Help you debug in browser console
+        // eslint-disable-next-line no-console
+        console.error("API ERROR:", { status, err });
 
-        // Robust append: support both files and plain values
-        forEach(data, function (value, key) {
-            if (value === undefined || value === null) {
-                formData.append(key, "");
-            } else if (value?.originFileObj) {
-                const file = value.originFileObj;
-                formData.append(key, file, value.name || file.name);
-            } else {
-                formData.append(key, value);
-            }
-        });
+        if (configObject.error) configObject.error(err?.response?.data || err);
+        loading.value = false;
+      });
+  };
 
-        axiosAdmin
-            .post(url, formData, {
-                headers: { "Content-Type": "multipart/form-data" },
-            })
-            .then(response => {
-                if (configObject.successMessage) {
-                    notification.success({
-                        placement: appSetting.value.rtl ? "bottomLeft" : "bottomRight",
-                        message: t("common.success"),
-                        description: configObject.successMessage
-                    });
-                }
-                success(response.data);
-                loading.value = false;
-                rules.value = {};
-            })
-            .catch(errorResponse => {
-                var err = errorResponse.data;
-                const errorCode = errorResponse.status;
-                var errorRules = {};
+  const addEditFileRequestAdmin = (configObject) => {
+    loading.value = true;
+    const { url, data, success } = configObject;
+    const formData = new FormData();
 
-                if (errorCode == 422) {
-                    if (err.error && typeof err.error.details != "undefined") {
-                        var keys = Object.keys(err.error.details);
-                        for (var i = 0; i < keys.length; i++) {
-                            var key = keys[i].replace(".", "\\.");
-                            errorRules[key] = {
-                                required: true,
-                                message: err.error.details[keys[i]][0],
-                            };
-                        }
-                    }
-                    rules.value = errorRules;
-                    message.error(t("common.fix_errors"));
-                }
+    forEach(data, (value, key) => {
+      if (value === undefined || value === null) {
+        formData.append(key, "");
+      } else if (value?.originFileObj) {
+        const file = value.originFileObj;
+        formData.append(key, file, value.name || file.name);
+      } else {
+        formData.append(key, value);
+      }
+    });
 
-                if (err && err.message) {
-                    message.error(err.message);
-                    err = { error: { ...err } }
-                }
+    axiosAdmin
+      .post(url, formData, { headers: { "Content-Type": "multipart/form-data" } })
+      .then((response) => {
+        successToast(configObject.successMessage);
+        success(response.data);
+        loading.value = false;
+        rules.value = {};
+      })
+      .catch((err) => {
+        const { status, topMsg, details } = extractError(err);
 
-                if (configObject.error) {
-                    configObject.error(err);
-                }
-                loading.value = false;
-            });
-    }
+        if (status === 422 && details && typeof details === "object") {
+          const errorRules = {};
+          Object.keys(details).forEach((k) => {
+            const key = k.replace(".", "\\.");
+            errorRules[key] = { required: true, message: details[k][0] };
+          });
+          rules.value = errorRules;
+          message.error(t("common.fix_errors"));
+        } else {
+          message.error(topMsg);
+        }
 
-    return { loading, rules, addEditRequestAdmin, addEditFileRequestAdmin };
-}
+        // Debug:
+        // eslint-disable-next-line no-console
+        console.error("API FILE ERROR:", { status, err });
+
+        if (configObject.error) configObject.error(err?.response?.data || err);
+        loading.value = false;
+      });
+  };
+
+  return { loading, rules, addEditRequestAdmin, addEditFileRequestAdmin };
+};
 
 export default api;
