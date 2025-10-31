@@ -47,6 +47,7 @@ class WarehouseController extends ApiBaseController
                 $query = $query->where('warehouses.id', '=', $loggedUser->warehouse_id);
             }
         }
+    $query = $query->with(['parent:id,name']);
 
         return $query;
     }
@@ -144,6 +145,19 @@ class WarehouseController extends ApiBaseController
 
         return $warehouse;
     }
+public function options()
+{
+    $items = Warehouse::select('id', 'name')
+        ->orderBy('name')
+        ->get()
+        ->map(fn($w) => [
+            'id' => $w->xid,   // hashed id
+            'name' => $w->name,
+        ])
+        ->values();
+
+    return \Examyou\RestAPI\ApiResponse::make('Success', $items);
+}
 
     public function updateOnlineStoreStatus(UpdateOnlineStoreStatusRequest $request)
     {

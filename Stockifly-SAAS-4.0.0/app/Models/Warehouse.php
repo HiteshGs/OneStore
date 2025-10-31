@@ -14,18 +14,21 @@ class Warehouse extends BaseModel
 
     protected $table = 'warehouses';
 
-    protected $default = ['xid', 'name', 'company_id', 'slug', 'logo', 'logo_url', 'dark_logo', 'dark_logo_url', 'online_store_enabled', 'barcode_type'];
+    protected $default = ['xid', 'name', 'company_id', 'slug', 'logo', 'logo_url', 'dark_logo', 'dark_logo_url', 'online_store_enabled', 'barcode_type','parent_id'];
 
     protected $guarded = ['id', 'users', 'company_id', 'created_at', 'updated_at'];
 
-    protected $hidden = ['id'];
+    protected $hidden = ['id','parent_id'];
 
-    protected $appends = ['xid', 'x_company_id', 'logo_url', 'dark_logo_url', 'signature_url'];
+    protected $appends = ['xid', 'x_company_id', 'logo_url', 'dark_logo_url', 'signature_url','parent_id'];
 
     protected $filterable = ['id', 'name', 'email', 'phone', 'city', 'country', 'zipcode'];
 
     protected $hashableGetterFunctions = [
         'getXCompanyIdAttribute' => 'company_id',
+    'getXParentWarehouseIdAttribute' => 'parent_id',
+
+
     ];
 
     protected $casts = [
@@ -70,4 +73,15 @@ class Warehouse extends BaseModel
     {
         return $this->belongsToMany(StaffMember::class);
     }
+
+public function parent()
+{
+    return $this->belongsTo(Warehouse::class, 'parent_id');
+}
+
+public function children()
+{
+    return $this->hasMany(Warehouse::class, 'parent_id');
+}
+
 }

@@ -1,6 +1,7 @@
 <?php
 
 use Examyou\RestAPI\Facades\ApiRoute;
+use App\Http\Controllers\Api\WarehouseController; // ✅ add this import
 
 // Admin Routes
 ApiRoute::group(['namespace' => 'App\Http\Controllers\Api'], function () {
@@ -38,7 +39,8 @@ ApiRoute::group(['namespace' => 'App\Http\Controllers\Api'], function () {
 
         // Warehouse History
         ApiRoute::resource('warehouse-history', 'WarehouseHistoryController', ['as' => 'api', 'only' => ['index']]);
-    });
+ ApiRoute::get('warehouses/options', [    'as'   => 'api.warehouses.options', 'uses' => 'WarehouseController@options',]);
+
 
     // Routes Accessable to thouse user who have permissions realted to route
     ApiRoute::group(['middleware' => ['api.permission.check', 'api.auth.check', 'license-expire']], function () {
@@ -123,7 +125,7 @@ ApiRoute::group(['namespace' => 'App\Http\Controllers\Api'], function () {
         ApiRoute::get('verified-email', ['as' => 'api.settings.verified-email', 'uses' => 'AuthController@getVerfiedEmailSetting']);
     });
 });
-
+}); 
 //for hrm
 ApiRoute::group(['namespace' => 'App\Http\Controllers\Api\Hrm'], function () {
 
