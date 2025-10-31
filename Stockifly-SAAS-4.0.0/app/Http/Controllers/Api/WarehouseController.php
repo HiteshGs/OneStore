@@ -145,19 +145,25 @@ class WarehouseController extends ApiBaseController
 
         return $warehouse;
     }
-public function options()
+public function options(\Illuminate\Http\Request $request)
 {
-    $items = Warehouse::select('id', 'name')
-        ->orderBy('name')
-        ->get()
-        ->map(fn($w) => [
-            'id' => $w->xid,   // hashed id
-            'name' => $w->name,
-        ])
-        ->values();
+    $search = $request->get('search');
+
+    $query = Warehouse::select('id', 'name')->orderBy('name');
+
+    if ($search) {
+        // use 'ilike' if you're on Postgres; otherwise 'like'
+        $query->where('name', 'like', "%{$search}%");
+    }
+
+    $items = $query->get()->map(fn ($w) => [
+        'value' => $w->xid,   // hashed id for the dropdown value
+        'label' => $w->name,  // text to display
+    ])->values();
 
     return \Examyou\RestAPI\ApiResponse::make('Success', $items);
 }
+
 
     public function updateOnlineStoreStatus(UpdateOnlineStoreStatusRequest $request)
     {

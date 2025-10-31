@@ -479,11 +479,10 @@ export default defineComponent({
     const loadParentOptions = async (q = '') => {
       parentLoading.value = true;
       try {
-        const { data } = await axiosAdmin.get('warehouses/options', {
-          params: { search: q || undefined },
-        });
+const { data } = await axiosAdmin.get('warehouses/options', { params: { search: q || undefined } });
         // Expecting: [{ value: 'xid', label: 'Warehouse Name' }, ...]
-        parentOptions.value = Array.isArray(data?.data) ? data.data : (data || []);
+       parentOptions.value = Array.isArray(data?.data) ? data.data : (data || []);
+
       } catch (e) {
         // silently ignore; UI will just show empty list
       } finally {
