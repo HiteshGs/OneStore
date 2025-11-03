@@ -53,7 +53,7 @@
                 </a-col>
               </a-row>
 
-              <!-- =============== NEW: PARENT WAREHOUSE SELECT =============== -->
+              <!-- =============== PARENT WAREHOUSE SELECT =============== -->
               <a-row :gutter="16">
                 <a-col :xs="24" :sm="24" :md="12" :lg="12">
                   <a-form-item
@@ -73,6 +73,11 @@
                       @search="onSearchParent"
                       @dropdownVisibleChange="onParentOpen"
                     >
+                      <!-- Top-level (no parent) -->
+                      <a-select-option :value="null">
+                        {{ $t('common.none') }} ({{ $t('warehouse.top_level') }})
+                      </a-select-option>
+
                       <a-select-option
                         v-for="opt in parentOptionsFiltered"
                         :key="opt.value"
@@ -84,7 +89,7 @@
                   </a-form-item>
                 </a-col>
               </a-row>
-              <!-- ============================================================= -->
+              <!-- ======================================================= -->
 
               <a-row :gutter="16">
                 <a-col :xs="24" :sm="24" :md="16" :lg="16">
@@ -113,6 +118,7 @@
                       :checkedValue="1"
                       :unCheckedValue="0"
                     />
+                  </a-switch>
                   </a-form-item>
                 </a-col>
               </a-row>
@@ -381,22 +387,6 @@
           </a-row>
 
           <a-row :gutter="16">
-            <a-col :span="24">
-              <a-form-item
-                :label="$t('warehouse.show_discount_tax_on_invoice')"
-                name="show_discount_tax_on_invoice"
-                :help="rules.show_discount_tax_on_invoice ? rules.show_discount_tax_on_invoice.message : null"
-                :validateStatus="rules.show_discount_tax_on_invoice ? 'error' : null"
-              >
-                <a-radio-group v-model:value="formData.show_discount_tax_on_invoice" size="small" buttonStyle="solid">
-                  <a-radio-button :value="1">{{ $t('common.yes') }}</a-radio-button>
-                  <a-radio-button :value="0">{{ $t('common.no') }}</a-radio-button>
-                </a-radio-group>
-              </a-form-item>
-            </a-col>
-          </a-row>
-
-          <a-row :gutter="16">
             <a-col :xs="24" :sm="24" :md="12" :lg="12">
               <a-form-item
                 :label="$t('warehouse.barcode_type')"
@@ -427,7 +417,7 @@
 </template>
 
 <script>
-import { defineComponent, ref, reactive, computed, onMounted } from 'vue';
+import { defineComponent, ref, reactive, computed, onMounted, watch } from 'vue';
 import {
   PlusOutlined,
   LoadingOutlined,
@@ -461,38 +451,38 @@ export default defineComponent({
     const activeKey = ref('basic_details');
     const radioStyle = reactive({ display: 'flex', height: '30px', lineHeight: '30px' });
 
-    // ---------- NEW: Parent warehouse state ----------
+    // ---------- Parent warehouse state ----------
     const parentLoading = ref(false);
     const parentOptions = ref([]);
     const searchTerm = ref('');
 
-    // Ensure parent_id exists on formData (null by default)
+    // Ensure parent_id exists
     if (props.formData && typeof props.formData.parent_id === 'undefined') {
       props.formData.parent_id = null;
     }
 
     const currentXid = computed(() => props.formData?.xid || null);
     const parentOptionsFiltered = computed(() =>
-      parentOptions.value.filter((o) => o.value !== currentXid.value) // don't allow self as parent
+      parentOptions.value.filter((o) => o.value !== currentXid.value)
     );
 
     const loadParentOptions = async (q = '') => {
       parentLoading.value = true;
       try {
-const { data } = await axiosAdmin.get('warehouses/options', { params: { search: q || undefined } });
-        // Expecting: [{ value: 'xid', label: 'Warehouse Name' }, ...]
-       parentOptions.value = Array.isArray(data?.data) ? data.data : (data || []);
-
+        const { data } = await axiosAdmin.get('warehouses/options', { params: { search: q || undefined } });
+        parentOptions.value = Array.isArray(data?.data) ? data.data : (data || []);
       } catch (e) {
-        // silently ignore; UI will just show empty list
+        // ignore
       } finally {
         parentLoading.value = false;
       }
     };
 
+    let parentSearchTimer = null;
     const onSearchParent = (val) => {
       searchTerm.value = val;
-      loadParentOptions(val);
+      clearTimeout(parentSearchTimer);
+      parentSearchTimer = setTimeout(() => loadParentOptions(val), 250);
     };
 
     const onParentOpen = (visible) => {
@@ -501,11 +491,24 @@ const { data } = await axiosAdmin.get('warehouses/options', { params: { search: 
       }
     };
 
+    // Prefill parent_id on edit
+    const initParentField = () => {
+      if (!props.formData.parent_id && props.data?.x_parent_id) {
+        props.formData.parent_id = props.data.x_parent_id;
+      }
+    };
+
+    watch(() => props.visible, (isOpen) => {
+      if (isOpen) {
+        initParentField();
+        loadParentOptions(searchTerm.value);
+      }
+    });
+
     onMounted(() => {
-      // Preload minimal options when editing so dropdown isn't empty
       loadParentOptions();
     });
-    // --------------------------------------------------
+    // -------------------------------------------
 
     const onSubmit = () => {
       addEditRequestAdmin({
@@ -545,7 +548,6 @@ const { data } = await axiosAdmin.get('warehouses/options', { params: { search: 
       radioStyle,
       drawerWidth: window.innerWidth <= 991 ? '90%' : '45%',
 
-      // parent select bindings
       parentLoading,
       parentOptionsFiltered,
       onSearchParent,

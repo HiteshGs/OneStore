@@ -41,9 +41,8 @@ public function rules()
         'customers_visibility'     => 'required',
         'suppliers_visibility'     => 'required',
         'products_visibility'      => 'required',
-
-        // 👇 NEW: hashed XID from the dropdown, optional
-        'parent_id' => ['nullable', 'string'],
+        // NEW
+        'parent_id'                => ['nullable', 'string'], // hashed XID
     ];
 }
 }

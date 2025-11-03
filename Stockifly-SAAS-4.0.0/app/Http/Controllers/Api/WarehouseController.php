@@ -28,29 +28,29 @@ class WarehouseController extends ApiBaseController
     protected $updateRequest = UpdateRequest::class;
     protected $deleteRequest = DeleteRequest::class;
 
-    public function modifyIndex($query)
-    {
-        $loggedUser = user();
+public function modifyIndex($query)
+{
+    $loggedUser = user();
 
-        if ($loggedUser && !$loggedUser->hasRole('admin')) {
-            if ($loggedUser->user_type == 'staff_members') {
-                $query = $query->where(function ($newQuery) use ($loggedUser) {
-                    foreach ($loggedUser->userWarehouses as $userWaerehouseKey => $userWarehouse) {
-                        if ($userWaerehouseKey == 0) {
-                            $newQuery = $newQuery->where('warehouses.id', '=', $userWarehouse->warehouse_id);
-                        } else {
-                            $newQuery = $newQuery->orWhere('warehouses.id', '=', $userWarehouse->warehouse_id);
-                        }
-                    }
-                });
-            } else {
-                $query = $query->where('warehouses.id', '=', $loggedUser->warehouse_id);
-            }
+    if ($loggedUser && !$loggedUser->hasRole('admin')) {
+        if ($loggedUser->user_type == 'staff_members') {
+            $query = $query->where(function ($newQuery) use ($loggedUser) {
+                foreach ($loggedUser->userWarehouses as $idx => $uw) {
+                    $idx === 0
+                        ? $newQuery->where('warehouses.id', $uw->warehouse_id)
+                        : $newQuery->orWhere('warehouses.id', $uw->warehouse_id);
+                }
+            });
+        } else {
+            $query = $query->where('warehouses.id', $loggedUser->warehouse_id);
         }
+    }
+
+    // include parent (name) in list/show
     $query = $query->with(['parent:id,name']);
 
-        return $query;
-    }
+    return $query;
+}
 
     public function stored(Warehouse $warehouse)
     {
@@ -147,18 +147,16 @@ class WarehouseController extends ApiBaseController
     }
 public function options(\Illuminate\Http\Request $request)
 {
-    $search = $request->get('search');
+    $search = trim((string) $request->get('search', ''));
+    $query = \App\Models\Warehouse::select('id', 'name')->orderBy('name');
 
-    $query = Warehouse::select('id', 'name')->orderBy('name');
-
-    if ($search) {
-        // use 'ilike' if you're on Postgres; otherwise 'like'
+    if ($search !== '') {
         $query->where('name', 'like', "%{$search}%");
     }
 
     $items = $query->get()->map(fn ($w) => [
-        'value' => $w->xid,   // hashed id for the dropdown value
-        'label' => $w->name,  // text to display
+        'value' => $w->xid,  // hashed id
+        'label' => $w->name,
     ])->values();
 
     return \Examyou\RestAPI\ApiResponse::make('Success', $items);
@@ -176,7 +174,7 @@ public function options(\Illuminate\Http\Request $request)
 
         return ApiResponse::make('Success', []);
     }
-    public function storing(\App\Models\Warehouse $warehouse)
+public function storing(\App\Models\Warehouse $warehouse)
 {
     $raw = request('parent_id');
     $warehouse->parent_id = $raw ? $this->getIdFromHash($raw) : null;
@@ -184,9 +182,11 @@ public function options(\Illuminate\Http\Request $request)
     if ($warehouse->parent_id && !\App\Models\Warehouse::whereKey($warehouse->parent_id)->exists()) {
         throw new \Examyou\RestAPI\Exceptions\ApiException('Invalid parent warehouse.');
     }
+
     return $warehouse;
 }
 
+// Decode + guard before UPDATE
 public function updating(\App\Models\Warehouse $warehouse)
 {
     $raw = request('parent_id');
@@ -196,7 +196,7 @@ public function updating(\App\Models\Warehouse $warehouse)
         throw new \Examyou\RestAPI\Exceptions\ApiException('A warehouse cannot be its own parent.');
     }
 
-    // prevent circular hierarchy
+    // optional: prevent circular loops
     if ($decoded) {
         $cursor = \App\Models\Warehouse::with('parent')->find($decoded);
         while ($cursor) {
@@ -208,6 +208,7 @@ public function updating(\App\Models\Warehouse $warehouse)
     }
 
     $warehouse->parent_id = $decoded ?: null;
+
     return $warehouse;
 }
 
