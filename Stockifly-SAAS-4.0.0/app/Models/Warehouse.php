@@ -20,13 +20,13 @@ class Warehouse extends BaseModel
 
     protected $hidden = ['id','parent_id'];
 
-    protected $appends = ['xid', 'x_company_id', 'logo_url', 'dark_logo_url', 'signature_url','parent_id'];
+protected $appends = ['xid','x_company_id','logo_url','dark_logo_url','signature_url','x_parent_id'];
 
     protected $filterable = ['id', 'name', 'email', 'phone', 'city', 'country', 'zipcode'];
 
     protected $hashableGetterFunctions = [
         'getXCompanyIdAttribute' => 'company_id',
-    'getXParentWarehouseIdAttribute' => 'parent_id',
+  'getXParentIdAttribute'  => 'parent_id', // <-- this produces x_parent_id
 
 
     ];

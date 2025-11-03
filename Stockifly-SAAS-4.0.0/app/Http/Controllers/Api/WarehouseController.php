@@ -176,4 +176,39 @@ public function options(\Illuminate\Http\Request $request)
 
         return ApiResponse::make('Success', []);
     }
+    public function storing(\App\Models\Warehouse $warehouse)
+{
+    $raw = request('parent_id');
+    $warehouse->parent_id = $raw ? $this->getIdFromHash($raw) : null;
+
+    if ($warehouse->parent_id && !\App\Models\Warehouse::whereKey($warehouse->parent_id)->exists()) {
+        throw new \Examyou\RestAPI\Exceptions\ApiException('Invalid parent warehouse.');
+    }
+    return $warehouse;
+}
+
+public function updating(\App\Models\Warehouse $warehouse)
+{
+    $raw = request('parent_id');
+    $decoded = $raw ? $this->getIdFromHash($raw) : null;
+
+    if ($decoded && $decoded === $warehouse->id) {
+        throw new \Examyou\RestAPI\Exceptions\ApiException('A warehouse cannot be its own parent.');
+    }
+
+    // prevent circular hierarchy
+    if ($decoded) {
+        $cursor = \App\Models\Warehouse::with('parent')->find($decoded);
+        while ($cursor) {
+            if ((int) $cursor->id === (int) $warehouse->id) {
+                throw new \Examyou\RestAPI\Exceptions\ApiException('Circular hierarchy is not allowed.');
+            }
+            $cursor = $cursor->parent;
+        }
+    }
+
+    $warehouse->parent_id = $decoded ?: null;
+    return $warehouse;
+}
+
 }
