@@ -456,33 +456,68 @@ export default defineComponent({
     });
 
     // Load from existing index: /warehouses (company-scoped)
-    const loadParentList = async () => {
-      parentLoading.value = true;
-      try {
-        // Try common list params; adjust if your API expects different ones.
-        // We only need small fields and a big page size once.
-        const { data } = await axiosAdmin.get('warehouses', {
-          params: {
-            limit: 1000,
-            order: 'name',
-            // some stacks support "fields", if yours does uncomment:
-            // fields: 'xid,name'
-          }
-        });
+   const loadParentList = async () => {
+  parentLoading.value = true;
+  try {
+    const perPage = 200; // adjust if you expect more
+    let page = 1;
+    let results = [];
+    // Some backends return { data: { data: [], meta, links } }
+    // others use { data: [], meta, links }. Handle both.
+    // We’ll loop until there’s no next page.
 
-        // Accept either {data:{data:[...]}} or {data:[...]} shapes
-        const rows = data?.data?.data || data?.data || [];
-        // Ensure objects have xid + name
-        allWarehouses.value = rows.map(r => ({
-          xid: r.xid ?? r.x_id ?? r.id, // hashed id in your stack is r.xid
-          name: r.name ?? ''
-        }));
-      } catch (e) {
-        allWarehouses.value = [];
-      } finally {
-        parentLoading.value = false;
-      }
+    // helper to extract rows/meta/links regardless of envelope
+    const extract = (resp) => {
+      const root = resp?.data ?? {};
+      const body = root.data ?? root; // either {data:{...}} or {...}
+      const rows = body.data ?? body; // either {data:[...]} or [...]
+      const meta = body.meta ?? root.meta ?? null;
+      const links = body.links ?? root.links ?? null;
+      return { rows, meta, links };
     };
+
+    // fetch pages
+    /* eslint-disable no-constant-condition */
+    while (true) {
+      const { data } = await axiosAdmin.get('warehouses', {
+        params: {
+          per_page: perPage,
+          page,
+          fields: 'xid,name',   // ask only what we need
+          order: 'name',        // optional; remove if your API rejects it
+        },
+      });
+
+      const { rows, meta, links } = extract({ data });
+
+      // normalize to {xid,name}
+      const mapped = (Array.isArray(rows) ? rows : []).map(r => ({
+        xid: r.xid ?? r.x_id ?? r.id,
+        name: r.name ?? '',
+      }));
+
+      results = results.concat(mapped);
+
+      // stop when no next page
+      const hasNext =
+        (meta && meta.current_page && meta.current_page < meta.last_page) ||
+        (links && links.next);
+
+      if (!hasNext) break;
+      page += 1;
+    }
+
+    allWarehouses.value = results;
+  } catch (e) {
+    // Surface the server message to help debugging
+    const serverMsg = e?.response?.data?.error?.message || e?.message || 'Unknown error';
+    console.error('Failed to load warehouses:', serverMsg, e?.response?.data || e);
+    allWarehouses.value = [];
+  } finally {
+    parentLoading.value = false;
+  }
+};
+
 
     const onSearchParent = (val) => {
       searchTerm.value = val || '';
