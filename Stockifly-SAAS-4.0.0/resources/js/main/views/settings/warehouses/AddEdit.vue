@@ -53,7 +53,7 @@
                 </a-col>
               </a-row>
 
-              <!-- =============== PARENT WAREHOUSE SELECT =============== -->
+              <!-- =============== PARENT WAREHOUSE (from /warehouses) =============== -->
               <a-row :gutter="16">
                 <a-col :xs="24" :sm="24" :md="12" :lg="12">
                   <a-form-item
@@ -89,7 +89,7 @@
                   </a-form-item>
                 </a-col>
               </a-row>
-              <!-- ======================================================= -->
+              <!-- =================================================================== -->
 
               <a-row :gutter="16">
                 <a-col :xs="24" :sm="24" :md="16" :lg="16">
@@ -118,7 +118,6 @@
                       :checkedValue="1"
                       :unCheckedValue="0"
                     />
-                  </a-switch>
                   </a-form-item>
                 </a-col>
               </a-row>
@@ -371,22 +370,6 @@
           </a-row>
 
           <a-row :gutter="16">
-            <a-col :span="24">
-              <a-form-item
-                :label="$t('warehouse.show_mrp_on_invoice')"
-                name="show_mrp_on_invoice"
-                :help="rules.show_mrp_on_invoice ? rules.show_mrp_on_invoice.message : null"
-                :validateStatus="rules.show_mrp_on_invoice ? 'error' : null"
-              >
-                <a-radio-group v-model:value="formData.show_mrp_on_invoice" size="small" buttonStyle="solid">
-                  <a-radio-button :value="1">{{ $t('common.yes') }}</a-radio-button>
-                  <a-radio-button :value="0">{{ $t('common.no') }}</a-radio-button>
-                </a-radio-group>
-              </a-form-item>
-            </a-col>
-          </a-row>
-
-          <a-row :gutter="16">
             <a-col :xs="24" :sm="24" :md="12" :lg="12">
               <a-form-item
                 :label="$t('warehouse.barcode_type')"
@@ -451,47 +434,68 @@ export default defineComponent({
     const activeKey = ref('basic_details');
     const radioStyle = reactive({ display: 'flex', height: '30px', lineHeight: '30px' });
 
-    // ---------- Parent warehouse state ----------
+    // ---------- Parent warehouse (from /warehouses) ----------
     const parentLoading = ref(false);
-    const parentOptions = ref([]);
-    const searchTerm = ref('');
+    const allWarehouses = ref([]);     // raw list from API
+    const searchTerm = ref('');        // local search text
 
-    // Ensure parent_id exists
+    // Make sure parent_id exists on the form
     if (props.formData && typeof props.formData.parent_id === 'undefined') {
       props.formData.parent_id = null;
     }
 
     const currentXid = computed(() => props.formData?.xid || null);
-    const parentOptionsFiltered = computed(() =>
-      parentOptions.value.filter((o) => o.value !== currentXid.value)
-    );
 
-    const loadParentOptions = async (q = '') => {
+    // Turn warehouses into {value,label} and filter by search + exclude self
+    const parentOptionsFiltered = computed(() => {
+      const needle = (searchTerm.value || '').toLowerCase();
+      return allWarehouses.value
+        .filter(w => !currentXid.value || w.xid !== currentXid.value)
+        .filter(w => !needle || (w.name || '').toLowerCase().includes(needle))
+        .map(w => ({ value: w.xid, label: w.name }));
+    });
+
+    // Load from existing index: /warehouses (company-scoped)
+    const loadParentList = async () => {
       parentLoading.value = true;
       try {
-        const { data } = await axiosAdmin.get('warehouses/options', { params: { search: q || undefined } });
-        parentOptions.value = Array.isArray(data?.data) ? data.data : (data || []);
+        // Try common list params; adjust if your API expects different ones.
+        // We only need small fields and a big page size once.
+        const { data } = await axiosAdmin.get('warehouses', {
+          params: {
+            limit: 1000,
+            order: 'name',
+            // some stacks support "fields", if yours does uncomment:
+            // fields: 'xid,name'
+          }
+        });
+
+        // Accept either {data:{data:[...]}} or {data:[...]} shapes
+        const rows = data?.data?.data || data?.data || [];
+        // Ensure objects have xid + name
+        allWarehouses.value = rows.map(r => ({
+          xid: r.xid ?? r.x_id ?? r.id, // hashed id in your stack is r.xid
+          name: r.name ?? ''
+        }));
       } catch (e) {
-        // ignore
+        allWarehouses.value = [];
       } finally {
         parentLoading.value = false;
       }
     };
 
-    let parentSearchTimer = null;
     const onSearchParent = (val) => {
-      searchTerm.value = val;
-      clearTimeout(parentSearchTimer);
-      parentSearchTimer = setTimeout(() => loadParentOptions(val), 250);
+      searchTerm.value = val || '';
+      // local filter; no extra API call
     };
 
-    const onParentOpen = (visible) => {
-      if (visible && parentOptions.value.length === 0) {
-        loadParentOptions(searchTerm.value);
+    const onParentOpen = (isOpen) => {
+      if (isOpen && allWarehouses.value.length === 0) {
+        loadParentList();
       }
     };
 
-    // Prefill parent_id on edit
+    // Prefill parent_id on edit with hashed id from API response
     const initParentField = () => {
       if (!props.formData.parent_id && props.data?.x_parent_id) {
         props.formData.parent_id = props.data.x_parent_id;
@@ -501,14 +505,14 @@ export default defineComponent({
     watch(() => props.visible, (isOpen) => {
       if (isOpen) {
         initParentField();
-        loadParentOptions(searchTerm.value);
+        loadParentList();
       }
     });
 
     onMounted(() => {
-      loadParentOptions();
+      loadParentList();
     });
-    // -------------------------------------------
+    // ---------------------------------------------------------
 
     const onSubmit = () => {
       addEditRequestAdmin({
@@ -548,6 +552,7 @@ export default defineComponent({
       radioStyle,
       drawerWidth: window.innerWidth <= 991 ? '90%' : '45%',
 
+      // parent bindings
       parentLoading,
       parentOptionsFiltered,
       onSearchParent,
