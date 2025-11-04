@@ -214,15 +214,17 @@
 <script>
 import { defineComponent, ref, computed, onMounted, watch } from "vue";
 import { PlusOutlined, LoadingOutlined, SaveOutlined } from "@ant-design/icons-vue";
-// If you fixed apiAdmin.js import earlier, keep the .js extension:
 import apiAdmin from "../../../../common/composable/apiAdmin.js";
 import UserInfo from "../../../../common/components/user/UserInfo.vue";
-// Same here for common if your environment needs explicit .js
 import common from "../../../../common/composable/common.js";
 import ExpenseCategoryAddButton from "../expense-categories/AddButton.vue";
 import StaffAddButton from "../../users/StaffAddButton.vue";
 import UploadFile from "../../../../common/core/ui/file/UploadFile.vue";
 import DateTimePicker from "../../../../common/components/common/calendar/DateTimePicker.vue";
+
+// NOTE: axiosAdmin is assumed to be available globally in your app bootstrap.
+// If not, import your axios instance explicitly:
+// import axiosAdmin from "../../../../common/composable/axiosAdmin.js";
 
 export default defineComponent({
   props: [
@@ -256,26 +258,48 @@ export default defineComponent({
     // Payment Modes (API-driven)
     const paymentModes = ref([]);
     const paymentModesLoading = ref(false);
-    const paymentModesUrl = "settings/payment-modes?limit=10000";
+
+    // Try a few common endpoints; keep only the one that works.
+    const paymentModeCandidates = [
+      "payment-modes?limit=10000",
+      "payment-modes",
+      "payment_modes",
+      "payment-modes/list",
+    ];
 
     const newFormData = ref({});
 
-    const loadPaymentModes = async () => {
-      paymentModesLoading.value = true;
-      try {
-        const { data } = await axiosAdmin.get(paymentModesUrl);
-        // Support envelopes: {data:{data:[...]}} OR {data:[...]} OR [...]
-        const body = data?.data ?? data ?? [];
-        paymentModes.value = Array.isArray(body) ? body : [];
-      } catch (e) {
-        console.error("Failed to load payment modes:", e?.response?.data || e);
-        paymentModes.value = [];
-      } finally {
-        paymentModesLoading.value = false;
-      }
+    const extractRows = (data) => {
+      // Accept: {data:{data:[...]}}, {data:[...]}, or [...]
+      const body = data?.data ?? data ?? [];
+      if (Array.isArray(body)) return body;
+      if (Array.isArray(body?.data)) return body.data;
+      return [];
     };
 
-    // For mapping legacy payloads if needed
+    const loadPaymentModes = async () => {
+      paymentModesLoading.value = true;
+      for (const path of paymentModeCandidates) {
+        try {
+          const { data } = await axiosAdmin.get(path);
+          const rows = extractRows(data).map((r) => ({
+            xid: r.xid ?? r.id ?? r.uuid,
+            name: r.name ?? r.title ?? "",
+            mode_type: r.mode_type ?? r.type ?? null,
+          }));
+          if (rows.length) {
+            paymentModes.value = rows;
+            paymentModesLoading.value = false;
+            return;
+          }
+        } catch (_) {
+          // try next candidate
+        }
+      }
+      paymentModes.value = [];
+      paymentModesLoading.value = false;
+    };
+
     const selectedPayment = computed(() =>
       paymentModes.value.find((m) => m?.xid === newFormData.value?.payment_mode_id)
     );
@@ -291,17 +315,15 @@ export default defineComponent({
         paymentModesPromise,
       ]);
 
-      // Some backends return the array directly; normalize like we did above if needed
       expenseCategories.value = expenseCategoriesResponse.data;
       staffMembers.value = staffMembersResponse.data;
     });
 
     const onSubmit = () => {
-      // If your backend expects ONLY payment_mode_id, you can send newFormData.value as is.
-      // If it still expects "payment_mode" (a string name), also include it here:
+      // If your backend expects only payment_mode_id, payload is already fine.
+      // Including readable fields for compatibility (won't hurt if ignored).
       const payload = {
         ...newFormData.value,
-        // Legacy support: send readable name too (safe to keep if backend ignores it)
         payment_mode: selectedPayment.value?.name ?? null,
         payment_mode_type: selectedPayment.value?.mode_type ?? null,
       };
@@ -341,7 +363,7 @@ export default defineComponent({
             newFormData.value = {
               ...props.formData,
               date: dayjs().utc().format("YYYY-MM-DDTHH:mm:ssZ"),
-              payment_mode_id: null, // store selected mode xid
+              payment_mode_id: null, // selected payment mode xid
             };
           } else {
             newFormData.value = {
@@ -354,30 +376,30 @@ export default defineComponent({
     );
 
     return {
-      // UI / validation
+      // state
+      newFormData,
       loading,
       rules,
-      onClose,
-      onSubmit,
-      disabledDate,
-      permsArray,
 
-      // Lists
+      // lookups
       expenseCategories,
       staffMembers,
       paymentModes,
       paymentModesLoading,
 
-      // Layout
-      drawerWidth: window.innerWidth <= 991 ? "90%" : "45%",
+      // ui
       appSetting,
+      disabledDate,
+      permsArray,
+      drawerWidth: window.innerWidth <= 991 ? "90%" : "45%",
 
-      // Actions
+      // actions
+      onSubmit,
+      onClose,
       expenseCategoryAdded,
       staffMemberAdded,
 
-      // Form state
-      newFormData,
+      // helpers
       selectedPayment,
     };
   },
