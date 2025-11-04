@@ -95,10 +95,10 @@
             </a-select>
           </a-col>
 
-          <!-- ✅ Payment Mode (new) -->
+          <!-- ✅ Payment Mode filter (from API; sends hashed xid) -->
           <a-col :xs="24" :sm="24" :md="8" :lg="6" :xl="6">
             <a-select
-              v-model:value="filters.payment_mode"
+              v-model:value="filters.payment_mode_id"
               show-search
               style="width: 100%"
               :placeholder="$t('common.select_default_text', [$t('expense.payment_mode')])"
@@ -108,11 +108,11 @@
             >
               <a-select-option
                 v-for="m in paymentModes"
-                :key="m.value"
-                :value="m.value"
-                :label="m.label"
+                :key="m.xid"
+                :value="m.xid"
+                :label="m.name"
               >
-                {{ m.label }}
+                {{ m.name }}
               </a-select-option>
             </a-select>
           </a-col>
@@ -150,7 +150,7 @@
               onChange: onRowSelectChange,
               getCheckboxProps: (record) => ({ disabled: false, name: record.xid }),
             }"
-            :columns="columns"
+            :columns="columnsWithPaymentMode"
             :row-key="(record) => record.xid"
             :data-source="table.data"
             :pagination="table.pagination"
@@ -161,11 +161,16 @@
           >
             <template #bodyCell="{ column, text, record }">
               <template v-if="column.dataIndex === 'expense_category_id'">
-                {{ record.expense_category.name }}
+                {{ record.expense_category?.name }}
               </template>
 
               <template v-if="column.dataIndex === 'user_id'">
                 {{ record.user?.name }}
+              </template>
+
+              <!-- ✅ Show Payment Mode name -->
+              <template v-if="column.dataIndex === 'payment_mode_id'">
+                {{ record.payment_mode?.name || '—' }}
               </template>
 
               <template v-if="column.dataIndex === 'amount'">
@@ -250,28 +255,37 @@ export default {
     const crudVariables = crud();
     const { appSetting, permsArray, formatDate, selectedWarehouse, formatAmountCurrency } = common();
 
-    // ✅ Static list for payment modes (2-3 items as requested)
-    const paymentModes = ref([
-      { value: "cash",          label: "Cash" },
-      { value: "card",          label: "Card" },
-      { value: "bank_transfer", label: "Bank Transfer" },
-    ]);
+    // ✅ Payment Modes from API (hashed xid list)
+    const paymentModes = ref([]);
 
-    // Ensure filter key exists
-    if (!("payment_mode" in filters)) {
-      filters.payment_mode = null;
+    // filters: use payment_mode_id (hashed) so backend filterable works with your Hash cast
+    if (!("payment_mode_id" in filters)) {
+      filters.payment_mode_id = null;
+    }
+
+    // Make sure table hash-decodes this filter key
+    if (Array.isArray(crudVariables.hashableColumns.value)) {
+      if (!crudVariables.hashableColumns.value.includes("payment_mode_id")) {
+        crudVariables.hashableColumns.value.push("payment_mode_id");
+      }
     }
 
     const extraFilters = ref({ dates: [] });
 
     onMounted(() => {
+      // prefetch existing stuff
       getPreFetchData();
+
+      // load payment modes list for filter
+      // (axiosAdmin is available globally in your app)
+      axiosAdmin.get("payment-modes", { params: { limit: 10000 } }).then(({ data }) => {
+        paymentModes.value = Array.isArray(data) ? data : (data?.data ?? []);
+      });
 
       crudVariables.crudUrl.value = addEditUrl;
       crudVariables.langKey.value = "expense";
       crudVariables.initData.value = { ...initData };
       crudVariables.formData.value = { ...initData };
-      crudVariables.hashableColumns.value = [...hashableColumns];
 
       reFetchDatatable();
     });
@@ -279,11 +293,29 @@ export default {
     const reFetchDatatable = () => {
       crudVariables.tableUrl.value = {
         url,
-        filters,      // includes filters.payment_mode
+        filters,      // includes filters.payment_mode_id (hashed)
         extraFilters,
       };
       crudVariables.fetch({ page: 1 });
     };
+
+    // Inject a Payment Mode column into the existing columns (after user/amount)
+    const columnsWithPaymentMode = computed(() => {
+      const base = Array.isArray(columns.value) ? [...columns.value] : [];
+      const exists = base.some(c => c.dataIndex === "payment_mode_id");
+      if (!exists) {
+        // find insert index (after user or after amount)
+        let insertAt = base.findIndex(c => c.dataIndex === "amount");
+        if (insertAt === -1) insertAt = Math.max(1, base.length - 2);
+
+        base.splice(insertAt, 0, {
+          title: "Payment Mode",
+          dataIndex: "payment_mode_id",
+          sorter: false,
+        });
+      }
+      return base;
+    });
 
     const totals = computed(() => {
       let totalAmount = 0;
@@ -298,7 +330,7 @@ export default {
     });
 
     return {
-      columns,
+      columnsWithPaymentMode,
       appSetting,
       formatDate,
       ...crudVariables,
@@ -311,7 +343,6 @@ export default {
       formatAmountCurrency,
       totals,
 
-      // expose to template
       paymentModes,
     };
   },
