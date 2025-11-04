@@ -1020,6 +1020,7 @@ class LangTrans
             'edit' => 'Edit Expense Category',
             'created' => 'Expense Category Created Successfully',
             'updated' => 'Expense Category Updated Successfully',
+            'payment_mode' => 'Payment Mode',
             'deleted' => 'Expense Category Deleted Successfully',
             'delete_message' => 'Are you sure you want to delete this expense category?',
             'selected_delete_message' => 'Are you sure you want to delete selected expense category?',
