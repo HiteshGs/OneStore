@@ -14,25 +14,31 @@ class Warehouse extends BaseModel
 
     protected $table = 'warehouses';
 
-    protected $default = ['xid', 'name', 'company_id', 'slug', 'logo', 'logo_url', 'dark_logo', 'dark_logo_url', 'online_store_enabled', 'barcode_type','parent_id'];
+    // include x_parent_warehouse_id in defaults you expose
+    protected $default = [
+        'xid', 'name', 'company_id', 'slug', 'logo', 'logo_url', 'dark_logo',
+        'dark_logo_url', 'online_store_enabled', 'barcode_type', 'x_parent_warehouse_id'
+    ];
 
     protected $guarded = ['id', 'users', 'company_id', 'created_at', 'updated_at'];
 
-    protected $hidden = ['id','parent_id'];
+    // hide raw ids
+    protected $hidden = ['id', 'parent_warehouse_id'];
 
-protected $appends = ['xid','x_company_id','logo_url','dark_logo_url','signature_url','x_parent_id'];
+    // append computed hash fields
+    protected $appends = ['xid', 'x_company_id', 'logo_url', 'dark_logo_url', 'signature_url', 'x_parent_warehouse_id'];
 
     protected $filterable = ['id', 'name', 'email', 'phone', 'city', 'country', 'zipcode'];
 
     protected $hashableGetterFunctions = [
-        'getXCompanyIdAttribute' => 'company_id',
-  'getXParentIdAttribute'  => 'parent_id', // <-- this produces x_parent_id
-
-
+        'getXCompanyIdAttribute'           => 'company_id',
+        'getXParentWarehouseIdAttribute'   => 'parent_warehouse_id',
     ];
 
     protected $casts = [
         'company_id' => Hash::class . ':hash',
+        // this cast lets the API accept/return hashed values for the FK
+        'parent_warehouse_id' => Hash::class . ':hash',
         'show_email_on_invoice' => 'integer',
         'show_phone_on_invoice' => 'integer',
         'online_store_enabled' => 'integer',
@@ -44,29 +50,25 @@ protected $appends = ['xid','x_company_id','logo_url','dark_logo_url','signature
     protected static function boot()
     {
         parent::boot();
-
         static::addGlobalScope(new CompanyScope);
     }
 
     public function getLogoUrlAttribute()
     {
-        $warehouseLogoPath = Common::getFolderPath('warehouseLogoPath');
-
-        return $this->logo == null ? Common::getWarehouseImage('light', $this->company_id) : Common::getFileUrl($warehouseLogoPath, $this->logo);
+        $p = Common::getFolderPath('warehouseLogoPath');
+        return $this->logo == null ? Common::getWarehouseImage('light', $this->company_id) : Common::getFileUrl($p, $this->logo);
     }
 
     public function getDarkLogoUrlAttribute()
     {
-        $warehouseLogoPath = Common::getFolderPath('warehouseLogoPath');
-
-        return $this->dark_logo == null ? Common::getWarehouseImage('dark', $this->company_id) : Common::getFileUrl($warehouseLogoPath, $this->dark_logo);
+        $p = Common::getFolderPath('warehouseLogoPath');
+        return $this->dark_logo == null ? Common::getWarehouseImage('dark', $this->company_id) : Common::getFileUrl($p, $this->dark_logo);
     }
 
     public function getSignatureUrlAttribute()
     {
-        $warehouseLogoPath = Common::getFolderPath('warehouseLogoPath');
-
-        return $this->signature == null ? null : Common::getFileUrl($warehouseLogoPath, $this->signature);
+        $p = Common::getFolderPath('warehouseLogoPath');
+        return $this->signature == null ? null : Common::getFileUrl($p, $this->signature);
     }
 
     public function users()
@@ -74,14 +76,13 @@ protected $appends = ['xid','x_company_id','logo_url','dark_logo_url','signature
         return $this->belongsToMany(StaffMember::class);
     }
 
-public function parent()
-{
-    return $this->belongsTo(Warehouse::class, 'parent_id');
-}
+    public function parent()
+    {
+        return $this->belongsTo(Warehouse::class, 'parent_warehouse_id');
+    }
 
-public function children()
-{
-    return $this->hasMany(Warehouse::class, 'parent_id');
-}
-
+    public function children()
+    {
+        return $this->hasMany(Warehouse::class, 'parent_warehouse_id');
+    }
 }

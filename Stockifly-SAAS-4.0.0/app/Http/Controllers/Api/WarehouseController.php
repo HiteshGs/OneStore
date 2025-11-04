@@ -174,29 +174,32 @@ public function options(\Illuminate\Http\Request $request)
 
         return ApiResponse::make('Success', []);
     }
-public function storing(\App\Models\Warehouse $warehouse)
+public function storing(Warehouse $warehouse)
 {
-    $raw = request('parent_id');
-    $warehouse->parent_id = $raw ? $this->getIdFromHash($raw) : null;
+    // with the cast in place, this is enough;
+    // if a hashed value is sent, Eloquent will decode it into the real id
+    $raw = request('parent_warehouse_id');
 
-    if ($warehouse->parent_id && !\App\Models\Warehouse::whereKey($warehouse->parent_id)->exists()) {
+    // optional guard: self/invalid/cycle checks
+    $decoded = $raw ? $this->getIdFromHash($raw) : null;
+    if ($decoded && !\App\Models\Warehouse::whereKey($decoded)->exists()) {
         throw new \Examyou\RestAPI\Exceptions\ApiException('Invalid parent warehouse.');
     }
 
+    $warehouse->parent_warehouse_id = $decoded ?: null;
     return $warehouse;
 }
 
-// Decode + guard before UPDATE
-public function updating(\App\Models\Warehouse $warehouse)
+public function updating(Warehouse $warehouse)
 {
-    $raw = request('parent_id');
+    $raw = request('parent_warehouse_id');
     $decoded = $raw ? $this->getIdFromHash($raw) : null;
 
     if ($decoded && $decoded === $warehouse->id) {
         throw new \Examyou\RestAPI\Exceptions\ApiException('A warehouse cannot be its own parent.');
     }
 
-    // optional: prevent circular loops
+    // prevent circular loops
     if ($decoded) {
         $cursor = \App\Models\Warehouse::with('parent')->find($decoded);
         while ($cursor) {
@@ -207,8 +210,7 @@ public function updating(\App\Models\Warehouse $warehouse)
         }
     }
 
-    $warehouse->parent_id = $decoded ?: null;
-
+    $warehouse->parent_warehouse_id = $decoded ?: null;
     return $warehouse;
 }
 

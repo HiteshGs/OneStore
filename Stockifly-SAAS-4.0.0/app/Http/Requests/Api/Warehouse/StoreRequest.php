@@ -31,9 +31,7 @@ public function rules()
         'name'    => 'required',
         'slug'    => [
             'required',
-            Rule::unique('warehouses', 'slug')->where(function ($query) use ($company) {
-                return $query->where('company_id', $company->id);
-            }),
+            Rule::unique('warehouses', 'slug')->where(fn($q) => $q->where('company_id', $company->id)),
         ],
         'email'   => 'required|email',
         'phone'   => 'required|numeric',
@@ -41,8 +39,8 @@ public function rules()
         'customers_visibility'     => 'required',
         'suppliers_visibility'     => 'required',
         'products_visibility'      => 'required',
-        // NEW
-        'parent_id'                => ['nullable', 'string'], // hashed XID
+        // important: use the DB field name here
+        'parent_warehouse_id'      => ['nullable', 'exists:warehouses,id'],
     ];
 }
 }
