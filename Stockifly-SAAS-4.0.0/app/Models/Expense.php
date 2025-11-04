@@ -16,18 +16,31 @@ class Expense extends BaseModel
 
     protected $dates = ['date'];
 
+    // keep these as-is
     protected $guarded = ['id', 'warehouse_id', 'created_at', 'updated_at'];
 
-    protected $hidden = ['id', 'warehouse_id', 'user_id', 'expense_category_id'];
+    // HIDE the raw FK and expose x_*
+    protected $hidden = ['id', 'warehouse_id', 'user_id', 'expense_category_id', 'payment_mode_id'];
 
-    protected $appends = ['xid', 'x_warehouse_id', 'x_user_id', 'x_expense_category_id', 'bill_url'];
+    // append x_payment_mode_id like others
+    protected $appends = [
+        'xid',
+        'x_warehouse_id',
+        'x_user_id',
+        'x_expense_category_id',
+        'x_payment_mode_id',
+        'bill_url'
+    ];
 
-    protected $filterable = ['warehouse_id', 'expense_category_id', 'user_id'];
+    // allow filtering by this FK
+    protected $filterable = ['warehouse_id', 'expense_category_id', 'user_id', 'payment_mode_id'];
 
+    // map getter => column for hashids
     protected $hashableGetterFunctions = [
         'getXUserIdAttribute' => 'user_id',
         'getXWarehouseIdAttribute' => 'warehouse_id',
         'getXExpenseCategoryIdAttribute' => 'expense_category_id',
+        'getXPaymentModeIdAttribute' => 'payment_mode_id',
     ];
 
     protected $casts = [
@@ -35,6 +48,7 @@ class Expense extends BaseModel
         'warehouse_id' => Hash::class . ':hash',
         'user_id' => Hash::class . ':hash',
         'expense_category_id' => Hash::class . ':hash',
+        'payment_mode_id' => Hash::class . ':hash',
         'amount' => 'double',
     ];
 
@@ -65,5 +79,11 @@ class Expense extends BaseModel
     public function warehouse()
     {
         return $this->hasOne(Warehouse::class, 'id', 'warehouse_id');
+    }
+
+    // NEW: payment mode relation (follow your existing hasOne pattern)
+    public function paymentMode()
+    {
+        return $this->hasOne(PaymentMode::class, 'id', 'payment_mode_id');
     }
 }

@@ -27,6 +27,8 @@ class UpdateRequest extends FormRequest
 			'expense_category_id' => 'required',
 			'date' => 'required',
 			'amount' => 'required|numeric',
+			        'payment_mode_id'     => ['nullable','exists:payment_modes,id'], // <-- add this
+
 		];
 	}
 }
