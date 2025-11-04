@@ -3,34 +3,32 @@
 namespace App\Http\Requests\Api\Expense;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Vinkla\Hashids\Facades\Hashids;
 
 class StoreRequest extends FormRequest
 {
-	/**
-	 * Determine if the user is authorized to make this request.
-	 *
-	 * @return bool
-	 */
-	public function authorize()
-	{
-		return true;
-	}
+    public function authorize()
+    {
+        return true;
+    }
 
-	/**
-	 * Get the validation rules that apply to the request.
-	 *
-	 * @return array
-	 */
-	public function rules()
-	{
-		$rules = [
-			'expense_category_id' => 'required',
-			'date' => 'required',
-			'amount' => 'required|numeric',
-        'payment_mode_id'     => ['nullable','exists:payment_modes,id'], // <-- add this
+    // 🔹 decode hashids before validation
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('payment_mode_id') && $this->input('payment_mode_id') !== null) {
+            $raw = $this->input('payment_mode_id');
+            $decoded = is_numeric($raw) ? (int) $raw : (Hashids::decode($raw)[0] ?? null);
+            $this->merge(['payment_mode_id' => $decoded]);
+        }
+    }
 
-		];
-
-		return $rules;
-	}
+    public function rules()
+    {
+        return [
+            'expense_category_id' => 'required',
+            'date' => 'required|date',
+            'amount' => 'required|numeric',
+            'payment_mode_id' => ['nullable', 'exists:payment_modes,id'],
+        ];
+    }
 }
