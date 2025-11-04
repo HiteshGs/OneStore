@@ -14,73 +14,77 @@ class UpdateRequest extends FormRequest
         return true;
     }
 
+    /**
+     * Decode the hashed parent_warehouse_id (if present) before rules run.
+     */
+    protected function prepareForValidation(): void
+    {
+        $raw = $this->input('parent_warehouse_id');
+
+        if ($raw !== null && $raw !== '') {
+            // If the UI sends a hash, decode; if it sends a plain int, keep it.
+            $decoded = is_numeric($raw) ? (int) $raw : (Hashids::decode($raw)[0] ?? null);
+            $this->merge(['parent_warehouse_id' => $decoded]);
+        }
+    }
+
     public function rules()
     {
         $company = company();
 
         // Current warehouse integer ID (decoded from route xid)
-        $convertedId = Hashids::decode($this->route('warehouse'));
-        $id = isset($convertedId[0]) ? $convertedId[0] : null;
+        $decodedFromRoute = Hashids::decode($this->route('warehouse'));
+        $id = $decodedFromRoute[0] ?? null;
 
         return [
             'name'    => 'required',
             'slug'    => [
                 'required',
                 Rule::unique('warehouses', 'slug')
-                    ->where(function ($query) use ($company, $id) {
-                        return $query->where('company_id', $company->id)
-                                     ->where('id', '!=', $id);
-                    }),
+                    ->where(fn ($q) => $q->where('company_id', $company->id))
+                    ->ignore($id), // ignore current row on update
             ],
-            'email'                     => 'required|email',
-            'phone'                     => 'required|numeric',
-            'default_pos_order_status'  => 'required',
-            'customers_visibility'      => 'required',
-            'suppliers_visibility'      => 'required',
-            'products_visibility'       => 'required',
+            'email'                    => 'required|email',
+            'phone'                    => 'required|numeric',
+            'default_pos_order_status' => 'required',
+            'customers_visibility'     => 'required',
+            'suppliers_visibility'     => 'required',
+            'products_visibility'      => 'required',
 
-            // NEW: hashed xid (nullable)
-            'parent_id'                 => ['nullable', 'string'],
+            // now validated as a decoded integer id
+            'parent_warehouse_id'      => ['nullable','integer','exists:warehouses,id'],
         ];
     }
 
     /**
-     * Extra validation: decode parent_id, prevent self-parent and cycles.
+     * Extra validation: prevent self-parent and cycles.
      */
     public function withValidator($validator)
     {
         $validator->after(function ($v) {
             $routeDecoded = Hashids::decode($this->route('warehouse'));
-            $currentId = isset($routeDecoded[0]) ? $routeDecoded[0] : null;
+            $currentId = $routeDecoded[0] ?? null;
 
-            $rawParent = $this->input('parent_id');
-            if (!$rawParent) {
-                return;
-            }
-
-            $decoded = Hashids::decode($rawParent);
-            $parentId = isset($decoded[0]) ? $decoded[0] : null;
-
+            $parentId = $this->input('parent_warehouse_id'); // already decoded in prepareForValidation
             if (!$parentId) {
-                $v->errors()->add('parent_id', 'Invalid parent warehouse.');
                 return;
             }
 
-            // Block self-parenting
-            if ($currentId && $parentId === $currentId) {
-                $v->errors()->add('parent_id', 'A warehouse cannot be its own parent.');
+            // self-parent
+            if ($currentId && (int)$parentId === (int)$currentId) {
+                $v->errors()->add('parent_warehouse_id', 'A warehouse cannot be its own parent.');
                 return;
             }
 
-            // Block circular hierarchy (parent is a descendant of current)
+            // circular guard
             if ($currentId) {
                 $cursor = Warehouse::with('parent')->find($parentId);
                 while ($cursor) {
-                    if ((int) $cursor->id === (int) $currentId) {
-                        $v->errors()->add('parent_id', 'Circular hierarchy is not allowed.');
+                    if ((int)$cursor->id === (int)$currentId) {
+                        $v->errors()->add('parent_warehouse_id', 'Circular hierarchy is not allowed.');
                         break;
                     }
-                    $cursor = $cursor->parent; // uses relation
+                    $cursor = $cursor->parent;
                 }
             }
         });
