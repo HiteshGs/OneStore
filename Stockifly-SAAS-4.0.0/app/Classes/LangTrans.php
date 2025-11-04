@@ -1038,6 +1038,8 @@ class LangTrans
             'selected_delete_message' => 'Are you sure you want to delete selected expense?',
             'details' => 'Expense Details',
             'warehouse' => 'Warehouse',
+                        'payment_mode' => 'Payment Mode',
+
             'expense_category' => 'Expense Category',
             'date' => 'Date',
             'amount' => 'Amount',
