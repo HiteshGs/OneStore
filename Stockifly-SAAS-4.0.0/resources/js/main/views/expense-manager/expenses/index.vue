@@ -95,26 +95,25 @@
             </a-select>
           </a-col>
 
-          <!-- ✅ Payment Mode (new) -->
           <a-col :xs="24" :sm="24" :md="8" :lg="6" :xl="6">
             <a-select
-              v-model:value="filters.payment_mode"
-              show-search
-              style="width: 100%"
-              :placeholder="$t('common.select_default_text', [$t('expense.payment_mode')])"
-              @change="reFetchDatatable"
-              :allowClear="true"
-              optionFilterProp="label"
-            >
-              <a-select-option
-                v-for="m in paymentModes"
-                :key="m.value"
-                :value="m.value"
-                :label="m.label"
-              >
-                {{ m.label }}
-              </a-select-option>
-            </a-select>
+  v-model:value="filters.payment_mode_id"
+  :placeholder="$t('common.select_default_text', [$t('expense.payment_mode')])"
+  @change="reFetchDatatable"
+  :allowClear="true"
+  show-search
+  optionFilterProp="label"
+>
+  <a-select-option
+    v-for="m in preFetchData.paymentModes"
+    :key="m.xid"
+    :value="m.xid"
+    :label="m.name"
+  >
+    {{ m.name }}
+  </a-select-option>
+</a-select>
+
           </a-col>
 
           <!-- Date Range -->
@@ -171,6 +170,9 @@
               <template v-if="column.dataIndex === 'amount'">
                 {{ formatAmountCurrency(text) }}
               </template>
+<template v-if="column.dataIndex === 'payment_mode_id'">
+  {{ record.payment_mode?.name || '—' }}
+</template>
 
               <template v-if="column.dataIndex === 'date'">
                 {{ formatDate(record.date) }}
