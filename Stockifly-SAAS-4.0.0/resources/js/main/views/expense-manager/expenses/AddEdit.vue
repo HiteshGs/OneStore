@@ -23,27 +23,7 @@
             :validateStatus="rules.expense_category_id ? 'error' : null"
             class="required"
           >
-            <span style="display: flex">
-              <a-select
-                v-model:value="newFormData.expense_category_id"
-                :placeholder="
-                  $t('common.select_default_text', [$t('expense.expense_category')])
-                "
-                :allowClear="true"
-                optionFilterProp="label"
-                show-search
-              >
-                <a-select-option
-                  v-for="expenseCategory in expenseCategories"
-                  :key="expenseCategory.xid"
-                  :value="expenseCategory.xid"
-                  :label="expenseCategory.name"
-                >
-                  {{ expenseCategory.name }}
-                </a-select-option>
-              </a-select>
-              <ExpenseCategoryAddButton @onAddSuccess="expenseCategoryAdded" />
-            </span>
+           
           </a-form-item>
         </a-col>
 
