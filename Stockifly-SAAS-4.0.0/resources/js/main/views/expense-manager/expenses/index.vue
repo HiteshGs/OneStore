@@ -171,6 +171,9 @@
               <template v-if="column.dataIndex === 'amount'">
                 {{ formatAmountCurrency(text) }}
               </template>
+<template v-if="column.dataIndex === 'payment_mode_id'">
+  {{ record.payment_mode?.name || '—' }}
+</template>
 
               <template v-if="column.dataIndex === 'date'">
                 {{ formatDate(record.date) }}
