@@ -409,7 +409,8 @@ import {
   EyeOutlined,
   SettingOutlined,
 } from '@ant-design/icons-vue';
-import apiAdmin, { axiosAdmin } from '../../../../common/composable/apiAdmin';
+import apiAdmin from '../../../../common/composable/apiAdmin.js';
+
 import Upload from '../../../../common/core/ui/file/Upload.vue';
 import common from '../../../../common/composable/common';
 import { useStore } from 'vuex';
