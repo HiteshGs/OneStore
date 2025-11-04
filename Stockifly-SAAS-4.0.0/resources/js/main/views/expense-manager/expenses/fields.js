@@ -59,7 +59,7 @@ const fields = () => {
     { title: t("expense.date"),             dataIndex: "date",               sorter: true },
     { title: t("expense.created_by_user"),  dataIndex: "user_id",            sorter: true },
     // ✅ show name in list view
-    { title: t("expense.payment_mode"),     dataIndex: "payment_mode_id",    sorter: false },
+    { title: t("Payment Mode"),     dataIndex: "payment_mode_id",    sorter: false },
     { title: t("common.action"),            dataIndex: "action" },
   ];
 

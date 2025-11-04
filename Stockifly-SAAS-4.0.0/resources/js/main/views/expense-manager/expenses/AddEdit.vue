@@ -124,14 +124,14 @@
       <a-row :gutter="16">
         <a-col :xs="24" :sm="24" :md="12" :lg="12">
           <a-form-item
-            :label="$t('expense.payment_mode')"
+            :label="$t('Payment Mode')"
             name="payment_mode_id"
             :help="rules.payment_mode_id ? rules.payment_mode_id.message : null"
             :validateStatus="rules.payment_mode_id ? 'error' : null"
           >
             <a-select
               v-model:value="newFormData.payment_mode_id"
-              :placeholder="$t('common.select_default_text', [$t('expense.payment_mode')])"
+              :placeholder="$t('common.select_default_text', [$t('Payment Mode')])"
               :allowClear="true"
               optionFilterProp="label"
               show-search

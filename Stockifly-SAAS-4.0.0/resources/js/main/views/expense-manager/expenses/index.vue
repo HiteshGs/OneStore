@@ -98,7 +98,7 @@
           <a-col :xs="24" :sm="24" :md="8" :lg="6" :xl="6">
             <a-select
   v-model:value="filters.payment_mode_id"
-  :placeholder="$t('common.select_default_text', [$t('expense.payment_mode')])"
+  :placeholder="$t('common.select_default_text', [$t('Payment Mode')])"
   @change="reFetchDatatable"
   :allowClear="true"
   show-search
