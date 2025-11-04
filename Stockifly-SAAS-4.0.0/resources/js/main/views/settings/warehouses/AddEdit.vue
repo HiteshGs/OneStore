@@ -10,7 +10,7 @@
   >
     <a-form layout="vertical">
       <a-tabs v-model:activeKey="activeKey">
-        <!-- ===================== BASIC DETAILS ===================== -->
+        <!-- BASIC DETAILS -->
         <a-tab-pane key="basic_details">
           <template #tab>
             <span>
@@ -37,6 +37,7 @@
                     />
                   </a-form-item>
                 </a-col>
+
                 <a-col :xs="24" :sm="24" :md="12" :lg="12">
                   <a-form-item
                     :label="$t('warehouse.slug')"
@@ -53,17 +54,17 @@
                 </a-col>
               </a-row>
 
-              <!-- =============== PARENT WAREHOUSE (from /warehouses) =============== -->
+              <!-- PARENT WAREHOUSE -->
               <a-row :gutter="16">
                 <a-col :xs="24" :sm="24" :md="12" :lg="12">
                   <a-form-item
                     :label="$t('warehouse.parent_warehouse')"
-                    name="parent_id"
-                    :help="rules.parent_id ? rules.parent_id.message : null"
-                    :validateStatus="rules.parent_id ? 'error' : null"
+                    name="parent_warehouse_id"
+                    :help="rules.parent_warehouse_id ? rules.parent_warehouse_id.message : null"
+                    :validateStatus="rules.parent_warehouse_id ? 'error' : null"
                   >
                     <a-select
-                      v-model:value="formData.parent_id"
+                      v-model:value="formData.parent_warehouse_id"
                       show-search
                       allowClear
                       :placeholder="$t('common.placeholder_default_text', [$t('warehouse.parent_warehouse')])"
@@ -73,7 +74,6 @@
                       @search="onSearchParent"
                       @dropdownVisibleChange="onParentOpen"
                     >
-                      <!-- Top-level (no parent) -->
                       <a-select-option :value="null">
                         {{ $t('common.none') }} ({{ $t('warehouse.top_level') }})
                       </a-select-option>
@@ -89,7 +89,7 @@
                   </a-form-item>
                 </a-col>
               </a-row>
-              <!-- =================================================================== -->
+              <!-- /PARENT WAREHOUSE -->
 
               <a-row :gutter="16">
                 <a-col :xs="24" :sm="24" :md="16" :lg="16">
@@ -113,11 +113,7 @@
                     :help="rules.show_email_on_invoice ? rules.show_email_on_invoice.message : null"
                     :validateStatus="rules.show_email_on_invoice ? 'error' : null"
                   >
-                    <a-switch
-                      v-model:checked="formData.show_email_on_invoice"
-                      :checkedValue="1"
-                      :unCheckedValue="0"
-                    />
+                    <a-switch v-model:checked="formData.show_email_on_invoice" :checkedValue="1" :unCheckedValue="0" />
                   </a-form-item>
                 </a-col>
               </a-row>
@@ -144,15 +140,10 @@
                     :help="rules.show_phone_on_invoice ? rules.show_phone_on_invoice.message : null"
                     :validateStatus="rules.show_phone_on_invoice ? 'error' : null"
                   >
-                    <a-switch
-                      v-model:checked="formData.show_phone_on_invoice"
-                      :checkedValue="1"
-                      :unCheckedValue="0"
-                    />
+                    <a-switch v-model:checked="formData.show_phone_on_invoice" :checkedValue="1" :unCheckedValue="0" />
                   </a-form-item>
                 </a-col>
-              </a-row>
-            </a-col>
+              </a-row>            </a-col>
           </a-row>
 
           <a-row :gutter="16">

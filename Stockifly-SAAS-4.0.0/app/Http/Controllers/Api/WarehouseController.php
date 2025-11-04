@@ -28,29 +28,39 @@ class WarehouseController extends ApiBaseController
     protected $updateRequest = UpdateRequest::class;
     protected $deleteRequest = DeleteRequest::class;
 
-public function modifyIndex($query)
-{
-    $loggedUser = user();
+    public function modifyIndex($query)
+    {
+        $loggedUser = user();
 
-    if ($loggedUser && !$loggedUser->hasRole('admin')) {
-        if ($loggedUser->user_type == 'staff_members') {
-            $query = $query->where(function ($newQuery) use ($loggedUser) {
-                foreach ($loggedUser->userWarehouses as $idx => $uw) {
-                    $idx === 0
-                        ? $newQuery->where('warehouses.id', $uw->warehouse_id)
-                        : $newQuery->orWhere('warehouses.id', $uw->warehouse_id);
-                }
-            });
-        } else {
-            $query = $query->where('warehouses.id', $loggedUser->warehouse_id);
+        if ($loggedUser && !$loggedUser->hasRole('admin')) {
+            if ($loggedUser->user_type == 'staff_members') {
+                $query = $query->where(function ($newQuery) use ($loggedUser) {
+                    foreach ($loggedUser->userWarehouses as $idx => $uw) {
+                        $idx === 0
+                            ? $newQuery->where('warehouses.id', $uw->warehouse_id)
+                            : $newQuery->orWhere('warehouses.id', $uw->warehouse_id);
+                    }
+                });
+            } else {
+                $query = $query->where('warehouses.id', $loggedUser->warehouse_id);
+            }
         }
+
+        // include parent for list/show
+        return $query->with(['parent:id,name']);
     }
 
-    // include parent (name) in list/show
-    $query = $query->with(['parent:id,name']);
+    public function storing(Warehouse $warehouse)
+    {
+        // request value already decoded by StoreRequest::prepareForValidation
+        $parentId = request('parent_warehouse_id');
+        if ($parentId && !Warehouse::whereKey($parentId)->exists()) {
+            throw new ApiException('Invalid parent warehouse.');
+        }
 
-    return $query;
-}
+        $warehouse->parent_warehouse_id = $parentId ?: null;
+        return $warehouse;
+    }
 
     public function stored(Warehouse $warehouse)
     {
@@ -76,14 +86,13 @@ public function modifyIndex($query)
         $allProducts = Product::select('id')
             ->where('product_type', 'single')
             ->whereNotNull('parent_id')->get();
+
         foreach ($allProducts as $allProduct) {
-            // Getting product details for company default warehouse
             $defaultWarehouseProductDetails = ProductDetails::withoutGlobalScope('current_warehouse')
                 ->where('warehouse_id', '=', $companyWarehouse->id)
                 ->where('product_id', '=', $allProduct->id)
                 ->first();
 
-            // Inserting all products details for this warhouse
             $productDetails = new ProductDetails();
             $productDetails->warehouse_id = $warehouse->id;
             $productDetails->product_id = $allProduct->id;
@@ -98,16 +107,15 @@ public function modifyIndex($query)
             $productDetails->wholesale_quantity = $defaultWarehouseProductDetails->wholesale_quantity;
             $productDetails->save();
 
-            // Common::updateProductCustomFields($allProduct, $productDetails->warehouse_id);
             Common::recalculateOrderStock($productDetails->warehouse_id, $allProduct->id);
         }
 
         // Creating user Details for each customer and supplier
-        // For this created warehouse
         $allCustomerSuppliers = Customer::withoutGlobalScope('type')
             ->where('user_type', 'suppliers')
             ->orWhere('user_type', 'customers')
             ->get();
+
         foreach ($allCustomerSuppliers as $allCustomerSupplier) {
             $userDetails = new UserDetails();
             $userDetails->warehouse_id = $warehouse->xid;
@@ -115,6 +123,30 @@ public function modifyIndex($query)
             $userDetails->credit_period = 30;
             $userDetails->save();
         }
+    }
+
+    public function updating(Warehouse $warehouse)
+    {
+        // request value already decoded by UpdateRequest::prepareForValidation
+        $parentId = request('parent_warehouse_id');
+
+        if ($parentId && (int)$parentId === (int)$warehouse->id) {
+            throw new ApiException('A warehouse cannot be its own parent.');
+        }
+
+        // optional: circular guard
+        if ($parentId) {
+            $cursor = Warehouse::with('parent')->find($parentId);
+            while ($cursor) {
+                if ((int)$cursor->id === (int)$warehouse->id) {
+                    throw new ApiException('Circular hierarchy is not allowed.');
+                }
+                $cursor = $cursor->parent;
+            }
+        }
+
+        $warehouse->parent_warehouse_id = $parentId ?: null;
+        return $warehouse;
     }
 
     public function updated(Warehouse $warehouse)
@@ -138,30 +170,30 @@ public function modifyIndex($query)
         }
 
         $warehouseStaffMemberCount = User::where('warehouse_id', $warehouse->id)->count();
-
         if ($warehouseStaffMemberCount > 0) {
             throw new ApiException('This warehouse have active staff member(s). Either delete or change their warehouse before deleteing this');
         }
 
         return $warehouse;
     }
-public function options(\Illuminate\Http\Request $request)
-{
-    $search = trim((string) $request->get('search', ''));
-    $query = \App\Models\Warehouse::select('id', 'name')->orderBy('name');
 
-    if ($search !== '') {
-        $query->where('name', 'like', "%{$search}%");
+    // small helper endpoint for async select
+    public function options(\Illuminate\Http\Request $request)
+    {
+        $search = trim((string) $request->get('search', ''));
+        $query = Warehouse::select('id', 'name')->orderBy('name');
+
+        if ($search !== '') {
+            $query->where('name', 'like', "%{$search}%");
+        }
+
+        $items = $query->get()->map(fn ($w) => [
+            'value' => $w->xid,  // hashed id
+            'label' => $w->name,
+        ])->values();
+
+        return ApiResponse::make('Success', $items);
     }
-
-    $items = $query->get()->map(fn ($w) => [
-        'value' => $w->xid,  // hashed id
-        'label' => $w->name,
-    ])->values();
-
-    return \Examyou\RestAPI\ApiResponse::make('Success', $items);
-}
-
 
     public function updateOnlineStoreStatus(UpdateOnlineStoreStatusRequest $request)
     {
@@ -174,44 +206,4 @@ public function options(\Illuminate\Http\Request $request)
 
         return ApiResponse::make('Success', []);
     }
-public function storing(Warehouse $warehouse)
-{
-    // with the cast in place, this is enough;
-    // if a hashed value is sent, Eloquent will decode it into the real id
-    $raw = request('parent_warehouse_id');
-
-    // optional guard: self/invalid/cycle checks
-    $decoded = $raw ? $this->getIdFromHash($raw) : null;
-    if ($decoded && !\App\Models\Warehouse::whereKey($decoded)->exists()) {
-        throw new \Examyou\RestAPI\Exceptions\ApiException('Invalid parent warehouse.');
-    }
-
-    $warehouse->parent_warehouse_id = $decoded ?: null;
-    return $warehouse;
-}
-
-public function updating(Warehouse $warehouse)
-{
-    $raw = request('parent_warehouse_id');
-    $decoded = $raw ? $this->getIdFromHash($raw) : null;
-
-    if ($decoded && $decoded === $warehouse->id) {
-        throw new \Examyou\RestAPI\Exceptions\ApiException('A warehouse cannot be its own parent.');
-    }
-
-    // prevent circular loops
-    if ($decoded) {
-        $cursor = \App\Models\Warehouse::with('parent')->find($decoded);
-        while ($cursor) {
-            if ((int) $cursor->id === (int) $warehouse->id) {
-                throw new \Examyou\RestAPI\Exceptions\ApiException('Circular hierarchy is not allowed.');
-            }
-            $cursor = $cursor->parent;
-        }
-    }
-
-    $warehouse->parent_warehouse_id = $decoded ?: null;
-    return $warehouse;
-}
-
 }

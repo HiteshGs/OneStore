@@ -14,36 +14,45 @@ class Warehouse extends BaseModel
 
     protected $table = 'warehouses';
 
-    // include x_parent_warehouse_id in defaults you expose
+    // include parent_warehouse_id/x_parent_warehouse_id in default payload
     protected $default = [
-        'xid', 'name', 'company_id', 'slug', 'logo', 'logo_url', 'dark_logo',
-        'dark_logo_url', 'online_store_enabled', 'barcode_type', 'x_parent_warehouse_id'
+        'xid',
+        'name',
+        'company_id',
+        'slug',
+        'logo',
+        'logo_url',
+        'dark_logo',
+        'dark_logo_url',
+        'online_store_enabled',
+        'barcode_type',
+        'parent_warehouse_id',
+        'x_parent_warehouse_id',
     ];
 
     protected $guarded = ['id', 'users', 'company_id', 'created_at', 'updated_at'];
 
-    // hide raw ids
-    protected $hidden = ['id', 'parent_warehouse_id'];
+    // hide raw ints
+    protected $hidden = ['id', 'company_id', 'parent_warehouse_id'];
 
-    // append computed hash fields
-    protected $appends = ['xid', 'x_company_id', 'logo_url', 'dark_logo_url', 'signature_url', 'x_parent_warehouse_id'];
+    // expose hashed ids + computed urls
+    protected $appends = ['xid','x_company_id','logo_url','dark_logo_url','signature_url','x_parent_warehouse_id'];
 
     protected $filterable = ['id', 'name', 'email', 'phone', 'city', 'country', 'zipcode'];
 
     protected $hashableGetterFunctions = [
         'getXCompanyIdAttribute'           => 'company_id',
-        'getXParentWarehouseIdAttribute'   => 'parent_warehouse_id',
+        'getXParentWarehouseIdAttribute'   => 'parent_warehouse_id', // -> x_parent_warehouse_id
     ];
 
     protected $casts = [
-        'company_id' => Hash::class . ':hash',
-        // this cast lets the API accept/return hashed values for the FK
-        'parent_warehouse_id' => Hash::class . ':hash',
-        'show_email_on_invoice' => 'integer',
-        'show_phone_on_invoice' => 'integer',
-        'online_store_enabled' => 'integer',
-        'is_default' => 'integer',
-        'show_mrp_on_invoice' => 'integer',
+        'company_id'                 => Hash::class . ':hash',
+        'parent_warehouse_id'        => Hash::class . ':hash',
+        'show_email_on_invoice'      => 'integer',
+        'show_phone_on_invoice'      => 'integer',
+        'online_store_enabled'       => 'integer',
+        'is_default'                 => 'integer',
+        'show_mrp_on_invoice'        => 'integer',
         'show_discount_tax_on_invoice' => 'integer',
     ];
 
@@ -78,11 +87,11 @@ class Warehouse extends BaseModel
 
     public function parent()
     {
-        return $this->belongsTo(Warehouse::class, 'parent_warehouse_id');
+        return $this->belongsTo(self::class, 'parent_warehouse_id');
     }
 
     public function children()
     {
-        return $this->hasMany(Warehouse::class, 'parent_warehouse_id');
+        return $this->hasMany(self::class, 'parent_warehouse_id');
     }
 }
