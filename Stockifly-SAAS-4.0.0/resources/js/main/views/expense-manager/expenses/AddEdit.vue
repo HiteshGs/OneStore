@@ -26,9 +26,7 @@
             <span style="display: flex">
               <a-select
                 v-model:value="newFormData.expense_category_id"
-                :placeholder="
-                  $t('common.select_default_text', [$t('expense.expense_category')])
-                "
+                :placeholder="$t('common.select_default_text', [$t('expense.expense_category')])"
                 :allowClear="true"
                 optionFilterProp="label"
                 show-search
@@ -122,29 +120,31 @@
         </a-col>
       </a-row>
 
-      <!-- ✅ Payment Mode row -->
+      <!-- Payment Mode (API-driven) -->
       <a-row :gutter="16">
         <a-col :xs="24" :sm="24" :md="12" :lg="12">
           <a-form-item
             :label="$t('expense.payment_mode')"
-            name="payment_mode"
-            :help="rules.payment_mode ? rules.payment_mode.message : null"
-            :validateStatus="rules.payment_mode ? 'error' : null"
+            name="payment_mode_id"
+            :help="rules.payment_mode_id ? rules.payment_mode_id.message : null"
+            :validateStatus="rules.payment_mode_id ? 'error' : null"
           >
             <a-select
-              v-model:value="newFormData.payment_mode"
+              v-model:value="newFormData.payment_mode_id"
               :placeholder="$t('common.select_default_text', [$t('expense.payment_mode')])"
               :allowClear="true"
               optionFilterProp="label"
               show-search
+              :loading="paymentModesLoading"
             >
               <a-select-option
                 v-for="m in paymentModes"
-                :key="m.value"
-                :value="m.value"
-                :label="m.label"
+                :key="m.xid"
+                :value="m.xid"
+                :label="m.name"
               >
-                {{ m.label }}
+                {{ m.name }}
+                <span v-if="m.mode_type" style="opacity:.6"> ({{ m.mode_type }})</span>
               </a-select-option>
             </a-select>
           </a-form-item>
@@ -212,11 +212,13 @@
 </template>
 
 <script>
-import { defineComponent, ref, onMounted, watch } from "vue";
+import { defineComponent, ref, computed, onMounted, watch } from "vue";
 import { PlusOutlined, LoadingOutlined, SaveOutlined } from "@ant-design/icons-vue";
-import apiAdmin from "../../../../common/composable/apiAdmin";
+// If you fixed apiAdmin.js import earlier, keep the .js extension:
+import apiAdmin from "../../../../common/composable/apiAdmin.js";
 import UserInfo from "../../../../common/components/user/UserInfo.vue";
-import common from "../../../../common/composable/common";
+// Same here for common if your environment needs explicit .js
+import common from "../../../../common/composable/common.js";
 import ExpenseCategoryAddButton from "../expense-categories/AddButton.vue";
 import StaffAddButton from "../../users/StaffAddButton.vue";
 import UploadFile from "../../../../common/core/ui/file/UploadFile.vue";
@@ -244,36 +246,69 @@ export default defineComponent({
   },
   setup(props, { emit }) {
     const { addEditRequestAdmin, loading, rules } = apiAdmin();
-    const expenseCategories = ref({});
-    const staffMembers = ref({});
+    const expenseCategories = ref([]);
+    const staffMembers = ref([]);
     const { appSetting, disabledDate, permsArray, dayjs } = common();
+
     const expenseCategoryUrl = "expense-categories?limit=10000";
     const staffMemberUrl = "users?limit=10000";
+
+    // Payment Modes (API-driven)
+    const paymentModes = ref([]);
+    const paymentModesLoading = ref(false);
+    const paymentModesUrl = "settings/payment-modes?limit=10000";
+
     const newFormData = ref({});
 
-    // ✅ Payment modes (2–3 items)
-    const paymentModes = ref([
-      { value: "cash",          label: "Cash" },
-      { value: "card",          label: "Card" },
-      { value: "bank_transfer", label: "Bank Transfer" },
-    ]);
+    const loadPaymentModes = async () => {
+      paymentModesLoading.value = true;
+      try {
+        const { data } = await axiosAdmin.get(paymentModesUrl);
+        // Support envelopes: {data:{data:[...]}} OR {data:[...]} OR [...]
+        const body = data?.data ?? data ?? [];
+        paymentModes.value = Array.isArray(body) ? body : [];
+      } catch (e) {
+        console.error("Failed to load payment modes:", e?.response?.data || e);
+        paymentModes.value = [];
+      } finally {
+        paymentModesLoading.value = false;
+      }
+    };
 
-    onMounted(() => {
+    // For mapping legacy payloads if needed
+    const selectedPayment = computed(() =>
+      paymentModes.value.find((m) => m?.xid === newFormData.value?.payment_mode_id)
+    );
+
+    onMounted(async () => {
       const expenseCategoriesPromise = axiosAdmin.get(expenseCategoryUrl);
       const staffMembersPromise = axiosAdmin.get(staffMemberUrl);
+      const paymentModesPromise = loadPaymentModes();
 
-      Promise.all([expenseCategoriesPromise, staffMembersPromise]).then(
-        ([expenseCategoriesResponse, staffMembersResponse]) => {
-          expenseCategories.value = expenseCategoriesResponse.data;
-          staffMembers.value = staffMembersResponse.data;
-        }
-      );
+      const [expenseCategoriesResponse, staffMembersResponse] = await Promise.all([
+        expenseCategoriesPromise,
+        staffMembersPromise,
+        paymentModesPromise,
+      ]);
+
+      // Some backends return the array directly; normalize like we did above if needed
+      expenseCategories.value = expenseCategoriesResponse.data;
+      staffMembers.value = staffMembersResponse.data;
     });
 
     const onSubmit = () => {
+      // If your backend expects ONLY payment_mode_id, you can send newFormData.value as is.
+      // If it still expects "payment_mode" (a string name), also include it here:
+      const payload = {
+        ...newFormData.value,
+        // Legacy support: send readable name too (safe to keep if backend ignores it)
+        payment_mode: selectedPayment.value?.name ?? null,
+        payment_mode_type: selectedPayment.value?.mode_type ?? null,
+      };
+
       addEditRequestAdmin({
         url: props.url,
-        data: newFormData.value,
+        data: payload,
         successMessage: props.successMessage,
         success: (res) => {
           emit("addEditSuccess", res.xid);
@@ -302,19 +337,16 @@ export default defineComponent({
       () => props.visible,
       (newVal) => {
         if (newVal) {
-          if (props.addEditType == "add") {
+          if (props.addEditType === "add") {
             newFormData.value = {
               ...props.formData,
-              // default current time
               date: dayjs().utc().format("YYYY-MM-DDTHH:mm:ssZ"),
-              // ensure payment_mode exists
-              payment_mode: null,
+              payment_mode_id: null, // store selected mode xid
             };
           } else {
             newFormData.value = {
               ...props.formData,
-              // make sure the key exists even if old records don't have it
-              payment_mode: props.formData?.payment_mode ?? null,
+              payment_mode_id: props.formData?.payment_mode_id ?? null,
             };
           }
         }
@@ -322,6 +354,7 @@ export default defineComponent({
     );
 
     return {
+      // UI / validation
       loading,
       rules,
       onClose,
@@ -329,17 +362,23 @@ export default defineComponent({
       disabledDate,
       permsArray,
 
+      // Lists
       expenseCategories,
       staffMembers,
+      paymentModes,
+      paymentModesLoading,
 
+      // Layout
       drawerWidth: window.innerWidth <= 991 ? "90%" : "45%",
       appSetting,
 
+      // Actions
       expenseCategoryAdded,
       staffMemberAdded,
 
+      // Form state
       newFormData,
-      paymentModes,
+      selectedPayment,
     };
   },
 });
