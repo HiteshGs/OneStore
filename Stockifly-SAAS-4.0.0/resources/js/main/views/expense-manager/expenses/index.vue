@@ -30,7 +30,7 @@
           >
             <a-button type="primary" @click="addItem">
               <PlusOutlined />
-              {{ $t('expense.add') }}sdsddsd
+              {{ $t('expense.add') }}
             </a-button>
           </template>
 
