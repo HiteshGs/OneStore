@@ -564,7 +564,7 @@ export default {
                         sorter_field: "product_details.sales_price",
                     },
                      {
-            title: t("product.warehouse"), // new column title
+            title: t("Warehouse Name"), // new column title
             dataIndex: "warehouse_name",
             sorter: true,
             sorter_field: "details.warehouse.name",
