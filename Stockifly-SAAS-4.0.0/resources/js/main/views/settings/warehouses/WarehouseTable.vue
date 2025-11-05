@@ -54,6 +54,11 @@
                             <template v-if="column.dataIndex === 'logo'">
                                 <a-image :width="48" :src="record.logo_url" />
                             </template>
+
+                            <template v-if="column.dataIndex === 'parent_warehouse'">
+                                {{ record.parent?.name || '-' }}
+                            </template>
+
                             <template v-if="column.dataIndex === 'online_store_enabled'">
                                 <OnlineStoreStatus
                                     :status="record.online_store_enabled"
@@ -65,9 +70,7 @@
                                     <router-link
                                         :to="{
                                             name: 'front.homepage',
-                                            params: {
-                                                warehouse: record.slug,
-                                            },
+                                            params: { warehouse: record.slug },
                                         }"
                                         target="_blank"
                                     >
@@ -77,12 +80,10 @@
                                     </router-link>
                                 </template>
                             </template>
+
                             <template v-if="column.dataIndex === 'action'">
                                 <a-button
-                                    v-if="
-                                        permsArray.includes('warehouses_edit') ||
-                                        permsArray.includes('admin')
-                                    "
+                                    v-if="permsArray.includes('warehouses_edit') || permsArray.includes('admin')"
                                     type="primary"
                                     @click="editItem(record)"
                                     style="margin-left: 4px"
@@ -109,6 +110,7 @@
         </a-row>
     </div>
 </template>
+
 <script>
 import { onMounted } from "vue";
 import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons-vue";
@@ -119,33 +121,24 @@ import AddEdit from "./AddEdit.vue";
 import OnlineStoreStatus from "./OnlineStoreStatus.vue";
 
 export default {
-    props: {
-        showFilter: {
-            default: true,
-        },
-    },
+    props: { showFilter: { default: true } },
     emits: ["addOrEditSuccess"],
-    components: {
-        PlusOutlined,
-        EditOutlined,
-        DeleteOutlined,
-        AddEdit,
-        OnlineStoreStatus,
-    },
+    components: { PlusOutlined, EditOutlined, DeleteOutlined, AddEdit, OnlineStoreStatus },
     setup(props, { emit }) {
         const { permsArray, appSetting } = common();
         const { url, addEditUrl, initData, columns, filterableColumns } = fields();
         const crudVariables = crud();
 
-        onMounted(() => {
-            crudVariables.tableUrl.value = {
-                url,
-            };
-            crudVariables.table.filterableColumns = filterableColumns;
+        // Add parent warehouse column
+        columns.unshift({
+            title: 'Parent Warehouse',
+            dataIndex: 'parent_warehouse',
+        });
 
-            crudVariables.fetch({
-                page: 1,
-            });
+        onMounted(() => {
+            crudVariables.tableUrl.value = { url };
+            crudVariables.table.filterableColumns = filterableColumns;
+            crudVariables.fetch({ page: 1 });
 
             crudVariables.crudUrl.value = addEditUrl;
             crudVariables.langKey.value = "warehouse";
@@ -155,20 +148,10 @@ export default {
 
         const addOrEditSuccess = (xid) => {
             crudVariables.addEditSuccess(xid);
-            emit("addOrEditSuccess", {
-                action_type: crudVariables.addEditType.value,
-                xid: xid,
-            });
+            emit("addOrEditSuccess", { action_type: crudVariables.addEditType.value, xid });
         };
 
-        return {
-            appSetting,
-            permsArray,
-            columns,
-            ...crudVariables,
-            filterableColumns,
-            addOrEditSuccess,
-        };
+        return { appSetting, permsArray, columns, ...crudVariables, filterableColumns, addOrEditSuccess };
     },
 };
 </script>
