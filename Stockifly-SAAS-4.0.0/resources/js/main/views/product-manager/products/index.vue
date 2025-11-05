@@ -104,21 +104,21 @@
                         />
                     </a-col>
                     <a-col :xs="24" :sm="24" :md="8" :lg="8" :xl="6">
-    <a-select
-        v-model:value="filters.warehouse_id"
-        :placeholder="$t('common.select_default_text', [$t('warehouse.warehouse')])"
-        allow-clear
-        style="width: 100%"
-        @change="setUrlData"
+<a-select
+    v-model:value="filters.warehouse_id"
+    :placeholder="$t('common.select_default_text', [$t('warehouse.warehouse')])"
+    allow-clear
+    style="width: 100%"
+    @change="setUrlData"
+>
+    <a-select-option
+        v-for="warehouse in warehouses"
+        :key="warehouse.xid ?? 'all'"
+        :value="warehouse.xid"
     >
-        <a-select-option
-            v-for="warehouse in warehouses"
-            :key="warehouse.xid ?? 'all'"
-            :value="warehouse.xid"
-        >
-            {{ warehouse.name }}
-        </a-select-option>
-    </a-select>
+        {{ warehouse.name }}
+    </a-select-option>
+</a-select>
 </a-col>
 
                     <a-col :xs="24" :sm="24" :md="8" :lg="8" :xl="6">
@@ -696,14 +696,17 @@ onMounted(() => {
                     "products?fields=id,xid,name,slug,product_type,barcode_symbology,item_code,image,image_url,category_id,x_category_id,category{id,xid,name},brand_id,x_brand_id,brand{id,xid,name},unit_id,x_unit_id,unit{id,xid,name,short_name},description,details{stock_quantitiy_alert,opening_stock,opening_stock_date,wholesale_price,wholesale_quantity,mrp,purchase_price,sales_price,tax_id,x_tax_id,purchase_tax_type,sales_tax_type,current_stock,warehouse_id,x_warehouse_id,status},details:tax{id,xid,name,rate},details:warehouse{id,xid,name},customFields{id,xid,field_name,field_value},warehouse_id,x_warehouse_id,warehouse{id,xid}";
             }
 
-            crudVariables.tableUrl.value = {
+          const extraFilters = { product_type: productType.value };
+if (filters.value.warehouse_id) {
+    extraFilters.warehouse_id = filters.value.warehouse_id;
+}
+
+crudVariables.tableUrl.value = {
     url,
     filters,
-    extraFilters: {
-        product_type: productType.value,
-        warehouse_id: filters.value.warehouse_id, // pass selected warehouse
-    },
+    extraFilters,
 };
+
 
 
             crudVariables.table.filterableColumns = filterableColumns;
