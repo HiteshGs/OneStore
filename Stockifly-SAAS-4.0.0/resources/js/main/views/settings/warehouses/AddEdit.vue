@@ -75,7 +75,7 @@
                       @dropdownVisibleChange="onParentOpen"
                     >
                       <a-select-option :value="null">
-                        {{ $t('common.none') }} ({{ $t('warehouse.top_level') }})
+                        {{ $t('Select Warehouse') }}
                       </a-select-option>
 
                       <a-select-option
