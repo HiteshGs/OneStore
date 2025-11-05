@@ -623,7 +623,7 @@ export default {
                         sorter_field: "product_details.sales_price",
                     },
                     {
-            title: t("product.warehouse"),
+            title: t("warehouse"),
             dataIndex: "warehouse_name",
             sorter: true,
             sorter_field: "details.warehouse.name",
