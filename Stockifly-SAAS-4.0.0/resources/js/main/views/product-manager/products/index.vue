@@ -806,6 +806,7 @@ onMounted(() => {
             categories,
             brands,
             filters,
+            warehouses,
             filterTreeNode,
             setUrlData,
             sampleFileUrl,
