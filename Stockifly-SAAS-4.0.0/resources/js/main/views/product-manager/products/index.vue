@@ -104,6 +104,24 @@
                         />
                     </a-col>
                     <a-col :xs="24" :sm="24" :md="8" :lg="8" :xl="6">
+    <a-select
+        v-model:value="filters.warehouse_id"
+        :placeholder="$t('common.select_default_text', [$t('warehouse.warehouse')])"
+        allow-clear
+        style="width: 100%"
+        @change="setUrlData"
+    >
+        <a-select-option
+            v-for="warehouse in warehouses"
+            :key="warehouse.xid ?? 'all'"
+            :value="warehouse.xid"
+        >
+            {{ warehouse.name }}
+        </a-select-option>
+    </a-select>
+</a-col>
+
+                    <a-col :xs="24" :sm="24" :md="8" :lg="8" :xl="6">
                         <a-select
                             v-model:value="filters.brand_id"
                             :placeholder="
@@ -520,16 +538,33 @@ export default {
             filterTreeNode,
             selectedWarehouse,
         } = common();
-        const filters = ref({
-            category_id: undefined,
-            brand_id: undefined,
-        });
-        const sampleFileUrl = window.config.product_sample_file;
+const filters = ref({
+    category_id: undefined,
+    brand_id: undefined,
+    warehouse_id: null, // NEW filter
+});
+const sampleFileUrl = window.config.product_sample_file;
 
-        const categories = ref([]);
-        const brands = ref([]);
-        const productDetailsVisible = ref(false);
-        const modelData = ref("");
+const categories = ref([]);
+const brands = ref([]);
+const productDetailsVisible = ref(false);
+const modelData = ref("");
+
+// ---------- Load all warehouses for dropdown ----------
+const warehouses = ref([]); // all warehouses
+const loadWarehouses = async () => {
+    try {
+        const { data } = await axiosAdmin.get("warehouses?fields=id,xid,name&per_page=200");
+        warehouses.value = [{ xid: null, name: "All Warehouses" }, ...data]; // Add "All" option
+    } catch (e) {
+        console.error("Failed to load warehouses", e);
+        warehouses.value = [{ xid: null, name: "All Warehouses" }];
+    }
+};
+
+onMounted(() => {
+    loadWarehouses();
+});
 
         const openProductDetails = (record) => {
             productDetailsVisible.value = true;
@@ -662,12 +697,14 @@ export default {
             }
 
             crudVariables.tableUrl.value = {
-                url,
-                filters,
-                extraFilters: {
-                    product_type: productType.value,
-                },
-            };
+    url,
+    filters,
+    extraFilters: {
+        product_type: productType.value,
+        warehouse_id: filters.value.warehouse_id, // pass selected warehouse
+    },
+};
+
 
             crudVariables.table.filterableColumns = filterableColumns;
 
