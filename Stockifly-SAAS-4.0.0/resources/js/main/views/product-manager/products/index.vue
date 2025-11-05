@@ -273,6 +273,10 @@
                             <template v-if="column.dataIndex === 'brand_id'">
                                 {{ record.brand ? record.brand.name : "-" }}
                             </template>
+                            <template v-if="column.dataIndex === 'warehouse_name'">
+    {{ record.details?.warehouse?.name || '-' }}
+</template>
+
                             <template v-if="column.dataIndex === 'sales_price'">
                                 <span
                                     v-if="
@@ -559,6 +563,12 @@ export default {
                         sorter: productType.value == "single" ? true : false,
                         sorter_field: "product_details.sales_price",
                     },
+                     {
+            title: t("product.warehouse"), // new column title
+            dataIndex: "warehouse_name",
+            sorter: true,
+            sorter_field: "details.warehouse.name",
+        },
                     {
                         title: t("product.purchase_price"),
                         dataIndex: "purchase_price",
@@ -612,6 +622,12 @@ export default {
                         sorter: false,
                         sorter_field: "product_details.sales_price",
                     },
+                    {
+            title: t("product.warehouse"),
+            dataIndex: "warehouse_name",
+            sorter: true,
+            sorter_field: "details.warehouse.name",
+        },
                     {
                         title: t("product.purchase_price"),
                         dataIndex: "purchase_price",
