@@ -58,7 +58,7 @@
               <a-row :gutter="16">
                 <a-col :xs="24" :sm="24" :md="12" :lg="12">
                   <a-form-item
-                    :label="$t('warehouse.parent_warehouse')"
+                    :label="$t('Parent Warhouse')"
                     name="parent_warehouse_id"
                     :help="rules.parent_warehouse_id ? rules.parent_warehouse_id.message : null"
                     :validateStatus="rules.parent_warehouse_id ? 'error' : null"
@@ -67,7 +67,7 @@
                       v-model:value="formData.parent_warehouse_id"
                       show-search
                       allowClear
-                      :placeholder="$t('common.placeholder_default_text', [$t('warehouse.parent_warehouse')])"
+                      :placeholder="$t('common.placeholder_default_text', [$t('Parent Warhouse')])"
                       :filterOption="false"
                       :loading="parentLoading"
                       style="width: 100%"
