@@ -707,9 +707,7 @@ onMounted(() => {
             }
 
           const extraFilters = { product_type: productType.value };
-if (filters.value.warehouse_id) {
-    extraFilters.warehouse_id = filters.value.warehouse_id;
-}
+
 
 crudVariables.tableUrl.value = {
     url,
