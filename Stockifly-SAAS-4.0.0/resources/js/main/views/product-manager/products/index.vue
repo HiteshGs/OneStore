@@ -242,7 +242,7 @@
                         }"
                         :columns="columns"
                         :row-key="(record) => record.xid"
-                        :data-source="filteredProducts"
+                        :data-source="table.data"
                         :pagination="table.pagination"
                         :loading="table.loading"
                         @change="handleTableChange"
@@ -565,15 +565,6 @@ const loadWarehouses = async () => {
 onMounted(() => {
     loadWarehouses();
 });
-const filteredProducts = computed(() => {
-    // If "All Warehouses" selected (null or undefined), show all products
-    if (!filters.value.warehouse_id) return crudVariables.table.data;
-
-    // Filter products that have the selected warehouse
-    return crudVariables.table.data.filter(
-        (p) => p.details?.warehouse?.xid === filters.value.warehouse_id
-    );
-});
 
         const openProductDetails = (record) => {
             productDetailsVisible.value = true;
@@ -705,8 +696,7 @@ const filteredProducts = computed(() => {
                     "products?fields=id,xid,name,slug,product_type,barcode_symbology,item_code,image,image_url,category_id,x_category_id,category{id,xid,name},brand_id,x_brand_id,brand{id,xid,name},unit_id,x_unit_id,unit{id,xid,name,short_name},description,details{stock_quantitiy_alert,opening_stock,opening_stock_date,wholesale_price,wholesale_quantity,mrp,purchase_price,sales_price,tax_id,x_tax_id,purchase_tax_type,sales_tax_type,current_stock,warehouse_id,x_warehouse_id,status},details:tax{id,xid,name,rate},details:warehouse{id,xid,name},customFields{id,xid,field_name,field_value},warehouse_id,x_warehouse_id,warehouse{id,xid}";
             }
 
-          const extraFilters = { product_type: productType.value,
-          company_id: selectedCompany.value, };
+          const extraFilters = { product_type: productType.value };
 if (filters.value.warehouse_id) {
     extraFilters.warehouse_id = filters.value.warehouse_id;
 }
