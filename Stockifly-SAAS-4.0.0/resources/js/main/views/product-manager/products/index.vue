@@ -242,7 +242,7 @@
                         }"
                         :columns="columns"
                         :row-key="(record) => record.xid"
-                        :data-source="table.data"
+                        :data-source="filteredProducts"
                         :pagination="table.pagination"
                         :loading="table.loading"
                         @change="handleTableChange"
@@ -543,6 +543,16 @@ const filters = ref({
     brand_id: undefined,
     warehouse_id: null, // NEW filter
 });
+    const filteredProducts = computed(() => {
+        return crudVariables.table.data.filter((p) => {
+            if (filters.value.warehouse_id && p.details?.warehouse?.xid !== filters.value.warehouse_id)
+                return false;
+            if (filters.value.brand_id && p.brand?.xid !== filters.value.brand_id) return false;
+            if (filters.value.category_id && p.category?.xid !== filters.value.category_id) return false;
+            return true;
+        });
+    });
+
 const sampleFileUrl = window.config.product_sample_file;
 
 const categories = ref([]);
@@ -809,6 +819,7 @@ crudVariables.tableUrl.value = {
             categories,
             brands,
             filters,
+            filteredProducts,
             warehouses,
             filterTreeNode,
             setUrlData,
