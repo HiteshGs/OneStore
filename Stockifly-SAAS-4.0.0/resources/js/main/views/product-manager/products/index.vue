@@ -24,63 +24,34 @@
         <a-row :gutter="[16, 16]">
             <a-col :xs="24" :sm="24" :md="12" :lg="10" :xl="10">
                 <a-space>
-                    <template
-                        v-if="
-                            permsArray.includes('products_create') ||
-                            permsArray.includes('admin')
-                        "
-                    >
+                    <template v-if="permsArray.includes('products_create') || permsArray.includes('admin')">
                         <SubscriptionModuleVisibility moduleName="product">
-                            <a-button
-                                type="primary"
-                                @click="
-                                    () => {
-                                        formData = {
-                                            ...formData,
-                                            product_type: productType,
-                                        };
-                                        addItem();
-                                    }
-                                "
-                            >
+                            <a-button type="primary" @click="() => { formData = { ...formData, product_type: productType }; addItem(); }">
                                 <PlusOutlined />
                                 {{ $t("product.add") }}
                             </a-button>
                         </SubscriptionModuleVisibility>
-                      <ImportProducts
-  :pageTitle="$t('product.import_products')"
-  :sampleFileUrl="sampleFileUrl"
-  importUrl="products/import"
-  :extraFields="{ 
-    store_unknown_as_custom: '1', 
-    use_custom_field_master: '0',
-    auto_create_custom_fields: '0'
-  }"
-  @onUploadSuccess="setUrlData"
-/>
 
-<!-- Example: second button that enforces whitelist and auto-creates missing names -->
-<ImportProducts
-  :pageTitle="$t('product.import_products_using_custom_fields_master')"
-  :sampleFileUrl="sampleFileUrl"
-  importUrl="products/import"
-  :extraFields="{ 
-    store_unknown_as_custom: '1',
-    use_custom_field_master: '1',
-    auto_create_custom_fields: '1'
-  }"
-  :hideOptions="true"
-  @onUploadSuccess="setUrlData"
-/>
+                        <ImportProducts
+                            :pageTitle="$t('product.import_products')"
+                            :sampleFileUrl="sampleFileUrl"
+                            importUrl="products/import"
+                            :extraFields="{ store_unknown_as_custom: '1', use_custom_field_master: '0', auto_create_custom_fields: '0' }"
+                            @onUploadSuccess="setUrlData"
+                        />
 
-
+                        <ImportProducts
+                            :pageTitle="$t('product.import_products_using_custom_fields_master')"
+                            :sampleFileUrl="sampleFileUrl"
+                            importUrl="products/import"
+                            :extraFields="{ store_unknown_as_custom: '1', use_custom_field_master: '1', auto_create_custom_fields: '1' }"
+                            :hideOptions="true"
+                            @onUploadSuccess="setUrlData"
+                        />
                     </template>
+
                     <a-button
-                        v-if="
-                            table.selectedRowKeys.length > 0 &&
-                            (permsArray.includes('products_delete') ||
-                                permsArray.includes('admin'))
-                        "
+                        v-if="table.selectedRowKeys.length > 0 && (permsArray.includes('products_delete') || permsArray.includes('admin'))"
                         type="primary"
                         @click="showSelectedDeleteConfirm"
                         danger
@@ -90,8 +61,9 @@
                     </a-button>
                 </a-space>
             </a-col>
+
             <a-col :xs="24" :sm="24" :md="12" :lg="14" :xl="14">
-                <a-row :gutter="[16, 16]" justify="end">
+                <a-row :gutter="[16,16]" justify="end">
                     <a-col :xs="24" :sm="24" :md="8" :lg="8" :xl="6">
                         <a-input-search
                             v-model:value="table.searchString"
@@ -103,66 +75,51 @@
                             :placeholder="$t('common.search')"
                         />
                     </a-col>
+
                     <a-col :xs="24" :sm="24" :md="8" :lg="8" :xl="6">
-<a-select
-    v-model:value="filters.warehouse_id"
-    :placeholder="$t('common.select_default_text', [$t('warehouse.warehouse')])"
-    allow-clear
-    style="width: 100%"
-    @change="setUrlData"
->
-    <a-select-option
-        v-for="warehouse in warehouses"
-        :key="warehouse.xid ?? 'all'"
-        :value="warehouse.xid"
-    >
-        {{ warehouse.name }}
-    </a-select-option>
-</a-select>
-</a-col>
+                        <a-select
+                            v-model:value="filters.warehouse_id"
+                            :placeholder="$t('common.select_default_text', [$t('warehouse.warehouse')])"
+                            allow-clear
+                            style="width: 100%"
+                            @change="setUrlData"
+                        >
+                            <a-select-option v-for="warehouse in warehouses" :key="warehouse.xid ?? 'all'" :value="warehouse.xid">
+                                {{ warehouse.name }}
+                            </a-select-option>
+                        </a-select>
+                    </a-col>
 
                     <a-col :xs="24" :sm="24" :md="8" :lg="8" :xl="6">
                         <a-select
                             v-model:value="filters.brand_id"
-                            :placeholder="
-                                $t('common.select_default_text', [$t('product.brand')])
-                            "
-                            :allowClear="true"
+                            :placeholder="$t('common.select_default_text', [$t('product.brand')])"
+                            allow-clear
                             style="width: 100%"
                             optionFilterProp="title"
                             show-search
                             @change="setUrlData"
                         >
-                            <a-select-option
-                                v-for="brand in brands"
-                                :key="brand.xid"
-                                :title="brand.name"
-                                :value="brand.xid"
-                            >
+                            <a-select-option v-for="brand in brands" :key="brand.xid" :title="brand.name" :value="brand.xid">
                                 {{ brand.name }}
                             </a-select-option>
                         </a-select>
                     </a-col>
+
                     <a-col :xs="24" :sm="24" :md="8" :lg="8" :xl="6">
                         <a-tree-select
                             v-model:value="filters.category_id"
                             show-search
                             style="width: 100%"
-                            :dropdown-style="{
-                                maxHeight: '250px',
-                                overflow: 'auto',
-                            }"
-                            :placeholder="
-                                $t('common.select_default_text', [
-                                    $t('category.category'),
-                                ])
-                            "
+                            :dropdown-style="{ maxHeight: '250px', overflow: 'auto' }"
+                            :placeholder="$t('common.select_default_text', [$t('category.category')])"
                             :tree-data="categories"
                             allow-clear
                             tree-default-expand-all
                             :filterTreeNode="filterTreeNode"
                             @change="setUrlData"
-                    /></a-col>
+                        />
+                    </a-col>
                 </a-row>
             </a-col>
         </a-row>
@@ -173,14 +130,14 @@
             :addEditType="addEditType"
             :visible="addEditVisible"
             :url="addEditUrl"
-            @addEditSuccess="addEditSuccess"
-            @addAndNewSuccess="addAndNewSuccess"
-            @addAndContinueSuccess="addAndContinueSuccess"
-            @closed="onCloseAddEdit"
             :formData="formData"
             :data="viewData"
             :pageTitle="pageTitle"
             :successMessage="successMessage"
+            @addEditSuccess="addEditSuccess"
+            @addAndNewSuccess="addAndNewSuccess"
+            @addAndContinueSuccess="addAndContinueSuccess"
+            @closed="onCloseAddEdit"
         />
 
         <ProductView
@@ -208,6 +165,7 @@
                             </span>
                         </template>
                     </a-tab-pane>
+
                     <a-tab-pane key="variable">
                         <template #tab>
                             <span>
@@ -216,6 +174,7 @@
                             </span>
                         </template>
                     </a-tab-pane>
+
                     <a-tab-pane key="service">
                         <template #tab>
                             <span>
@@ -232,16 +191,9 @@
             <a-col :span="24">
                 <div class="table-responsive">
                     <a-table
-                        :row-selection="{
-                            selectedRowKeys: table.selectedRowKeys,
-                            onChange: onRowSelectChange,
-                            getCheckboxProps: (record) => ({
-                                disabled: false,
-                                name: record.xid,
-                            }),
-                        }"
+                        :row-selection="{ selectedRowKeys: table.selectedRowKeys, onChange: onRowSelectChange, getCheckboxProps: record => ({ disabled: false, name: record.xid }) }"
                         :columns="columns"
-                        :row-key="(record) => record.xid"
+                        :row-key="record => record.xid"
                         :data-source="table.data"
                         :pagination="table.pagination"
                         :loading="table.loading"
@@ -250,24 +202,14 @@
                         size="middle"
                     >
                         <template #bodyCell="{ column, record }">
-                            <template
-                                v-if="
-                                    column.dataIndex === 'status' &&
-                                    record &&
-                                    record.details
-                                "
-                            >
-                                <a-popover
-                                    v-if="record.details.status == 'out_of_stock'"
-                                    placement="top"
-                                >
-                                    <template #content>
-                                        {{ $t("common.out_of_stock") }}
-                                    </template>
+                            <template v-if="column.dataIndex === 'status' && record && record.details">
+                                <a-popover v-if="record.details.status == 'out_of_stock'" placement="top">
+                                    <template #content>{{ $t("common.out_of_stock") }}</template>
                                     <a-badge status="error" />
                                 </a-popover>
                                 <a-badge v-else status="success" />
                             </template>
+
                             <template v-if="column.dataIndex === 'name'">
                                 <a-badge>
                                     <a-avatar shape="square" :src="record.image_url" />
@@ -276,197 +218,93 @@
                                     </a-typography-link>
                                 </a-badge>
                             </template>
+
                             <template v-if="column.dataIndex === 'warehouse_id'">
-                                {{
-                                    record.details &&
-                                    record.details.warehouse &&
-                                    record.details.warehouse.name
-                                        ? record.details.warehouse.name
-                                        : "-"
-                                }}
+                                {{ record.details?.warehouse?.name ?? '-' }}
                             </template>
+
                             <template v-if="column.dataIndex === 'category_id'">
-                                {{ record.category ? record.category.name : "-" }}
+                                {{ record.category?.name ?? '-' }}
                             </template>
+
                             <template v-if="column.dataIndex === 'brand_id'">
-                                {{ record.brand ? record.brand.name : "-" }}
+                                {{ record.brand?.name ?? '-' }}
                             </template>
+
                             <template v-if="column.dataIndex === 'warehouse_name'">
-    {{ record.details?.warehouse?.name || '-' }}
-</template>
+                                {{ record.details?.warehouse?.name ?? '-' }}
+                            </template>
 
                             <template v-if="column.dataIndex === 'sales_price'">
-                                <span
-                                    v-if="
-                                        (productType == 'single' ||
-                                            productType == 'service') &&
-                                        record &&
-                                        record.details
-                                    "
-                                >
+                                <span v-if="(productType == 'single' || productType == 'service') && record.details">
                                     {{ formatAmountCurrency(record.details.sales_price) }}
                                 </span>
                                 <span v-else-if="productType == 'variable'">
                                     {{ getVariableProductSalePrice(record) }}
                                 </span>
                             </template>
+
                             <template v-if="column.dataIndex === 'purchase_price'">
-                                <span
-                                    v-if="
-                                        productType == 'single' &&
-                                        record &&
-                                        record.details
-                                    "
-                                >
-                                    {{
-                                        formatAmountCurrency(
-                                            record.details.purchase_price
-                                        )
-                                    }}
+                                <span v-if="productType == 'single' && record.details">
+                                    {{ formatAmountCurrency(record.details.purchase_price) }}
                                 </span>
                                 <span v-else-if="productType == 'variable'">
                                     {{ getVariableProductPurchasePrice(record) }}
                                 </span>
                             </template>
+
                             <template v-if="column.dataIndex === 'current_stock'">
-                                <a-typography-link
-                                    type="primary"
-                                    @click="openProductDetails(record)"
-                                    style="margin-left: 4px"
-                                    v-if="
-                                        productType == 'single' &&
-                                        record &&
-                                        record.details
-                                    "
-                                >
-                                    {{
-                                        `${record.details.current_stock} ${record.unit.short_name}`
-                                    }}
+                                <a-typography-link v-if="productType == 'single' && record.details" type="primary" style="margin-left:4px" @click="openProductDetails(record)">
+                                    {{ `${record.details.current_stock} ${record.unit.short_name}` }}
                                 </a-typography-link>
-                                <a-typography-link
-                                    type="primary"
-                                    @click="openProductDetails(record)"
-                                    style="margin-left: 4px"
-                                    v-else-if="productType == 'variable'"
-                                >
+                                <a-typography-link v-else-if="productType == 'variable'" type="primary" style="margin-left:4px" @click="openProductDetails(record)">
                                     {{ getVariableProductStockSum(record) }}
                                 </a-typography-link>
                             </template>
+
                             <template v-if="column.dataIndex === 'action'">
                                 <a-space>
                                     <a-button @click="viewItem(record)" type="primary">
                                         <template #icon><EyeOutlined /></template>
                                     </a-button>
-                                    <a-button
-                                        v-if="
-                                            permsArray.includes('products_edit') ||
-                                            permsArray.includes('admin')
-                                        "
-                                        type="primary"
-                                        @click="editItem(record)"
-                                    >
+                                    <a-button v-if="permsArray.includes('products_edit') || permsArray.includes('admin')" type="primary" @click="editItem(record)">
                                         <template #icon><EditOutlined /></template>
                                     </a-button>
-                                    <a-button
-                                        v-if="
-                                            permsArray.includes('products_delete') ||
-                                            permsArray.includes('admin')
-                                        "
-                                        type="primary"
-                                        @click="showDeleteConfirm(record.xid)"
-                                    >
+                                    <a-button v-if="permsArray.includes('products_delete') || permsArray.includes('admin')" type="primary" @click="showDeleteConfirm(record.xid)">
                                         <template #icon><DeleteOutlined /></template>
                                     </a-button>
                                 </a-space>
                             </template>
                         </template>
-                        <template
-                            v-if="productType == 'variable'"
-                            #expandedRowRender="productData"
-                        >
+
+                        <template v-if="productType == 'variable'" #expandedRowRender="productData">
                             <a-table
-                                v-if="
-                                    productData &&
-                                    productData.record &&
-                                    productData.record.variations
-                                "
+                                v-if="productData?.record?.variations"
                                 :columns="variantColumns"
-                                :row-key="(record) => record.xid"
+                                :row-key="record => record.xid"
                                 :data-source="productData.record.variations"
                                 :pagination="false"
                                 size="middle"
                             >
                                 <template #bodyCell="{ column, record }">
-                                    <template v-if="column.dataIndex === 'name'">
-                                        {{ record.name }}
-                                    </template>
-                                    <template
-                                        v-if="
-                                            column.dataIndex === 'sales_price' &&
-                                            record &&
-                                            record.details
-                                        "
-                                    >
-                                        {{
-                                            formatAmountCurrency(
-                                                record.details.sales_price
-                                            )
-                                        }}
-                                    </template>
-                                    <template
-                                        v-if="
-                                            column.dataIndex === 'purchase_price' &&
-                                            record &&
-                                            record.details
-                                        "
-                                    >
-                                        {{
-                                            formatAmountCurrency(
-                                                record.details.purchase_price
-                                            )
-                                        }}
-                                    </template>
-                                    <template
-                                        v-if="
-                                            column.dataIndex === 'current_stock' &&
-                                            record &&
-                                            record.details
-                                        "
-                                    >
-                                        {{
-                                            `${record.details.current_stock} ${productData.record.unit.short_name}`
-                                        }}
-                                    </template>
+                                    <template v-if="column.dataIndex === 'name'">{{ record.name }}</template>
+                                    <template v-if="column.dataIndex === 'sales_price' && record.details">{{ formatAmountCurrency(record.details.sales_price) }}</template>
+                                    <template v-if="column.dataIndex === 'purchase_price' && record.details">{{ formatAmountCurrency(record.details.purchase_price) }}</template>
+                                    <template v-if="column.dataIndex === 'current_stock' && record.details">{{ `${record.details.current_stock} ${productData.record.unit.short_name}` }}</template>
                                     <template v-if="column.dataIndex === 'action'">
-                                        <a-button @click="viewItem(record)" type="links">
-                                            <template #icon><EyeOutlined /></template>
-                                        </a-button>
+                                        <a-button @click="viewItem(record)" type="links"><template #icon><EyeOutlined /></template></a-button>
                                     </template>
                                 </template>
                             </a-table>
                         </template>
+
                         <template #summary v-if="productType != 'service'">
                             <a-table-summary-row>
-                                <a-table-summary-cell :col-span="5">
-                                </a-table-summary-cell>
-                                <a-table-summary-cell
-                                    v-if="productType == 'variable'"
-                                    :col-span="1"
-                                >
-                                </a-table-summary-cell>
-
-                                <a-table-summary-cell :col-span="2">
-                                </a-table-summary-cell>
-                                <a-table-summary-cell :col-span="1">
-                                    <a-typography-text strong>
-                                        {{ $t("common.total") }}
-                                    </a-typography-text>
-                                </a-table-summary-cell>
-                                <a-table-summary-cell :col-span="1">
-                                    <a-typography-text strong>
-                                        {{ totals.totalCurrentStock }}
-                                    </a-typography-text>
-                                </a-table-summary-cell>
+                                <a-table-summary-cell :col-span="5"></a-table-summary-cell>
+                                <a-table-summary-cell v-if="productType == 'variable'" :col-span="1"></a-table-summary-cell>
+                                <a-table-summary-cell :col-span="2"></a-table-summary-cell>
+                                <a-table-summary-cell :col-span="1"><a-typography-text strong>{{ $t("common.total") }}</a-typography-text></a-table-summary-cell>
+                                <a-table-summary-cell :col-span="1"><a-typography-text strong>{{ totals.totalCurrentStock }}</a-typography-text></a-table-summary-cell>
                             </a-table-summary-row>
                         </template>
                     </a-table>
@@ -475,363 +313,102 @@
         </a-row>
     </admin-page-table-content>
 </template>
+
 <script>
-import { onMounted, ref, watch, computed } from "vue";
-import {
-    EyeOutlined,
-    PlusOutlined,
-    EditOutlined,
-    DeleteOutlined,
-    ClusterOutlined,
-    AppstoreAddOutlined,
-} from "@ant-design/icons-vue";
+import { ref, onMounted, computed, watch } from "vue";
+import { EyeOutlined, PlusOutlined, EditOutlined, DeleteOutlined, ClusterOutlined, AppstoreAddOutlined } from "@ant-design/icons-vue";
 import { maxBy, minBy, sumBy } from "lodash-es";
 import { useI18n } from "vue-i18n";
 import crud from "../../../../common/composable/crud";
 import common from "../../../../common/composable/common";
 import fields from "./fields";
-import ProductInfo from "../../../../common/components/product/ProductInfo.vue";
 import AddEdit from "./AddEdit.vue";
 import ProductView from "./View.vue";
+import ProductHistory from "./productHistory.vue";
 import AdminPageHeader from "../../../../common/layouts/AdminPageHeader.vue";
 import ImportProducts from "../../../../common/core/ui/Import.vue";
 import SubscriptionModuleVisibility from "../../../../common/components/common/visibility/SubscriptionModuleVisibility.vue";
 import SubscriptionModuleVisibilityMessage from "../../../../common/components/common/visibility/SubscriptionModuleVisibilityMessage.vue";
-import ProductHistory from "./productHistory.vue";
 
 export default {
-    components: {
-        EyeOutlined,
-        PlusOutlined,
-        EditOutlined,
-        DeleteOutlined,
-        ClusterOutlined,
-        AppstoreAddOutlined,
-        AddEdit,
-        ProductView,
-        ProductInfo,
-        AdminPageHeader,
-        ImportProducts,
-        ProductHistory,
-        SubscriptionModuleVisibility,
-        SubscriptionModuleVisibilityMessage,
-    },
+    components: { EyeOutlined, PlusOutlined, EditOutlined, DeleteOutlined, ClusterOutlined, AppstoreAddOutlined, AddEdit, ProductView, ProductHistory, AdminPageHeader, ImportProducts, SubscriptionModuleVisibility, SubscriptionModuleVisibilityMessage },
     setup() {
         const { t } = useI18n();
-        const {
-            addEditUrl,
-            initData,
-            productType,
-            columns,
-            columnsNames,
-            variantColumns,
-            filterableColumns,
-            hashableColumns,
-            multiDimensalObjectColumns,
-        } = fields();
+        const { addEditUrl, initData, productType, columns, columnsNames, variantColumns, filterableColumns, hashableColumns, multiDimensalObjectColumns } = fields();
         const crudVariables = crud();
-        const {
-            appSetting,
-            permsArray,
-            formatAmountCurrency,
-            getRecursiveCategories,
-            filterTreeNode,
-            selectedWarehouse,
-        } = common();
-const filters = ref({
-    category_id: undefined,
-    brand_id: undefined,
-    warehouse_id: null, // NEW filter
-});
-const sampleFileUrl = window.config.product_sample_file;
+        const { appSetting, permsArray, formatAmountCurrency, getRecursiveCategories, filterTreeNode, selectedWarehouse } = common();
 
-const categories = ref([]);
-const brands = ref([]);
-const productDetailsVisible = ref(false);
-const modelData = ref("");
+        const filters = ref({ category_id: undefined, brand_id: undefined, warehouse_id: null });
+        const categories = ref([]);
+        const brands = ref([]);
+        const warehouses = ref([]);
+        const productDetailsVisible = ref(false);
+        const modelData = ref("");
+        const sampleFileUrl = window.config.product_sample_file;
 
-// ---------- Load all warehouses for dropdown ----------
-const warehouses = ref([]); // all warehouses
-const loadWarehouses = async () => {
-    try {
-        const { data } = await axiosAdmin.get("warehouses?fields=id,xid,name&per_page=200");
-        warehouses.value = [{ xid: null, name: "All Warehouses" }, ...data]; // Add "All" option
-    } catch (e) {
-        console.error("Failed to load warehouses", e);
-        warehouses.value = [{ xid: null, name: "All Warehouses" }];
-    }
-};
-
-onMounted(() => {
-    loadWarehouses();
-});
-
-        const openProductDetails = (record) => {
-            productDetailsVisible.value = true;
-            modelData.value = record;
+        const loadWarehouses = async () => {
+            try { const { data } = await axiosAdmin.get("warehouses?fields=id,xid,name&per_page=200"); warehouses.value = [{ xid:null,name:"All Warehouses" }, ...data]; } catch(e) { warehouses.value = [{ xid:null,name:"All Warehouses" }]; }
         };
-        const onCloseProductDetails = () => {
-            productDetailsVisible.value = false;
-        };
+        onMounted(() => { loadWarehouses(); getInitialData(); setUrlData(); crudVariables.crudUrl.value = addEditUrl; crudVariables.langKey.value = "product"; crudVariables.initData.value = {...initData}; crudVariables.formData.value = {...initData}; crudVariables.hashableColumns.value = [...hashableColumns]; crudVariables.multiDimensalObjectColumns.value = {...multiDimensalObjectColumns}; });
 
-        onMounted(() => {
-            getInitialData();
-            setUrlData();
-
-            crudVariables.crudUrl.value = addEditUrl;
-            crudVariables.langKey.value = "product";
-            crudVariables.initData.value = { ...initData };
-            crudVariables.formData.value = { ...initData };
-            crudVariables.hashableColumns.value = [...hashableColumns];
-            crudVariables.multiDimensalObjectColumns.value = {
-                ...multiDimensalObjectColumns,
-            };
-        });
-
-        const setUrlData = () => {
-            if (productType.value == "single") {
-                columns.value = [
-                    ...columnsNames,
-                    {
-                        title: t("product.sales_price"),
-                        dataIndex: "sales_price",
-                        sorter: productType.value == "single" ? true : false,
-                        sorter_field: "product_details.sales_price",
-                    },
-                     {
-            title: t("Warehouse Name"), // new column title
-            dataIndex: "warehouse_name",
-            sorter: true,
-            sorter_field: "details.warehouse.name",
-        },
-                    {
-                        title: t("product.purchase_price"),
-                        dataIndex: "purchase_price",
-                        sorter: productType.value == "single" ? true : false,
-                        sorter_field: "product_details.purchase_price",
-                    },
-                    {
-                        title: t("product.current_stock"),
-                        dataIndex: "current_stock",
-                        sorter: true,
-                        sorter_field: "product_details.current_stock",
-                    },
-                    {
-                        title: t("common.action"),
-                        dataIndex: "action",
-                    },
-                ];
-            } else if (productType.value == "service") {
-                columns.value = [
-                    ...columnsNames,
-                    {
-                        title: t("product.sales_price"),
-                        dataIndex: "sales_price",
-                        sorter: false,
-                        sorter_field: "product_details.sales_price",
-                    },
-                    // {
-                    //     title: t("product.purchase_price"),
-                    //     dataIndex: "purchase_price",
-                    //     sorter: false,
-                    //     sorter_field: "product_details.purchase_price",
-                    // },
-                    // {
-                    //     title: t("product.current_stock"),
-                    //     dataIndex: "current_stock",
-                    //     sorter: false,
-                    //     sorter_field: "product_details.current_stock",
-                    // },
-                    {
-                        title: t("common.action"),
-                        dataIndex: "action",
-                    },
-                ];
-                crudVariables.table.sorter = {};
-            } else if (productType.value == "variable") {
-                columns.value = [
-                    ...columnsNames,
-                    {
-                        title: t("product.sales_price"),
-                        dataIndex: "sales_price",
-                        sorter: false,
-                        sorter_field: "product_details.sales_price",
-                    },
-                    {
-            title: t("warehouse"),
-            dataIndex: "warehouse_name",
-            sorter: true,
-            sorter_field: "details.warehouse.name",
-        },
-                    {
-                        title: t("product.purchase_price"),
-                        dataIndex: "purchase_price",
-                        sorter: false,
-                        sorter_field: "product_details.purchase_price",
-                    },
-                    {
-                        title: t("product.current_stock"),
-                        dataIndex: "current_stock",
-                        sorter: false,
-                        sorter_field: "product_details.current_stock",
-                    },
-                    {
-                        title: t("common.action"),
-                        dataIndex: "action",
-                    },
-                ];
-            }
-
-            if (productType.value == "single") {
-                var url =
-                    "products?fields=id,xid,name,slug,product_type,barcode_symbology,item_code,image,image_url,category_id,x_category_id,category{id,xid,name},brand_id,x_brand_id,brand{id,xid,name},unit_id,x_unit_id,unit{id,xid,name,short_name},description,details{stock_quantitiy_alert,opening_stock,opening_stock_date,wholesale_price,wholesale_quantity,mrp,purchase_price,sales_price,tax_id,x_tax_id,purchase_tax_type,sales_tax_type,current_stock,warehouse_id,x_warehouse_id,status},details:tax{id,xid,name,rate},details:warehouse{id,xid,name},customFields{id,xid,field_name,field_value},warehouse_id,x_warehouse_id,warehouse{id,xid}";
-            }
-            if (productType.value == "variable") {
-                url =
-                    "products?fields=id,xid,name,product_type,slug,barcode_symbology,item_code,image,image_url,category_id,x_category_id,category{id,xid,name},brand_id,x_brand_id,brand{id,xid,name},unit_id,x_unit_id,unit{id,xid,name,short_name},description,details{stock_quantitiy_alert,opening_stock,opening_stock_date,wholesale_price,wholesale_quantity,mrp,purchase_price,sales_price,tax_id,x_tax_id,purchase_tax_type,sales_tax_type,current_stock,warehouse_id,x_warehouse_id,status},details:tax{id,xid,name,rate},details:warehouse{id,xid,name},customFields{id,xid,field_name,field_value},warehouse_id,x_warehouse_id,warehouse{id,xid},parent_id,x_parent_id,variations.limit(10000).offset(0){id,xid,name,slug,item_code,product_type,barcode_symbology,item_code,image,image_url,category_id,x_category_id,unit_id,x_unit_id,brand_id,x_brand_id},variations:productVariations{id,xid,product_id,x_product_id,variant_id,x_variant_id,variant_value_id,x_variant_value_id},variations:category{id,xid,name},variations:brand{id,xid,name},variations:unit{id,xid,name,short_name},variations:productVariations:variation{id,xid,name},variations:productVariations:variationType{id,xid,name},variations:details{stock_quantitiy_alert,opening_stock,opening_stock_date,wholesale_price,wholesale_quantity,mrp,purchase_price,sales_price,tax_id,x_tax_id,purchase_tax_type,sales_tax_type,current_stock,warehouse_id,x_warehouse_id,status},variations:details:tax{id,xid,name,rate},variations:details:warehouse{id,xid,name}";
-            }
-
-            if (productType.value == "service") {
-                url =
-                    "products?fields=id,xid,name,slug,product_type,barcode_symbology,item_code,image,image_url,category_id,x_category_id,category{id,xid,name},brand_id,x_brand_id,brand{id,xid,name},unit_id,x_unit_id,unit{id,xid,name,short_name},description,details{stock_quantitiy_alert,opening_stock,opening_stock_date,wholesale_price,wholesale_quantity,mrp,purchase_price,sales_price,tax_id,x_tax_id,purchase_tax_type,sales_tax_type,current_stock,warehouse_id,x_warehouse_id,status},details:tax{id,xid,name,rate},details:warehouse{id,xid,name},customFields{id,xid,field_name,field_value},warehouse_id,x_warehouse_id,warehouse{id,xid}";
-            }
-
-          const extraFilters = { 
-  product_type: productType.value,
-  company_id: selectedCompany.value,  // Fetch all products for this company
-};
-
-// Only add warehouse_id if a specific warehouse is selected
-if (filters.value.warehouse_id) {
-    extraFilters.warehouse_id = filters.value.warehouse_id;
-}
-
-crudVariables.tableUrl.value = {
-    url,       // your API endpoint
-    filters,   // other filters like brand, category
-    extraFilters,
-};
-
-crudVariables.table.filterableColumns = filterableColumns;
-
-crudVariables.fetch({ page: 1 });
-
+        const openProductDetails = (record) => { productDetailsVisible.value = true; modelData.value = record; };
+        const onCloseProductDetails = () => { productDetailsVisible.value = false; };
 
         const getInitialData = () => {
-            const categoriesPromise = axiosAdmin.get("categories?limit=10000");
-            const brandsPromise = axiosAdmin.get("brands?limit=10000");
-
-            Promise.all([categoriesPromise, brandsPromise]).then(
-                ([categoriesResponse, brandsResponse]) => {
-                    categories.value = getRecursiveCategories(categoriesResponse);
-                    brands.value = brandsResponse.data;
-                }
-            );
+            Promise.all([axiosAdmin.get("categories?limit=10000"), axiosAdmin.get("brands?limit=10000")])
+            .then(([cResp, bResp]) => { categories.value = getRecursiveCategories(cResp); brands.value = bResp.data; });
         };
 
-        const getVariableProductSalePrice = (record) => {
-            var priceString = "";
-            const minRecord = minBy(record.variations, (o) => {
-                return o.details.sales_price;
-            });
-            const maxRecord = maxBy(record.variations, (o) => {
-                return o.details.sales_price;
-            });
+        const getVariableProductSalePrice = record => {
+            let str=""; const min = minBy(record.variations,o=>o.details.sales_price); const max = maxBy(record.variations,o=>o.details.sales_price); if(min?.details?.sales_price) str+=formatAmountCurrency(min.details.sales_price); if(max?.details?.sales_price) str+=" - "+formatAmountCurrency(max.details.sales_price); return str;
+        };
+        const getVariableProductPurchasePrice = record => {
+            let str=""; const min = minBy(record.variations,o=>o.details.purchase_price); const max = maxBy(record.variations,o=>o.details.purchase_price); if(min?.details?.purchase_price) str+=formatAmountCurrency(min.details.purchase_price); if(max?.details?.purchase_price) str+=" - "+formatAmountCurrency(max.details.purchase_price); return str;
+        };
+        const getVariableProductStockSum = record => sumBy(record.variations,o=>o.details.current_stock);
 
-            if (minRecord && minRecord.details.sales_price) {
-                priceString += formatAmountCurrency(minRecord.details.sales_price);
-            }
+        const setUrlData = () => {
+            let url = '';
+            if(productType.value == 'single') url = "products?fields=id,xid,name,slug,product_type,barcode_symbology,item_code,image,image_url,category_id,x_category_id,category{id,xid,name},brand_id,x_brand_id,brand{id,xid,name},unit_id,x_unit_id,unit{id,xid,name,short_name},description,details{stock_quantitiy_alert,opening_stock,opening_stock_date,wholesale_price,wholesale_quantity,mrp,purchase_price,sales_price,tax_id,x_tax_id,purchase_tax_type,sales_tax_type,current_stock,warehouse_id,x_warehouse_id,status},details:tax{id,xid,name,rate},details:warehouse{id,xid,name},customFields{id,xid,field_name,field_value},warehouse_id,x_warehouse_id,warehouse{id,xid}";
+            else if(productType.value=='variable') url="products?fields=id,xid,name,product_type,slug,barcode_symbology,item_code,image,image_url,category_id,x_category_id,category{id,xid,name},brand_id,x_brand_id,brand{id,xid,name},unit_id,x_unit_id,unit{id,xid,name,short_name},description,details{stock_quantitiy_alert,opening_stock,opening_stock_date,wholesale_price,wholesale_quantity,mrp,purchase_price,sales_price,tax_id,x_tax_id,purchase_tax_type,sales_tax_type,current_stock,warehouse_id,x_warehouse_id,status},details:tax{id,xid,name,rate},details:warehouse{id,xid,name},customFields{id,xid,field_name,field_value},warehouse_id,x_warehouse_id,warehouse{id,xid},parent_id,x_parent_id,variations.limit(10000).offset(0){id,xid,name,slug,item_code,product_type,barcode_symbology,item_code,image,image_url,category_id,x_category_id,unit_id,x_unit_id,brand_id,x_brand_id},variations:productVariations{id,xid,product_id,x_product_id,variant_id,x_variant_id,variant_value_id,x_variant_value_id},variations:category{id,xid,name},variations:brand{id,xid,name},variations:unit{id,xid,name,short_name},variations:productVariations:variation{id,xid,name},variations:productVariations:variationType{id,xid,name},variations:details{stock_quantitiy_alert,opening_stock,opening_stock_date,wholesale_price,wholesale_quantity,mrp,purchase_price,sales_price,tax_id,x_tax_id,purchase_tax_type,sales_tax_type,current_stock,warehouse_id,x_warehouse_id,status},variations:details:tax{id,xid,name,rate},variations:details:warehouse{id,xid,name}";
+            else if(productType.value=='service') url="products?fields=id,xid,name,slug,product_type,barcode_symbology,item_code,image,image_url,category_id,x_category_id,category{id,xid,name},brand_id,x_brand_id,brand{id,xid,name},unit_id,x_unit_id,unit{id,xid,name,short_name},description,details{stock_quantitiy_alert,opening_stock,opening_stock_date,wholesale_price,wholesale_quantity,mrp,purchase_price,sales_price,tax_id,x_tax_id,purchase_tax_type,sales_tax_type,current_stock,warehouse_id,x_warehouse_id,status},details:tax{id,xid,name,rate},details:warehouse{id,xid,name},customFields{id,xid,field_name,field_value},warehouse_id,x_warehouse_id,warehouse{id,xid}";
 
-            if (maxRecord && maxRecord.details.sales_price) {
-                priceString +=
-                    " - " + formatAmountCurrency(maxRecord.details.sales_price);
-            }
+            const extraFilters = { product_type: productType.value };
+            if(filters.value.warehouse_id) extraFilters.warehouse_id=filters.value.warehouse_id;
 
-            return priceString;
+            crudVariables.tableUrl.value={ url, filters, extraFilters };
+            crudVariables.table.filterableColumns = filterableColumns;
+            crudVariables.fetch({ page: 1 });
         };
 
-        const getVariableProductPurchasePrice = (record) => {
-            var priceString = "";
-            const minRecord = minBy(record.variations, (o) => {
-                return o.details.purchase_price;
+        const filteredProducts = computed(()=>crudVariables.table.data.filter(p=>{
+            if(filters.value.warehouse_id && p.details?.warehouse?.xid!==filters.value.warehouse_id) return false;
+            if(filters.value.brand_id && p.brand?.xid!==filters.value.brand_id) return false;
+            if(filters.value.category_id && p.category?.xid!==filters.value.category_id) return false;
+            return true;
+        }));
+
+        watch(selectedWarehouse,()=>setUrlData());
+
+        const totals = computed(()=>{
+            let totalCurrentStock=0;
+            crudVariables.table.data.forEach(tr=>{
+                if(productType.value=='variable' && tr.variations) totalCurrentStock+=getVariableProductStockSum(tr);
+                else if(productType.value=='single' && tr.details?.current_stock) totalCurrentStock+=tr.details.current_stock;
             });
-            const maxRecord = maxBy(record.variations, (o) => {
-                return o.details.purchase_price;
-            });
-
-            if (minRecord && minRecord.details.sales_price) {
-                priceString += formatAmountCurrency(minRecord.details.purchase_price);
-            }
-
-            if (maxRecord && maxRecord.details.sales_price) {
-                priceString +=
-                    " - " + formatAmountCurrency(maxRecord.details.purchase_price);
-            }
-
-            return priceString;
-        };
-
-        const getVariableProductStockSum = (record) => {
-            return sumBy(record.variations, (o) => {
-                return o.details.current_stock;
-            });
-        };
-
-        watch(selectedWarehouse, (newVal, oldVal) => {
-            setUrlData();
-        });
-
-        const totals = computed(() => {
-            let totalCurrentStock = 0;
-            crudVariables.table.data.forEach((tableRowData) => {
-                if (productType.value == "variable" && tableRowData.variations) {
-                    totalCurrentStock += getVariableProductStockSum(tableRowData);
-                } else if (
-                    productType.value == "single" &&
-                    tableRowData.details &&
-                    tableRowData.details.current_stock
-                ) {
-                    totalCurrentStock += tableRowData.details.current_stock;
-                }
-            });
-            return {
-                totalCurrentStock,
-            };
+            return { totalCurrentStock };
         });
 
         return {
-            columns,
-            variantColumns,
-            appSetting,
-            ...crudVariables,
-            permsArray,
-            formatAmountCurrency,
-
-            categories,
-            brands,
-            filters,
-            warehouses,
-            filterTreeNode,
-            setUrlData,
-            sampleFileUrl,
-            productType,
-
-            getVariableProductSalePrice,
-            getVariableProductPurchasePrice,
-            getVariableProductStockSum,
-            totals,
-            productDetailsVisible,
-            modelData,
-            openProductDetails,
-            onCloseProductDetails,
+            columns, variantColumns, appSetting, ...crudVariables, permsArray, formatAmountCurrency,
+            categories, brands, filters, warehouses, filterTreeNode, setUrlData, sampleFileUrl, productType, filteredProducts,
+            getVariableProductSalePrice, getVariableProductPurchasePrice, getVariableProductStockSum, totals,
+            productDetailsVisible, modelData, openProductDetails, onCloseProductDetails
         };
-    },
+    }
 };
 </script>
 
 <style lang="less">
-.ant-badge-status-dot {
-    width: 8px;
-    height: 8px;
-}
+.ant-badge-status-dot { width: 8px; height: 8px; }
 </style>
