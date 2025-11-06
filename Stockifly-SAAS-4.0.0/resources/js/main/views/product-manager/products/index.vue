@@ -565,10 +565,10 @@ const warehouses = ref([]); // all warehouses
 const loadWarehouses = async () => {
     try {
         const { data } = await axiosAdmin.get("warehouses?fields=id,xid,name&per_page=200");
-        warehouses.value = [{ xid: null, name: "All Warehouses" }, ...data]; // Add "All" option
+        warehouses.value = [{ xid: null, name: "All Location" }, ...data]; // Add "All" option
     } catch (e) {
         console.error("Failed to load warehouses", e);
-        warehouses.value = [{ xid: null, name: "All Warehouses" }];
+        warehouses.value = [{ xid: null, name: "All Location" }];
     }
 };
 
