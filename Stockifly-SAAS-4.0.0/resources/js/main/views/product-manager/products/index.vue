@@ -609,7 +609,7 @@ onMounted(() => {
                         sorter_field: "product_details.sales_price",
                     },
                      {
-            title: t("Warehouse Name"), // new column title
+            title: t("Location Name"), // new column title
             dataIndex: "warehouse_name",
             sorter: true,
             sorter_field: "details.warehouse.name",
