@@ -432,8 +432,8 @@ export default defineComponent({
     const searchTerm = ref('');        // local search text
 
     // Make sure parent_id exists on the form
-    if (props.formData && typeof props.formData.parent_id === 'undefined') {
-      props.formData.parent_id = null;
+    if (props.formData && typeof props.formData.parent_warehouse_id === 'undefined') {
+      props.formData.parent_warehouse_id = null;
     }
 
     const currentXid = computed(() => props.formData?.xid || null);
@@ -524,8 +524,8 @@ export default defineComponent({
 
     // Prefill parent_id on edit with hashed id from API response
     const initParentField = () => {
-      if (!props.formData.parent_id && props.data?.x_parent_id) {
-        props.formData.parent_id = props.data.x_parent_id;
+      if (!props.formData.parent_warehouse_id && props.data?.x_parent_warehouse_id) {
+        props.formData.parent_warehouse_id = props.data.x_parent_warehouse_id;
       }
     };
 
