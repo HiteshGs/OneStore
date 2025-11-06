@@ -696,25 +696,26 @@ onMounted(() => {
                     "products?fields=id,xid,name,slug,product_type,barcode_symbology,item_code,image,image_url,category_id,x_category_id,category{id,xid,name},brand_id,x_brand_id,brand{id,xid,name},unit_id,x_unit_id,unit{id,xid,name,short_name},description,details{stock_quantitiy_alert,opening_stock,opening_stock_date,wholesale_price,wholesale_quantity,mrp,purchase_price,sales_price,tax_id,x_tax_id,purchase_tax_type,sales_tax_type,current_stock,warehouse_id,x_warehouse_id,status},details:tax{id,xid,name,rate},details:warehouse{id,xid,name},customFields{id,xid,field_name,field_value},warehouse_id,x_warehouse_id,warehouse{id,xid}";
             }
 
-          const extraFilters = { product_type: productType.value };
+          const extraFilters = { 
+  product_type: productType.value,
+  company_id: selectedCompany.value,  // Fetch all products for this company
+};
+
+// Only add warehouse_id if a specific warehouse is selected
 if (filters.value.warehouse_id) {
     extraFilters.warehouse_id = filters.value.warehouse_id;
 }
 
 crudVariables.tableUrl.value = {
-    url,
-    filters,
+    url,       // your API endpoint
+    filters,   // other filters like brand, category
     extraFilters,
 };
 
+crudVariables.table.filterableColumns = filterableColumns;
 
+crudVariables.fetch({ page: 1 });
 
-            crudVariables.table.filterableColumns = filterableColumns;
-
-            crudVariables.fetch({
-                page: 1,
-            });
-        };
 
         const getInitialData = () => {
             const categoriesPromise = axiosAdmin.get("categories?limit=10000");
