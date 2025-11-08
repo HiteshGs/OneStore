@@ -23,111 +23,173 @@ class WarehouseController extends ApiBaseController
 {
     protected $model = Warehouse::class;
 
-    protected $indexRequest = IndexRequest::class;
-    protected $storeRequest = StoreRequest::class;
+    protected $indexRequest  = IndexRequest::class;
+    protected $storeRequest  = StoreRequest::class;
     protected $updateRequest = UpdateRequest::class;
     protected $deleteRequest = DeleteRequest::class;
 
+    /**
+     * Limit list by user + always include parent for list/show.
+     */
     public function modifyIndex($query)
     {
         $loggedUser = user();
 
         if ($loggedUser && !$loggedUser->hasRole('admin')) {
-            if ($loggedUser->user_type == 'staff_members') {
-                $query = $query->where(function ($newQuery) use ($loggedUser) {
-                    foreach ($loggedUser->userWarehouses as $userWaerehouseKey => $userWarehouse) {
-                        if ($userWaerehouseKey == 0) {
-                            $newQuery = $newQuery->where('warehouses.id', '=', $userWarehouse->warehouse_id);
-                        } else {
-                            $newQuery = $newQuery->orWhere('warehouses.id', '=', $userWarehouse->warehouse_id);
-                        }
+            if ($loggedUser->user_type === 'staff_members') {
+                $query = $query->where(function ($q) use ($loggedUser) {
+                    foreach ($loggedUser->userWarehouses as $i => $uw) {
+                        $i === 0
+                            ? $q->where('warehouses.id', $uw->warehouse_id)
+                            : $q->orWhere('warehouses.id', $uw->warehouse_id);
                     }
                 });
             } else {
-                $query = $query->where('warehouses.id', '=', $loggedUser->warehouse_id);
+                $query = $query->where('warehouses.id', $loggedUser->warehouse_id);
             }
         }
 
-        return $query;
+        return $query->with(['parent:id,name']);
     }
 
-    public function stored(Warehouse $warehouse)
+    /**
+     * BEFORE create: resolve parent_warehouse_id (hashed) and set it on the model.
+     */
+    public function storing(Warehouse $warehouse)
     {
-        $company = company();
-        $companyWarehouse = $company->warehouse;
+        // The UI sends a HASH in parent_warehouse_id; decode it to int.
+        $rawParent = request('parent_warehouse_id');
+        $decoded   = $rawParent ? $this->getIdFromHash($rawParent) : null;
 
-        // Front website settings
-        $frontSetting = new FrontWebsiteSettings();
-        $frontSetting->warehouse_id = $warehouse->id;
-        $frontSetting->featured_categories = [];
-        $frontSetting->featured_products = [];
-        $frontSetting->features_lists = [];
-        $frontSetting->pages_widget = [];
-        $frontSetting->contact_info_widget = [];
-        $frontSetting->links_widget = [];
-        $frontSetting->top_banners = [];
-        $frontSetting->bottom_banners_1 = [];
-        $frontSetting->bottom_banners_2 = [];
-        $frontSetting->bottom_banners_3 = [];
-        $frontSetting->save();
-
-        // Fix - Issue fixed for variable type product
-        $allProducts = Product::select('id')
-            ->where('product_type', 'single')
-            ->whereNotNull('parent_id')->get();
-        foreach ($allProducts as $allProduct) {
-            // Getting product details for company default warehouse
-            $defaultWarehouseProductDetails = ProductDetails::withoutGlobalScope('current_warehouse')
-                ->where('warehouse_id', '=', $companyWarehouse->id)
-                ->where('product_id', '=', $allProduct->id)
-                ->first();
-
-            // Inserting all products details for this warhouse
-            $productDetails = new ProductDetails();
-            $productDetails->warehouse_id = $warehouse->id;
-            $productDetails->product_id = $allProduct->id;
-            $productDetails->tax_id = $defaultWarehouseProductDetails->tax_id;
-            $productDetails->mrp = $defaultWarehouseProductDetails->mrp;
-            $productDetails->purchase_price = $defaultWarehouseProductDetails->purchase_price;
-            $productDetails->sales_price = $defaultWarehouseProductDetails->sales_price;
-            $productDetails->purchase_tax_type = $defaultWarehouseProductDetails->purchase_tax_type;
-            $productDetails->sales_tax_type = $defaultWarehouseProductDetails->sales_tax_type;
-            $productDetails->stock_quantitiy_alert = $defaultWarehouseProductDetails->stock_quantitiy_alert;
-            $productDetails->wholesale_price = $defaultWarehouseProductDetails->wholesale_price;
-            $productDetails->wholesale_quantity = $defaultWarehouseProductDetails->wholesale_quantity;
-            $productDetails->save();
-
-            // Common::updateProductCustomFields($allProduct, $productDetails->warehouse_id);
-            Common::recalculateOrderStock($productDetails->warehouse_id, $allProduct->id);
+        if ($decoded && !Warehouse::whereKey($decoded)->exists()) {
+            throw new ApiException('Invalid parent warehouse.');
         }
 
-        // Creating user Details for each customer and supplier
-        // For this created warehouse
+        // IMPORTANT: write to the real column
+        $warehouse->parent_warehouse_id = $decoded;
+
+        return $warehouse;
+    }
+
+    /**
+     * AFTER create: initialize related records.
+     */
+    public function stored(Warehouse $warehouse)
+    {
+        $company          = company();
+        $companyWarehouse = $company->warehouse;
+
+        // Front website settings skeleton for this warehouse
+        $frontSetting = new FrontWebsiteSettings();
+        $frontSetting->warehouse_id      = $warehouse->id;
+        $frontSetting->featured_categories = [];
+        $frontSetting->featured_products   = [];
+        $frontSetting->features_lists      = [];
+        $frontSetting->pages_widget        = [];
+        $frontSetting->contact_info_widget = [];
+        $frontSetting->links_widget        = [];
+        $frontSetting->top_banners         = [];
+        $frontSetting->bottom_banners_1    = [];
+        $frontSetting->bottom_banners_2    = [];
+        $frontSetting->bottom_banners_3    = [];
+        $frontSetting->save();
+
+        // Copy ProductDetails defaults from the company default warehouse
+        $allProducts = Product::select('id')
+            ->where('product_type', 'single')
+            ->whereNotNull('parent_id')
+            ->get();
+
+        foreach ($allProducts as $p) {
+            $default = ProductDetails::withoutGlobalScope('current_warehouse')
+                ->where('warehouse_id', $companyWarehouse->id)
+                ->where('product_id',  $p->id)
+                ->first();
+
+            // Guard against null; avoid an exception that would look like "unknown error"
+            if (!$default) {
+                continue;
+            }
+
+            $pd = new ProductDetails();
+            $pd->warehouse_id        = $warehouse->id;
+            $pd->product_id          = $p->id;
+            $pd->tax_id              = $default->tax_id;
+            $pd->mrp                 = $default->mrp;
+            $pd->purchase_price      = $default->purchase_price;
+            $pd->sales_price         = $default->sales_price;
+            $pd->purchase_tax_type   = $default->purchase_tax_type;
+            $pd->sales_tax_type      = $default->sales_tax_type;
+            $pd->stock_quantitiy_alert = $default->stock_quantitiy_alert;
+            $pd->wholesale_price     = $default->wholesale_price;
+            $pd->wholesale_quantity  = $default->wholesale_quantity;
+            $pd->save();
+
+            Common::recalculateOrderStock($pd->warehouse_id, $p->id);
+        }
+
+        // Bootstrap UserDetails for customers/suppliers for this warehouse
         $allCustomerSuppliers = Customer::withoutGlobalScope('type')
             ->where('user_type', 'suppliers')
             ->orWhere('user_type', 'customers')
             ->get();
-        foreach ($allCustomerSuppliers as $allCustomerSupplier) {
-            $userDetails = new UserDetails();
-            $userDetails->warehouse_id = $warehouse->xid;
-            $userDetails->user_id = $allCustomerSupplier->id;
-            $userDetails->credit_period = 30;
-            $userDetails->save();
+
+        foreach ($allCustomerSuppliers as $u) {
+            $ud = new UserDetails();
+            // Use integer PK; do NOT store hash here unless your schema expects it
+            $ud->warehouse_id  = $warehouse->id;
+            $ud->user_id       = $u->id;
+            $ud->credit_period = 30;
+            $ud->save();
         }
     }
 
+    /**
+     * BEFORE update: validate and set parent_warehouse_id; prevent self/loops.
+     */
+    public function updating(Warehouse $warehouse)
+    {
+        $rawParent = request('parent_warehouse_id');                 // hash or null
+        $decoded   = $rawParent ? $this->getIdFromHash($rawParent) : null;
+
+        // self-parent
+        if ($decoded && (int) $decoded === (int) $warehouse->id) {
+            throw new ApiException('A warehouse cannot be its own parent.');
+        }
+
+        // circular guard
+        if ($decoded) {
+            $cursor = Warehouse::with('parent')->find($decoded);
+            while ($cursor) {
+                if ((int) $cursor->id === (int) $warehouse->id) {
+                    throw new ApiException('Circular hierarchy is not allowed.');
+                }
+                $cursor = $cursor->parent;
+            }
+        }
+
+        $warehouse->parent_warehouse_id = $decoded ?: null;
+
+        return $warehouse;
+    }
+
+    /**
+     * AFTER update: refresh session warehouse if you edited the active one.
+     */
     public function updated(Warehouse $warehouse)
     {
         $sessionWarehouse = warehouse();
 
-        // Reseting session warehouse
-        if ($sessionWarehouse && $sessionWarehouse->id && $sessionWarehouse->id == $warehouse->id) {
+        if ($sessionWarehouse && $sessionWarehouse->id == $warehouse->id) {
             session(['warehouse' => $warehouse]);
         }
 
         return $warehouse;
     }
 
+    /**
+     * BEFORE delete: safety checks.
+     */
     public function destroying(Warehouse $warehouse)
     {
         $company = company();
@@ -137,21 +199,45 @@ class WarehouseController extends ApiBaseController
         }
 
         $warehouseStaffMemberCount = User::where('warehouse_id', $warehouse->id)->count();
-
         if ($warehouseStaffMemberCount > 0) {
-            throw new ApiException('This warehouse have active staff member(s). Either delete or change their warehouse before deleteing this');
+            throw new ApiException(
+                'This warehouse has active staff member(s). ' .
+                'Either delete or change their warehouse before deleting this'
+            );
         }
 
         return $warehouse;
     }
 
+    /**
+     * Small helper endpoint for async selects in the UI.
+     */
+    public function options(\Illuminate\Http\Request $request)
+    {
+        $search = trim((string) $request->get('search', ''));
+        $query  = Warehouse::select('id', 'name')->orderBy('name');
+
+        if ($search !== '') {
+            $query->where('name', 'like', "%{$search}%");
+        }
+
+        $items = $query->get()->map(fn ($w) => [
+            'value' => $w->xid,   // hashed id for the UI
+            'label' => $w->name,
+        ])->values();
+
+        return ApiResponse::make('Success', $items);
+    }
+
+    /**
+     * Toggle online store status.
+     */
     public function updateOnlineStoreStatus(UpdateOnlineStoreStatusRequest $request)
     {
-        $warehouseId = $request->warehouse_id;
-        $id = $this->getIdFromHash($warehouseId);
+        $id = $this->getIdFromHash($request->warehouse_id);
 
-        $warehouse = Warehouse::find($id);
-        $warehouse->online_store_enabled = $request->status;
+        $warehouse = Warehouse::findOrFail($id);
+        $warehouse->online_store_enabled = (int) $request->status;
         $warehouse->save();
 
         return ApiResponse::make('Success', []);
