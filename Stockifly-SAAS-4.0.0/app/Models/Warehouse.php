@@ -25,6 +25,8 @@ class Warehouse extends BaseModel
         'dark_logo_url',
         'online_store_enabled',
         'barcode_type',
+        // ✅ Ensure parent warehouse is included in API responses
+        'parent_warehouse_id',
     ];
 
     protected $guarded = ['id', 'users', 'company_id', 'created_at', 'updated_at'];
@@ -68,17 +70,25 @@ class Warehouse extends BaseModel
         static::addGlobalScope(new CompanyScope);
     }
 
-    // ✅ RELATION ADDED HERE
+    // ✅ Parent warehouse relation
     public function parent_warehouse()
     {
         return $this->belongsTo(Warehouse::class, 'parent_warehouse_id');
     }
 
+    // Optional: you can add a reverse relation if you need children
+    public function child_warehouses()
+    {
+        return $this->hasMany(Warehouse::class, 'parent_warehouse_id');
+    }
+
+    // ✅ Relation with staff members
     public function users()
     {
         return $this->belongsToMany(StaffMember::class);
     }
 
+    // ✅ Logo URLs
     public function getLogoUrlAttribute()
     {
         $warehouseLogoPath = Common::getFolderPath('warehouseLogoPath');
