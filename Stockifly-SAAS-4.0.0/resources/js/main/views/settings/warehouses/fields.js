@@ -6,41 +6,40 @@ const fields = () => {
 
     // 👈 UPDATED: ask backend for parent_warehouse_id, x_parent_warehouse_id, parent_name
     const url =
-        "warehouses?fields=" +
-        [
-            "id",
-            "xid",
-            "company_id",
-            "x_company_id",
-            "logo",
-            "logo_url",
-            "dark_logo",
-            "dark_logo_url",
-            "name",
-            "slug",
-            "email",
-            "phone",
-            "address",
-            "show_email_on_invoice",
-            "show_phone_on_invoice",
-            "show_mrp_on_invoice",
-            "show_discount_tax_on_invoice",
-            "terms_condition",
-            "bank_details",
-            "signature",
-            "signature_url",
-            "online_store_enabled",
-            "default_pos_order_status",
-            "customers_visibility",
-            "suppliers_visibility",
-            "products_visibility",
-            "barcode_type",
+    "warehouses?fields=" +
+    [
+        "id",
+        "xid",
+        "company_id",
+        "x_company_id",
+        "logo",
+        "logo_url",
+        "dark_logo",
+        "dark_logo_url",
+        "name",
+        "slug",
+        "email",
+        "phone",
+        "address",
+        "show_email_on_invoice",
+        "show_phone_on_invoice",
+        "show_mrp_on_invoice",
+        "show_discount_tax_on_invoice",
+        "terms_condition",
+        "bank_details",
+        "signature",
+        "signature_url",
+        "online_store_enabled",
+        "default_pos_order_status",
+        "customers_visibility",
+        "suppliers_visibility",
+        "products_visibility",
+        "barcode_type",
 
-            // 🔥 parent info
-            "parent_warehouse_id",
-            "x_parent_warehouse_id",
-            "parent_name",
-        ].join(",");
+        // ✅ ONLY real DB column here
+        "parent_warehouse_id",
+    ].join(",");
+
 
     const { t } = useI18n();
 
