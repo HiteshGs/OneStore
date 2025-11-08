@@ -54,42 +54,7 @@
                 </a-col>
               </a-row>
 
-              <!-- PARENT WAREHOUSE -->
-              <a-row :gutter="16">
-                <a-col :xs="24" :sm="24" :md="12" :lg="12">
-                  <a-form-item
-                    :label="$t('Parent Warhouse')"
-                    name="parent_warehouse_id"
-                    :help="rules.parent_warehouse_id ? rules.parent_warehouse_id.message : null"
-                    :validateStatus="rules.parent_warehouse_id ? 'error' : null"
-                  >
-                    <a-select
-                      v-model:value="formData.parent_warehouse_id"
-                      show-search
-                      allowClear
-                      :placeholder="$t('common.placeholder_default_text', [$t('Parent Warhouse')])"
-                      :filterOption="false"
-                      :loading="parentLoading"
-                      style="width: 100%"
-                      @search="onSearchParent"
-                      @dropdownVisibleChange="onParentOpen"
-                    >
-                      <a-select-option :value="null">
-                        {{ $t('Select Warehouse') }}
-                      </a-select-option>
-
-                      <a-select-option
-                        v-for="opt in parentOptionsFiltered"
-                        :key="opt.value"
-                        :value="opt.value"
-                      >
-                        {{ opt.label }}
-                      </a-select-option>
-                    </a-select>
-                  </a-form-item>
-                </a-col>
-              </a-row>
-              <!-- /PARENT WAREHOUSE -->
+           
 
               <a-row :gutter="16">
                 <a-col :xs="24" :sm="24" :md="16" :lg="16">
