@@ -56,6 +56,8 @@
                             </template>
                             <template v-if="column.dataIndex === 'parent_warehouse'">
                                 {{ record.parent_warehouse ? record.parent_warehouse.name : '-' }}
+                                <!-- Debug log -->
+                                <pre v-if="column.dataIndex === 'parent_warehouse'">{{ record }}</pre>
                             </template>
                             <template v-if="column.dataIndex === 'online_store_enabled'">
                                 <OnlineStoreStatus
@@ -140,21 +142,21 @@ export default {
         const { url, addEditUrl, initData, columns, filterableColumns } = fields();
         const crudVariables = crud();
 
-        onMounted(() => {
-            crudVariables.tableUrl.value = {
-                url,
-            };
-            crudVariables.table.filterableColumns = filterableColumns;
+        onMounted(async () => {
+    crudVariables.tableUrl.value = { url };
+    crudVariables.table.filterableColumns = filterableColumns;
 
-            crudVariables.fetch({
-                page: 1,
-            });
+    await crudVariables.fetch({ page: 1 });
 
-            crudVariables.crudUrl.value = addEditUrl;
-            crudVariables.langKey.value = "warehouse";
-            crudVariables.initData.value = { ...initData };
-            crudVariables.formData.value = { ...initData };
-        });
+    // ✅ Add this line
+    console.log("WAREHOUSE TABLE DATA >>>", crudVariables.table.data);
+
+    crudVariables.crudUrl.value = addEditUrl;
+    crudVariables.langKey.value = "warehouse";
+    crudVariables.initData.value = { ...initData };
+    crudVariables.formData.value = { ...initData };
+});
+
 
         const addOrEditSuccess = (xid) => {
             crudVariables.addEditSuccess(xid);
