@@ -43,6 +43,11 @@ const fields = () => {
             sorter: true,
         },
         {
+            // if you don't have this in lang, just put 'Parent Warehouse'
+            title: t("warehouse.parent") || "Parent Location",
+            dataIndex: "parentWarehouse",
+        },
+        {
             title: t("warehouse.email"),
             dataIndex: "email",
             sorter: true,

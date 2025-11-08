@@ -131,6 +131,9 @@
                                     <template v-if="column.dataIndex === 'logo'">
                                         <a-image :width="48" :src="record.logo_url" />
                                     </template>
+                                    <template v-if="column.dataIndex === 'parentWarehouse'">
+                                        {{ record.parentWarehouse ? record.parentWarehouse.name : '-' }}
+                                    </template>
                                     <template
                                         v-if="column.dataIndex === 'online_store_enabled'"
                                     >
