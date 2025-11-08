@@ -35,6 +35,7 @@ class WarehouseController extends ApiBaseController
     protected $storeRequest  = StoreRequest::class;
     protected $updateRequest = UpdateRequest::class;
     protected $deleteRequest = DeleteRequest::class;
+    protected $with = ['parentWarehouse'];
 
     /**
      * Called by ApiBaseController@index to modify the listing query.
@@ -61,7 +62,7 @@ class WarehouseController extends ApiBaseController
             }
         }
 
-        return $query;
+    return $query->with('parentWarehouse');
     }
 
     /**

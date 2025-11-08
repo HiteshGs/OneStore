@@ -3,7 +3,45 @@ import { useI18n } from "vue-i18n";
 
 const fields = () => {
     const addEditUrl = "warehouses";
-    const url = "warehouses?fields=id,xid,company_id,x_company_id,logo,logo_url,dark_logo,dark_logo_url,name,slug,email,phone,address,show_email_on_invoice,show_phone_on_invoice,show_mrp_on_invoice,show_discount_tax_on_invoice,terms_condition,bank_details,signature,signature_url,online_store_enabled,default_pos_order_status,customers_visibility,suppliers_visibility,products_visibility,barcode_type";
+
+    // 👈 UPDATED: ask backend for parent_warehouse_id, x_parent_warehouse_id, parent_name
+    const url =
+        "warehouses?fields=" +
+        [
+            "id",
+            "xid",
+            "company_id",
+            "x_company_id",
+            "logo",
+            "logo_url",
+            "dark_logo",
+            "dark_logo_url",
+            "name",
+            "slug",
+            "email",
+            "phone",
+            "address",
+            "show_email_on_invoice",
+            "show_phone_on_invoice",
+            "show_mrp_on_invoice",
+            "show_discount_tax_on_invoice",
+            "terms_condition",
+            "bank_details",
+            "signature",
+            "signature_url",
+            "online_store_enabled",
+            "default_pos_order_status",
+            "customers_visibility",
+            "suppliers_visibility",
+            "products_visibility",
+            "barcode_type",
+
+            // 🔥 parent info
+            "parent_warehouse_id",
+            "x_parent_warehouse_id",
+            "parent_name",
+        ].join(",");
+
     const { t } = useI18n();
 
     const initData = {
@@ -29,7 +67,10 @@ const fields = () => {
         customers_visibility: "all",
         suppliers_visibility: "all",
         products_visibility: "all",
-        barcode_type:"barcode",
+        barcode_type: "barcode",
+
+        // 👈 NEW: parent field used by AddEdit.vue
+        parent_warehouse_id: null,
     };
 
     const columns = [
@@ -42,6 +83,14 @@ const fields = () => {
             dataIndex: "name",
             sorter: true,
         },
+
+        // 👇 NEW COLUMN: Parent Warehouse name
+        {
+            title: t("warehouse.parent"), // make sure you have this key in lang, or change text
+            dataIndex: "parent_name",
+            sorter: false,
+        },
+
         {
             title: t("warehouse.email"),
             dataIndex: "email",
@@ -55,7 +104,6 @@ const fields = () => {
             title: t("warehouse.online_store"),
             dataIndex: "online_store_enabled",
         },
-
         {
             title: t("common.action"),
             dataIndex: "action",
@@ -65,16 +113,21 @@ const fields = () => {
     const filterableColumns = [
         {
             key: "name",
-            value: t("warehouse.name")
+            value: t("warehouse.name"),
         },
         {
             key: "email",
-            value: t("warehouse.email")
+            value: t("warehouse.email"),
         },
         {
             key: "phone",
-            value: t("warehouse.phone")
+            value: t("warehouse.phone"),
         },
+        // optional: if you want to filter by parent name (depends on backend support)
+        // {
+        //   key: "parent_name",
+        //   value: t("warehouse.parent"),
+        // },
     ];
 
     return {
@@ -82,8 +135,8 @@ const fields = () => {
         addEditUrl,
         initData,
         columns,
-        filterableColumns
-    }
-}
+        filterableColumns,
+    };
+};
 
 export default fields;
