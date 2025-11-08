@@ -4,6 +4,8 @@ import { forEach } from "lodash-es";
 import { message, notification } from "ant-design-vue";
 import common from "../composable/common";
 
+// assumes axiosAdmin is available in your axios setup/import scope
+
 const api = () => {
   const loading = ref(false);
   const rules = ref({});
@@ -19,27 +21,61 @@ const api = () => {
     });
   };
 
+  const formatDetails = (details) => {
+    if (!details || typeof details !== "object") return [];
+    const lines = [];
+    Object.keys(details).forEach((field) => {
+      const arr = Array.isArray(details[field]) ? details[field] : [details[field]];
+      arr.forEach((msg) => lines.push(`${field}: ${String(msg)}`));
+    });
+    return lines;
+  };
+
   const extractError = (err) => {
-    // Axios puts payload under err.response
-    const resp = err?.response || {};
-    const status = resp.status;
-    const data = resp.data || {};
-    // Common API shapes:
-    // { message, error: { message, details: { field: [msg] } } }
-    const topMsg =
-      data?.error?.message ||
+    const resp = err?.response;
+    const status = resp?.status ?? null;
+    const data = resp?.data ?? null;
+
+    const apiError = data?.error;
+    const payloadMessage =
+      apiError?.message ||
       data?.message ||
-      (typeof data === "string" ? data : null) ||
-      "Unknown error";
-    const details = data?.error?.details || {};
-    return { status, data, topMsg, details };
+      (typeof data === "string" ? data : null);
+
+    const isTimeout = err?.code === "ECONNABORTED";
+    const isNetwork = err?.message?.toLowerCase?.().includes("network");
+
+    let topMsg;
+    if (payloadMessage) {
+      topMsg = String(payloadMessage);
+    } else if (isTimeout) {
+      topMsg = t("common.timeout") || "Request timed out";
+    } else if (!resp && isNetwork) {
+      topMsg = t("common.network_error") || "Network error";
+    } else if (!resp) {
+      topMsg = t("common.unknown_error") || "Unknown error";
+    } else if (status >= 500) {
+      topMsg = t("common.server_error") || "Server error";
+    } else {
+      topMsg = t("common.unknown_error") || "Unknown error";
+    }
+
+    const details = apiError?.details || data?.errors || null;
+    const detailLines = formatDetails(details);
+
+    return { status, data, topMsg, details, detailLines };
+  };
+
+  const showError = (topMsg, detailLines) => {
+    const full = [topMsg, ...detailLines].join("\n");
+    message.error(full);
   };
 
   const addEditRequestAdmin = (configObject) => {
     loading.value = true;
     const { url, data, success } = configObject;
-    const formData = {};
 
+    const formData = {};
     forEach(data, (value, key) => {
       formData[key] = value === undefined ? null : value;
     });
@@ -53,22 +89,20 @@ const api = () => {
         rules.value = {};
       })
       .catch((err) => {
-        const { status, topMsg, details } = extractError(err);
+        const { status, topMsg, details, detailLines } = extractError(err);
 
-        // Build rules for 422 validation payloads
         if (status === 422 && details && typeof details === "object") {
           const errorRules = {};
           Object.keys(details).forEach((k) => {
-            const key = k.replace(".", "\\.");
-            errorRules[key] = { required: true, message: details[k][0] };
+            const key = k.replace(/\./g, "\\.");
+            const msg = Array.isArray(details[k]) ? details[k][0] : String(details[k]);
+            errorRules[key] = { required: true, message: msg };
           });
           rules.value = errorRules;
-          message.error(t("common.fix_errors"));
-        } else {
-          message.error(topMsg);
         }
 
-        // Help you debug in browser console
+        showError(topMsg, detailLines);
+
         // eslint-disable-next-line no-console
         console.error("API ERROR:", { status, err });
 
@@ -102,21 +136,20 @@ const api = () => {
         rules.value = {};
       })
       .catch((err) => {
-        const { status, topMsg, details } = extractError(err);
+        const { status, topMsg, details, detailLines } = extractError(err);
 
         if (status === 422 && details && typeof details === "object") {
           const errorRules = {};
           Object.keys(details).forEach((k) => {
-            const key = k.replace(".", "\\.");
-            errorRules[key] = { required: true, message: details[k][0] };
+            const key = k.replace(/\./g, "\\.");
+            const msg = Array.isArray(details[k]) ? details[k][0] : String(details[k]);
+            errorRules[key] = { required: true, message: msg };
           });
           rules.value = errorRules;
-          message.error(t("common.fix_errors"));
-        } else {
-          message.error(topMsg);
         }
 
-        // Debug:
+        showError(topMsg, detailLines);
+
         // eslint-disable-next-line no-console
         console.error("API FILE ERROR:", { status, err });
 
