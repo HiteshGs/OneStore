@@ -21,27 +21,13 @@ use Examyou\RestAPI\Exceptions\ApiException;
 
 class WarehouseController extends ApiBaseController
 {
-    /**
-     * Model handled by this controller.
-     *
-     * @var string
-     */
     protected $model = Warehouse::class;
 
-    /**
-     * Request classes used by ApiBaseController.
-     */
-    protected $indexRequest  = IndexRequest::class;
-    protected $storeRequest  = StoreRequest::class;
+    protected $indexRequest = IndexRequest::class;
+    protected $storeRequest = StoreRequest::class;
     protected $updateRequest = UpdateRequest::class;
     protected $deleteRequest = DeleteRequest::class;
-    protected $with = ['parentWarehouse'];
 
-    /**
-     * Called by ApiBaseController@index to modify the listing query.
-     * This already works with your new parent_warehouse_id field,
-     * no extra code needed here.
-     */
     public function modifyIndex($query)
     {
         $loggedUser = user();
@@ -49,8 +35,8 @@ class WarehouseController extends ApiBaseController
         if ($loggedUser && !$loggedUser->hasRole('admin')) {
             if ($loggedUser->user_type == 'staff_members') {
                 $query = $query->where(function ($newQuery) use ($loggedUser) {
-                    foreach ($loggedUser->userWarehouses as $userWarehouseKey => $userWarehouse) {
-                        if ($userWarehouseKey == 0) {
+                    foreach ($loggedUser->userWarehouses as $userWaerehouseKey => $userWarehouse) {
+                        if ($userWaerehouseKey == 0) {
                             $newQuery = $newQuery->where('warehouses.id', '=', $userWarehouse->warehouse_id);
                         } else {
                             $newQuery = $newQuery->orWhere('warehouses.id', '=', $userWarehouse->warehouse_id);
@@ -62,91 +48,79 @@ class WarehouseController extends ApiBaseController
             }
         }
 
-    return $query->with('parentWarehouse');
+        return $query;
     }
 
-    /**
-     * Hook called by ApiBaseController after a warehouse is stored.
-     * $warehouse already has parent_warehouse_id from the request (hashed).
-     */
     public function stored(Warehouse $warehouse)
     {
-        $company         = company();
+        $company = company();
         $companyWarehouse = $company->warehouse;
 
-        // Create front website settings for this warehouse
+        // Front website settings
         $frontSetting = new FrontWebsiteSettings();
-        $frontSetting->warehouse_id          = $warehouse->id;
-        $frontSetting->featured_categories   = [];
-        $frontSetting->featured_products     = [];
-        $frontSetting->features_lists        = [];
-        $frontSetting->pages_widget          = [];
-        $frontSetting->contact_info_widget   = [];
-        $frontSetting->links_widget          = [];
-        $frontSetting->top_banners           = [];
-        $frontSetting->bottom_banners_1      = [];
-        $frontSetting->bottom_banners_2      = [];
-        $frontSetting->bottom_banners_3      = [];
+        $frontSetting->warehouse_id = $warehouse->id;
+        $frontSetting->featured_categories = [];
+        $frontSetting->featured_products = [];
+        $frontSetting->features_lists = [];
+        $frontSetting->pages_widget = [];
+        $frontSetting->contact_info_widget = [];
+        $frontSetting->links_widget = [];
+        $frontSetting->top_banners = [];
+        $frontSetting->bottom_banners_1 = [];
+        $frontSetting->bottom_banners_2 = [];
+        $frontSetting->bottom_banners_3 = [];
         $frontSetting->save();
 
-        // Fix for variable type product
+        // Fix - Issue fixed for variable type product
         $allProducts = Product::select('id')
             ->where('product_type', 'single')
-            ->whereNotNull('parent_id')
-            ->get();
-
+            ->whereNotNull('parent_id')->get();
         foreach ($allProducts as $allProduct) {
-            // Product details for company default warehouse
+            // Getting product details for company default warehouse
             $defaultWarehouseProductDetails = ProductDetails::withoutGlobalScope('current_warehouse')
                 ->where('warehouse_id', '=', $companyWarehouse->id)
                 ->where('product_id', '=', $allProduct->id)
                 ->first();
 
-            if (!$defaultWarehouseProductDetails) {
-                continue;
-            }
-
-            // Insert product details for this warehouse
-            $productDetails                       = new ProductDetails();
-            $productDetails->warehouse_id         = $warehouse->id;
-            $productDetails->product_id           = $allProduct->id;
-            $productDetails->tax_id               = $defaultWarehouseProductDetails->tax_id;
-            $productDetails->mrp                  = $defaultWarehouseProductDetails->mrp;
-            $productDetails->purchase_price       = $defaultWarehouseProductDetails->purchase_price;
-            $productDetails->sales_price          = $defaultWarehouseProductDetails->sales_price;
-            $productDetails->purchase_tax_type    = $defaultWarehouseProductDetails->purchase_tax_type;
-            $productDetails->sales_tax_type       = $defaultWarehouseProductDetails->sales_tax_type;
+            // Inserting all products details for this warhouse
+            $productDetails = new ProductDetails();
+            $productDetails->warehouse_id = $warehouse->id;
+            $productDetails->product_id = $allProduct->id;
+            $productDetails->tax_id = $defaultWarehouseProductDetails->tax_id;
+            $productDetails->mrp = $defaultWarehouseProductDetails->mrp;
+            $productDetails->purchase_price = $defaultWarehouseProductDetails->purchase_price;
+            $productDetails->sales_price = $defaultWarehouseProductDetails->sales_price;
+            $productDetails->purchase_tax_type = $defaultWarehouseProductDetails->purchase_tax_type;
+            $productDetails->sales_tax_type = $defaultWarehouseProductDetails->sales_tax_type;
             $productDetails->stock_quantitiy_alert = $defaultWarehouseProductDetails->stock_quantitiy_alert;
-            $productDetails->wholesale_price      = $defaultWarehouseProductDetails->wholesale_price;
-            $productDetails->wholesale_quantity   = $defaultWarehouseProductDetails->wholesale_quantity;
+            $productDetails->wholesale_price = $defaultWarehouseProductDetails->wholesale_price;
+            $productDetails->wholesale_quantity = $defaultWarehouseProductDetails->wholesale_quantity;
             $productDetails->save();
 
+            // Common::updateProductCustomFields($allProduct, $productDetails->warehouse_id);
             Common::recalculateOrderStock($productDetails->warehouse_id, $allProduct->id);
         }
 
-        // Create user details for each customer/supplier for this warehouse
+        // Creating user Details for each customer and supplier
+        // For this created warehouse
         $allCustomerSuppliers = Customer::withoutGlobalScope('type')
             ->where('user_type', 'suppliers')
             ->orWhere('user_type', 'customers')
             ->get();
-
         foreach ($allCustomerSuppliers as $allCustomerSupplier) {
-            $userDetails               = new UserDetails();
+            $userDetails = new UserDetails();
             $userDetails->warehouse_id = $warehouse->xid;
-            $userDetails->user_id      = $allCustomerSupplier->id;
+            $userDetails->user_id = $allCustomerSupplier->id;
             $userDetails->credit_period = 30;
             $userDetails->save();
         }
     }
 
-    /**
-     * Hook called by ApiBaseController after a warehouse is updated.
-     */
     public function updated(Warehouse $warehouse)
     {
         $sessionWarehouse = warehouse();
 
-        // Reset session warehouse if the updated one is selected in session
+        // Reseting session warehouse
         if ($sessionWarehouse && $sessionWarehouse->id && $sessionWarehouse->id == $warehouse->id) {
             session(['warehouse' => $warehouse]);
         }
@@ -154,9 +128,6 @@ class WarehouseController extends ApiBaseController
         return $warehouse;
     }
 
-    /**
-     * Hook called before deleting a warehouse.
-     */
     public function destroying(Warehouse $warehouse)
     {
         $company = company();
@@ -174,10 +145,6 @@ class WarehouseController extends ApiBaseController
         return $warehouse;
     }
 
-    /**
-     * POST /warehouses/update-online-store-status
-     * Uses hashed warehouse_id.
-     */
     public function updateOnlineStoreStatus(UpdateOnlineStoreStatusRequest $request)
     {
         $warehouseId = $request->warehouse_id;
