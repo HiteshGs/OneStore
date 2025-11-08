@@ -2,143 +2,158 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
+use App\Classes\Common;
+use App\Http\Controllers\ApiBaseController;
+use App\Http\Requests\Api\Warehouse\IndexRequest;
 use App\Http\Requests\Api\Warehouse\StoreRequest;
 use App\Http\Requests\Api\Warehouse\UpdateRequest;
+use App\Http\Requests\Api\Warehouse\DeleteRequest;
+use App\Http\Requests\Api\Warehouse\UpdateOnlineStoreStatusRequest;
+use App\Models\Customer;
+use App\Models\FrontWebsiteSettings;
+use App\Models\Product;
+use App\Models\ProductDetails;
+use App\Models\User;
+use App\Models\UserDetails;
 use App\Models\Warehouse;
-use Illuminate\Http\Request;
-use Vinkla\Hashids\Facades\Hashids;
+use Examyou\RestAPI\ApiResponse;
+use Examyou\RestAPI\Exceptions\ApiException;
 
-class WarehouseController extends Controller
+class WarehouseController extends ApiBaseController
 {
-    /**
-     * GET /api/v1/warehouses
-     * Supports:
-     *  - ?per_page=200
-     *  - ?fields=xid,name
-     *  - ?order=name
-     *  - ?direction=asc|desc   (optional, default desc)
-     *  - ?search=...           (optional simple search)
-     */
-    public function index(Request $request)
+    protected $model = Warehouse::class;
+
+    protected $indexRequest = IndexRequest::class;
+    protected $storeRequest = StoreRequest::class;
+    protected $updateRequest = UpdateRequest::class;
+    protected $deleteRequest = DeleteRequest::class;
+
+    public function modifyIndex($query)
     {
-        $query = Warehouse::query(); // CompanyScope already applied
+        $loggedUser = user();
 
-        // Optional search
-        if ($search = $request->get('search')) {
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', '%' . $search . '%')
-                    ->orWhere('email', 'like', '%' . $search . '%')
-                    ->orWhere('phone', 'like', '%' . $search . '%');
-            });
-        }
-
-        // Optional select specific fields (xid,name etc.)
-        if ($fields = $request->get('fields')) {
-            $columns = array_filter(array_map('trim', explode(',', $fields)));
-
-            // always include primary key so Hash cast etc. works
-            if (!in_array('id', $columns, true)) {
-                $columns[] = 'id';
+        if ($loggedUser && !$loggedUser->hasRole('admin')) {
+            if ($loggedUser->user_type == 'staff_members') {
+                $query = $query->where(function ($newQuery) use ($loggedUser) {
+                    foreach ($loggedUser->userWarehouses as $userWaerehouseKey => $userWarehouse) {
+                        if ($userWaerehouseKey == 0) {
+                            $newQuery = $newQuery->where('warehouses.id', '=', $userWarehouse->warehouse_id);
+                        } else {
+                            $newQuery = $newQuery->orWhere('warehouses.id', '=', $userWarehouse->warehouse_id);
+                        }
+                    }
+                });
+            } else {
+                $query = $query->where('warehouses.id', '=', $loggedUser->warehouse_id);
             }
-
-            $query->select($columns);
         }
 
-        // Ordering
-        $order     = $request->get('order', 'id');
-        $direction = $request->get('direction', 'desc');
-
-        $query->orderBy($order, $direction);
-
-        $perPage = (int) $request->get('per_page', 20);
-
-        // If per_page = -1, return all (for dropdowns)
-        if ($perPage === -1) {
-            $items = $query->get();
-
-            // Vue side already handles both {data:[...]} and paginator structure,
-            // but returning {data: [...]} is a bit cleaner here.
-            return response()->json([
-                'data' => $items,
-            ]);
-        }
-
-        // Standard Laravel paginator: { data: [...], current_page, last_page, ... }
-        $paginator = $query->paginate($perPage);
-
-        return response()->json($paginator);
+        return $query;
     }
 
-    /**
-     * POST /api/v1/warehouses
-     * Uses StoreRequest for validation.
-     */
-    public function store(StoreRequest $request)
+    public function stored(Warehouse $warehouse)
+    {
+        $company = company();
+        $companyWarehouse = $company->warehouse;
+
+        // Front website settings
+        $frontSetting = new FrontWebsiteSettings();
+        $frontSetting->warehouse_id = $warehouse->id;
+        $frontSetting->featured_categories = [];
+        $frontSetting->featured_products = [];
+        $frontSetting->features_lists = [];
+        $frontSetting->pages_widget = [];
+        $frontSetting->contact_info_widget = [];
+        $frontSetting->links_widget = [];
+        $frontSetting->top_banners = [];
+        $frontSetting->bottom_banners_1 = [];
+        $frontSetting->bottom_banners_2 = [];
+        $frontSetting->bottom_banners_3 = [];
+        $frontSetting->save();
+
+        // Fix - Issue fixed for variable type product
+        $allProducts = Product::select('id')
+            ->where('product_type', 'single')
+            ->whereNotNull('parent_id')->get();
+        foreach ($allProducts as $allProduct) {
+            // Getting product details for company default warehouse
+            $defaultWarehouseProductDetails = ProductDetails::withoutGlobalScope('current_warehouse')
+                ->where('warehouse_id', '=', $companyWarehouse->id)
+                ->where('product_id', '=', $allProduct->id)
+                ->first();
+
+            // Inserting all products details for this warhouse
+            $productDetails = new ProductDetails();
+            $productDetails->warehouse_id = $warehouse->id;
+            $productDetails->product_id = $allProduct->id;
+            $productDetails->tax_id = $defaultWarehouseProductDetails->tax_id;
+            $productDetails->mrp = $defaultWarehouseProductDetails->mrp;
+            $productDetails->purchase_price = $defaultWarehouseProductDetails->purchase_price;
+            $productDetails->sales_price = $defaultWarehouseProductDetails->sales_price;
+            $productDetails->purchase_tax_type = $defaultWarehouseProductDetails->purchase_tax_type;
+            $productDetails->sales_tax_type = $defaultWarehouseProductDetails->sales_tax_type;
+            $productDetails->stock_quantitiy_alert = $defaultWarehouseProductDetails->stock_quantitiy_alert;
+            $productDetails->wholesale_price = $defaultWarehouseProductDetails->wholesale_price;
+            $productDetails->wholesale_quantity = $defaultWarehouseProductDetails->wholesale_quantity;
+            $productDetails->save();
+
+            // Common::updateProductCustomFields($allProduct, $productDetails->warehouse_id);
+            Common::recalculateOrderStock($productDetails->warehouse_id, $allProduct->id);
+        }
+
+        // Creating user Details for each customer and supplier
+        // For this created warehouse
+        $allCustomerSuppliers = Customer::withoutGlobalScope('type')
+            ->where('user_type', 'suppliers')
+            ->orWhere('user_type', 'customers')
+            ->get();
+        foreach ($allCustomerSuppliers as $allCustomerSupplier) {
+            $userDetails = new UserDetails();
+            $userDetails->warehouse_id = $warehouse->xid;
+            $userDetails->user_id = $allCustomerSupplier->id;
+            $userDetails->credit_period = 30;
+            $userDetails->save();
+        }
+    }
+
+    public function updated(Warehouse $warehouse)
+    {
+        $sessionWarehouse = warehouse();
+
+        // Reseting session warehouse
+        if ($sessionWarehouse && $sessionWarehouse->id && $sessionWarehouse->id == $warehouse->id) {
+            session(['warehouse' => $warehouse]);
+        }
+
+        return $warehouse;
+    }
+
+    public function destroying(Warehouse $warehouse)
     {
         $company = company();
 
-        $data = $request->validated();
-        $data['company_id'] = $company->id;
+        if ($warehouse->id == $company->warehouse_id) {
+            throw new ApiException('Default warehouse cannot be deleted');
+        }
 
-        // Because of casts:
-        //  - company_id => Hash cast (hash:decode on set)
-        //  - parent_warehouse_id => Hash cast
-        // you can pass hashed IDs from frontend and they will be decoded.
-        $warehouse = Warehouse::create($data)->fresh();
+        $warehouseStaffMemberCount = User::where('warehouse_id', $warehouse->id)->count();
 
-        // Frontend expects `res.xid`, so return model directly.
-        return response()->json($warehouse);
+        if ($warehouseStaffMemberCount > 0) {
+            throw new ApiException('This warehouse have active staff member(s). Either delete or change their warehouse before deleteing this');
+        }
+
+        return $warehouse;
     }
 
-    /**
-     * GET /api/v1/warehouses/{warehouse}
-     * {warehouse} is hashed (xid)
-     */
-    public function show($warehouse)
+    public function updateOnlineStoreStatus(UpdateOnlineStoreStatusRequest $request)
     {
-        $idArray = Hashids::decode($warehouse);
-        $id      = $idArray[0] ?? null;
+        $warehouseId = $request->warehouse_id;
+        $id = $this->getIdFromHash($warehouseId);
 
-        $model = Warehouse::findOrFail($id);
+        $warehouse = Warehouse::find($id);
+        $warehouse->online_store_enabled = $request->status;
+        $warehouse->save();
 
-        return response()->json($model);
-    }
-
-    /**
-     * PUT/PATCH /api/v1/warehouses/{warehouse}
-     * Uses UpdateRequest for validation.
-     */
-    public function update(UpdateRequest $request, $warehouse)
-    {
-        $idArray = Hashids::decode($warehouse);
-        $id      = $idArray[0] ?? null;
-
-        $model = Warehouse::findOrFail($id);
-
-        $data = $request->validated();
-
-        // Again, parent_warehouse_id will be decoded by the cast.
-        $model->update($data);
-
-        return response()->json($model->fresh());
-    }
-
-    /**
-     * DELETE /api/v1/warehouses/{warehouse}
-     * If you support delete.
-     */
-    public function destroy($warehouse)
-    {
-        $idArray = Hashids::decode($warehouse);
-        $id      = $idArray[0] ?? null;
-
-        $model = Warehouse::findOrFail($id);
-        $model->delete();
-
-        return response()->json([
-            'status'  => true,
-            'message' => 'Warehouse deleted successfully',
-        ]);
+        return ApiResponse::make('Success', []);
     }
 }
