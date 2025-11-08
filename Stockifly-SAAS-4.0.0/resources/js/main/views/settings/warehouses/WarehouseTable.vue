@@ -149,7 +149,7 @@ export default {
     await crudVariables.fetch({ page: 1 });
 
     // ✅ Add this line
-    console.log("WAREHOUSE TABLE DATA >>>", crudVariables.table.data);
+    console.error("WAREHOUSE TABLE DATA >>>", crudVariables.table.data);
 
     crudVariables.crudUrl.value = addEditUrl;
     crudVariables.langKey.value = "warehouse";
