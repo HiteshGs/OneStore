@@ -25,12 +25,9 @@ class Warehouse extends BaseModel
         'dark_logo_url',
         'online_store_enabled',
         'barcode_type',
-        // (optional) include parent if you want it in index responses
-        'parent_warehouse_id',
     ];
 
     protected $guarded = ['id', 'users', 'company_id', 'created_at', 'updated_at'];
-
     protected $hidden = ['id'];
 
     protected $appends = [
@@ -39,35 +36,47 @@ class Warehouse extends BaseModel
         'logo_url',
         'dark_logo_url',
         'signature_url',
-        // NEW: hashed parent
-        'x_parent_warehouse_id',
     ];
 
-    protected $filterable = ['id', 'name', 'email', 'phone', 'city', 'country', 'zipcode'];
+    protected $filterable = [
+        'id',
+        'name',
+        'email',
+        'phone',
+        'city',
+        'country',
+        'zipcode',
+    ];
 
     protected $hashableGetterFunctions = [
-        'getXCompanyIdAttribute'          => 'company_id',
-        // NEW: let BaseModel auto-hash parent id
-        'getXParentWarehouseIdAttribute'  => 'parent_warehouse_id',
+        'getXCompanyIdAttribute' => 'company_id',
     ];
 
     protected $casts = [
-        'company_id'                   => Hash::class . ':hash',
-        // NEW: same behaviour for parent
-        'parent_warehouse_id'          => Hash::class . ':hash',
-        'show_email_on_invoice'        => 'integer',
-        'show_phone_on_invoice'        => 'integer',
-        'online_store_enabled'         => 'integer',
-        'is_default'                   => 'integer',
-        'show_mrp_on_invoice'          => 'integer',
-        'show_discount_tax_on_invoice' => 'integer',
+        'company_id'                  => Hash::class . ':hash',
+        'show_email_on_invoice'       => 'integer',
+        'show_phone_on_invoice'       => 'integer',
+        'online_store_enabled'        => 'integer',
+        'is_default'                  => 'integer',
+        'show_mrp_on_invoice'         => 'integer',
+        'show_discount_tax_on_invoice'=> 'integer',
     ];
 
     protected static function boot()
     {
         parent::boot();
-
         static::addGlobalScope(new CompanyScope);
+    }
+
+    // ✅ RELATION ADDED HERE
+    public function parent_warehouse()
+    {
+        return $this->belongsTo(Warehouse::class, 'parent_warehouse_id');
+    }
+
+    public function users()
+    {
+        return $this->belongsToMany(StaffMember::class);
     }
 
     public function getLogoUrlAttribute()
@@ -95,21 +104,5 @@ class Warehouse extends BaseModel
         return $this->signature == null
             ? null
             : Common::getFileUrl($warehouseLogoPath, $this->signature);
-    }
-
-    // NEW: relationships (optional but nice)
-    public function parentWarehouse()
-    {
-        return $this->belongsTo(Warehouse::class, 'parent_warehouse_id');
-    }
-
-    public function childWarehouses()
-    {
-        return $this->hasMany(Warehouse::class, 'parent_warehouse_id');
-    }
-
-    public function users()
-    {
-        return $this->belongsToMany(StaffMember::class);
     }
 }

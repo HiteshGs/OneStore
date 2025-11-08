@@ -27,29 +27,30 @@ class WarehouseController extends ApiBaseController
     protected $storeRequest = StoreRequest::class;
     protected $updateRequest = UpdateRequest::class;
     protected $deleteRequest = DeleteRequest::class;
-    protected $with = ['parentWarehouse'];
+    protected $with = ['parent_warehouse'];
     public function modifyIndex($query)
     {
         $loggedUser = user();
 
-            if ($loggedUser && !$loggedUser->hasRole('admin')) {
-        if ($loggedUser->user_type == 'staff_members') {
-            $query = $query->where(function ($newQuery) use ($loggedUser) {
-                foreach ($loggedUser->userWarehouses as $userWaerehouseKey => $userWarehouse) {
-                    if ($userWaerehouseKey == 0) {
-                        $newQuery = $newQuery->where('warehouses.id', '=', $userWarehouse->warehouse_id);
-                    } else {
-                        $newQuery = $newQuery->orWhere('warehouses.id', '=', $userWarehouse->warehouse_id);
+        if ($loggedUser && !$loggedUser->hasRole('admin')) {
+            if ($loggedUser->user_type == 'staff_members') {
+                $query = $query->where(function ($newQuery) use ($loggedUser) {
+                    foreach ($loggedUser->userWarehouses as $userWaerehouseKey => $userWarehouse) {
+                        if ($userWaerehouseKey == 0) {
+                            $newQuery = $newQuery->where('warehouses.id', '=', $userWarehouse->warehouse_id);
+                        } else {
+                            $newQuery = $newQuery->orWhere('warehouses.id', '=', $userWarehouse->warehouse_id);
+                        }
                     }
-                }
-            });
-        } else {
-            $query = $query->where('warehouses.id', '=', $loggedUser->warehouse_id);
+                });
+            } else {
+                $query = $query->where('warehouses.id', '=', $loggedUser->warehouse_id);
+            }
         }
-    }
 
-    return $query;
-}
+        // no need to add ->with() here, ApiBaseController will use $with property
+        return $query;
+    }
 
 
     public function stored(Warehouse $warehouse)

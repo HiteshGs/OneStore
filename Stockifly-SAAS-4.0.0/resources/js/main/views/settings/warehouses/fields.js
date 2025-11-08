@@ -43,9 +43,8 @@ const fields = () => {
             sorter: true,
         },
         {
-            // if you don't have this in lang, just put 'Parent Warehouse'
-            title: t("Parent Location") || "Parent Location",
-            dataIndex: "parent_warehouse",
+            title: "Parent Location",      // or t("warehouse.parent")
+            dataIndex: "parent_warehouse", // ✅ this matches record.parent_warehouse
         },
         {
             title: t("warehouse.email"),
