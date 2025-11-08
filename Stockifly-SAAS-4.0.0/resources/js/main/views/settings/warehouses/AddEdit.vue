@@ -536,13 +536,7 @@ export default defineComponent({
           rules.value = {};
         },
         // Optional: surface exact error message here too (in addition to apiAdmin)
-        error: (payload) => {
-          const { error, message: msg, errors } = payload || {};
-          const top = error?.message || msg || 'Unknown error';
-          const lines = formatDetails(error?.details || errors);
-          const full = [top, ...lines].join('\n');
-          message.error(full);
-        }
+       
       });
     };
 
