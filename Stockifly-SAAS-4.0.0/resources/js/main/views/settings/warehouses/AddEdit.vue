@@ -1,68 +1,93 @@
 <template>
-    <a-drawer
-        :title="pageTitle"
-        :width="drawerWidth"
-        :open="visible"
-        :body-style="{ paddingBottom: '80px' }"
-        :footer-style="{ textAlign: 'right' }"
-        :maskClosable="false"
-        @close="onClose"
-    >
-        <a-form layout="vertical">
-            <a-tabs v-model:activeKey="activeKey">
-                <a-tab-pane key="basic_details">
-                    <template #tab>
-                        <span>
-                            <FileTextOutlined />
-                            {{ $t("warehouse.basic_details") }}
-                        </span>
-                    </template>
+  <a-drawer
+    :title="pageTitle"
+    :width="drawerWidth"
+    :open="visible"
+    :body-style="{ paddingBottom: '80px' }"
+    :footer-style="{ textAlign: 'right' }"
+    :maskClosable="false"
+    @close="onClose"
+  >
+    <a-form layout="vertical">
+      <a-tabs v-model:activeKey="activeKey">
+        <a-tab-pane key="basic_details">
+          <template #tab>
+            <span>
+              <FileTextOutlined />
+              {{ $t('warehouse.basic_details') }}
+            </span>
+          </template>
 
-                    <a-row :gutter="16">
-                        <a-col :xs="24" :sm="24" :md="24" :lg="24">
-                            <a-row :gutter="16">
-                                <a-col :xs="24" :sm="24" :md="12" :lg="12">
-                                    <a-form-item
-                                        :label="$t('warehouse.name')"
-                                        name="name"
-                                        :help="rules.name ? rules.name.message : null"
-                                        :validateStatus="rules.name ? 'error' : null"
-                                        class="required"
-                                    >
-                                        <a-input
-                                            v-model:value="formData.name"
-                                            :placeholder="
-                                                $t('common.placeholder_default_text', [
-                                                    $t('warehouse.name'),
-                                                ])
-                                            "
-                                            v-on:keyup="
-                                                formData.slug = slugify(
-                                                    $event.target.value
-                                                )
-                                            "
-                                        />
-                                    </a-form-item>
-                                </a-col>
-                                <a-col :xs="24" :sm="24" :md="12" :lg="12">
-                                    <a-form-item
-                                        :label="$t('warehouse.slug')"
-                                        name="slug"
-                                        :help="rules.slug ? rules.slug.message : null"
-                                        :validateStatus="rules.slug ? 'error' : null"
-                                        class="required"
-                                    >
-                                        <a-input
-                                            v-model:value="formData.slug"
-                                            :placeholder="
-                                                $t('common.placeholder_default_text', [
-                                                    $t('warehouse.slug'),
-                                                ])
-                                            "
-                                        />
-                                    </a-form-item>
-                                </a-col>
-                            </a-row>
+          <a-row :gutter="16">
+            <a-col :xs="24" :sm="24" :md="24" :lg="24">
+              <!-- NAME / SLUG -->
+              <a-row :gutter="16">
+                <a-col :xs="24" :sm="24" :md="12" :lg="12">
+                  <a-form-item
+                    :label="$t('warehouse.name')"
+                    name="name"
+                    :help="rules.name ? rules.name.message : null"
+                    :validateStatus="rules.name ? 'error' : null"
+                    class="required"
+                  >
+                    <a-input
+                      v-model:value="formData.name"
+                      :placeholder="$t('common.placeholder_default_text', [$t('warehouse.name')])"
+                      @keyup="formData.slug = slugify($event.target.value)"
+                    />
+                  </a-form-item>
+                </a-col>
+                <a-col :xs="24" :sm="24" :md="12" :lg="12">
+                  <a-form-item
+                    :label="$t('warehouse.slug')"
+                    name="slug"
+                    :help="rules.slug ? rules.slug.message : null"
+                    :validateStatus="rules.slug ? 'error' : null"
+                    class="required"
+                  >
+                    <a-input
+                      v-model:value="formData.slug"
+                      :placeholder="$t('common.placeholder_default_text', [$t('warehouse.slug')])"
+                    />
+                  </a-form-item>
+                </a-col>
+              </a-row>
+
+              <!-- PARENT WAREHOUSE DROPDOWN -->
+              <a-row :gutter="16">
+                <a-col :xs="24" :sm="24" :md="12" :lg="12">
+                  <a-form-item
+                    :label="$t('Parent Warehouse')"
+                    name="parent_warehouse_id"
+                    :help="rules.parent_warehouse_id ? rules.parent_warehouse_id.message : null"
+                    :validateStatus="rules.parent_warehouse_id ? 'error' : null"
+                  >
+                    <a-select
+                      v-model:value="formData.parent_warehouse_id"
+                      show-search
+                      allowClear
+                      :placeholder="$t('common.placeholder_default_text', [$t('Parent Warehouse')])"
+                      :filterOption="false"
+                      :loading="parentLoading"
+                      style="width: 100%"
+                      @search="onSearchParent"
+                      @dropdownVisibleChange="onParentOpen"
+                    >
+                      <a-select-option :value="null">
+                        {{ $t('Select Warehouse') }}
+                      </a-select-option>
+                      <a-select-option
+                        v-for="opt in parentOptionsFiltered"
+                        :key="opt.value"
+                        :value="opt.value"
+                      >
+                        {{ opt.label }}
+                      </a-select-option>
+                    </a-select>
+                  </a-form-item>
+                </a-col>
+              </a-row>
+
                             <a-row :gutter="16">
                                 <a-col :xs="24" :sm="24" :md="16" :lg="16">
                                     <a-form-item
@@ -552,103 +577,189 @@
 </template>
 
 <script>
-import { defineComponent, ref, reactive } from "vue";
+import { defineComponent, ref, reactive, computed, onMounted, watch } from 'vue';
 import {
+  PlusOutlined,
+  LoadingOutlined,
+  SaveOutlined,
+  FileTextOutlined,
+  EyeOutlined,
+  SettingOutlined,
+} from '@ant-design/icons-vue';
+import apiAdmin from '../../../../common/composable/apiAdmin';
+import Upload from '../../../../common/core/ui/file/Upload.vue';
+import common from '../../../../common/composable/common';
+import { useStore } from 'vuex';
+
+export default defineComponent({
+  props: [
+    'formData',
+    'data',
+    'visible',
+    'url',
+    'addEditType',
+    'pageTitle',
+    'successMessage',
+  ],
+  emits: ['addEditSuccess', 'closed'],
+  components: {
     PlusOutlined,
     LoadingOutlined,
     SaveOutlined,
     FileTextOutlined,
     EyeOutlined,
     SettingOutlined,
-} from "@ant-design/icons-vue";
-import apiAdmin from "../../../../common/composable/apiAdmin";
-import Upload from "../../../../common/core/ui/file/Upload.vue";
-import common from "../../../../common/composable/common";
-import { useStore } from "vuex";
+    Upload,
+  },
+  setup(props, { emit }) {
+    const store = useStore();
+    const { addEditRequestAdmin, loading, rules } = apiAdmin();
+    const { slugify, salesOrderStatus, selectedWarehouse } = common();
 
-export default defineComponent({
-    props: [
-        "formData",
-        "data",
-        "visible",
-        "url",
-        "addEditType",
-        "pageTitle",
-        "successMessage",
-    ],
-    emits: ["addEditSuccess"],
-    components: {
-        PlusOutlined,
-        LoadingOutlined,
-        SaveOutlined,
-        FileTextOutlined,
-        EyeOutlined,
-        SettingOutlined,
-        Upload,
-    },
-    setup(props, { emit }) {
-        const store = useStore();
-        const { addEditRequestAdmin, loading, rules } = apiAdmin();
-        const { slugify, salesOrderStatus, selectedWarehouse } = common();
-        const activeKey = ref("basic_details");
-        const radioStyle = reactive({
-            display: "flex",
-            height: "30px",
-            lineHeight: "30px",
+    const activeKey = ref('basic_details');
+    const radioStyle = reactive({
+      display: 'flex',
+      height: '30px',
+      lineHeight: '30px',
+    });
+
+    // -------- parent warehouse dropdown state ----------
+    const parentLoading = ref(false);
+    const allWarehouses = ref([]);
+    const searchTerm = ref('');
+
+    // ensure the field exists on formData
+    if (props.formData && typeof props.formData.parent_warehouse_id === 'undefined') {
+      props.formData.parent_warehouse_id = null;
+    }
+
+    const currentXid = computed(() => props.formData?.xid || null);
+
+    const parentOptionsFiltered = computed(() => {
+      const needle = (searchTerm.value || '').toLowerCase();
+      return allWarehouses.value
+        .filter((w) => !currentXid.value || w.xid !== currentXid.value) // exclude self
+        .filter((w) => !needle || (w.name || '').toLowerCase().includes(needle))
+        .map((w) => ({ value: w.xid, label: w.name }));
+    });
+
+    const loadParentList = async () => {
+      parentLoading.value = true;
+      try {
+        const { data } = await axiosAdmin.get('warehouses', {
+          params: {
+            per_page: 200,
+            fields: 'xid,name',
+            order: 'name',
+          },
         });
 
-        const onSubmit = () => {
-            addEditRequestAdmin({
-                url: props.url,
-                data: props.formData,
-                successMessage: props.successMessage,
-                success: (res) => {
-                    store.dispatch("auth/updateAllWarehouses");
+        // handle { data: { data: [...] } } or { data: [...] }
+        const root = data?.data ?? data;
+        const rows = root?.data ?? root;
 
-                    if (
-                        selectedWarehouse.value &&
-                        selectedWarehouse.value.xid &&
-                        selectedWarehouse.value.xid == res.xid
-                    ) {
-                        axiosAdmin
-                            .post("change-warehouse", {
-                                warehouse_id: res.xid,
-                            })
-                            .then((response) => {
-                                store.commit(
-                                    "auth/updateWarehouse",
-                                    response.data.warehouse
-                                );
-                            });
-                    }
+        const mapped = (Array.isArray(rows) ? rows : []).map((r) => ({
+          xid: r.xid ?? r.x_id ?? r.id,
+          name: r.name ?? '',
+        }));
 
-                    emit("addEditSuccess", res.xid);
+        allWarehouses.value = mapped;
+      } catch (e) {
+        // just log; you can show a toast if you want
+        // eslint-disable-next-line no-console
+        console.error('Failed to load parent warehouses', e?.response?.data || e);
+        allWarehouses.value = [];
+      } finally {
+        parentLoading.value = false;
+      }
+    };
 
-                    activeKey.value = "basic_details";
-                    rules.value = {};
-                },
-            });
-        };
+    const onSearchParent = (val) => {
+      searchTerm.value = val || '';
+    };
 
-        const onClose = () => {
-            activeKey.value = "basic_details";
-            rules.value = {};
-            emit("closed");
-        };
+    const onParentOpen = (isOpen) => {
+      if (isOpen && allWarehouses.value.length === 0) {
+        loadParentList();
+      }
+    };
 
-        return {
-            loading,
-            rules,
-            onClose,
-            onSubmit,
-            slugify,
-            activeKey,
+    // prefill parent from API response when editing
+    const initParentField = () => {
+      if (!props.formData.parent_warehouse_id && props.data?.x_parent_warehouse_id) {
+        props.formData.parent_warehouse_id = props.data.x_parent_warehouse_id;
+      }
+    };
 
-            salesOrderStatus,
-            radioStyle,
+    watch(
+      () => props.visible,
+      (isOpen) => {
+        if (isOpen) {
+          initParentField();
+          loadParentList();
+        }
+      }
+    );
 
-            drawerWidth: window.innerWidth <= 991 ? "90%" : "45%",
-        };
-    },
+    onMounted(() => {
+      loadParentList();
+    });
+    // ---------------------------------------------------
+
+    const onSubmit = () => {
+      addEditRequestAdmin({
+        url: props.url,
+        data: props.formData,
+        successMessage: props.successMessage,
+        success: (res) => {
+          store.dispatch('auth/updateAllWarehouses');
+
+          if (
+            selectedWarehouse.value &&
+            selectedWarehouse.value.xid &&
+            selectedWarehouse.value.xid == res.xid
+          ) {
+            axiosAdmin
+              .post('change-warehouse', {
+                warehouse_id: res.xid,
+              })
+              .then((response) => {
+                store.commit('auth/updateWarehouse', response.data.warehouse);
+              });
+          }
+
+          emit('addEditSuccess', res.xid);
+
+          activeKey.value = 'basic_details';
+          rules.value = {};
+        },
+      });
+    };
+
+    const onClose = () => {
+      activeKey.value = 'basic_details';
+      rules.value = {};
+      emit('closed');
+    };
+
+    return {
+      loading,
+      rules,
+      onClose,
+      onSubmit,
+      slugify,
+      activeKey,
+      salesOrderStatus,
+      radioStyle,
+      drawerWidth: window.innerWidth <= 991 ? '90%' : '45%',
+
+      // parent dropdown bindings
+      parentLoading,
+      parentOptionsFiltered,
+      onSearchParent,
+      onParentOpen,
+      formData: props.formData,
+    };
+  },
 });
 </script>
