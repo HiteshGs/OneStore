@@ -130,12 +130,8 @@
                                 <template #bodyCell="{ column, record }">
                                     <template v-if="column.dataIndex === 'logo'">
                                         <a-image :width="48" :src="record.logo_url" />
-                                     <template v-else-if="column.dataIndex === 'parent_warehouse'">
-    {{ record.parent_warehouse && record.parent_warehouse.name
-        ? record.parent_warehouse.name
-        : '-' }}
-  </template>
-
+                                    </template>
+                                    
                                     <template
                                         v-if="column.dataIndex === 'online_store_enabled'"
                                     >

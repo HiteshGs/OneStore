@@ -54,11 +54,13 @@
                             <template v-if="column.dataIndex === 'logo'">
                                 <a-image :width="48" :src="record.logo_url" />
                             </template>
-                            <template v-if="column.dataIndex === 'parent_warehouse'">
-                                {{ record.parent_warehouse.id ? record.parent_warehouse.name : '-' }}
-                                <!-- Debug log -->
-                                <pre v-if="column.dataIndex === 'parent_warehouse'">{{ record }}</pre>
-                            </template>
+                              <template v-else-if="column.dataIndex === 'parent_warehouse'">
+    {{ record.parent_warehouse && record.parent_warehouse.name
+        ? record.parent_warehouse.name
+        : '-' }}
+  </template>
+
+
                             <template v-if="column.dataIndex === 'online_store_enabled'">
                                 <OnlineStoreStatus
                                     :status="record.online_store_enabled"
