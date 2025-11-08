@@ -23,12 +23,32 @@ class UpdateRequest extends FormRequest
     }
 
     public function rules()
-    {
-        return [
-            'expense_category_id' => 'required',
-            'date' => 'required|date',
-            'amount' => 'required|numeric',
-            'payment_mode_id' => ['nullable', 'exists:payment_modes,id'],
-        ];
-    }
+{
+    $company = company();
+    $convertedId = Hashids::decode($this->route('warehouse'));
+    $id = $convertedId[0];
+
+    $rules = [
+        'name'    => 'required',
+        'slug'    => [
+            'required',
+            Rule::unique('warehouses', 'slug')->where(function ($query) use ($company, $id) {
+                return $query->where('company_id', $company->id)
+                    ->where('id', '!=', $id);
+            })
+        ],
+        'email'                    => 'required|email',
+        'phone'                    => 'required|numeric',
+        'default_pos_order_status' => 'required',
+        'customers_visibility'     => 'required',
+        'suppliers_visibility'     => 'required',
+        'products_visibility'      => 'required',
+
+        // NEW:
+        'parent_warehouse_id'      => 'nullable',
+    ];
+
+    return $rules;
+}
+
 }

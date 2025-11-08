@@ -24,25 +24,29 @@ class StoreRequest extends FormRequest
      * @return array
      */
     public function rules()
-    {
-        $company = company();
+{
+    $company = company();
 
-        $rules = [
-            'name'    => 'required',
-            'slug'    => [
-                'required',
-                Rule::unique('warehouses', 'slug')->where(function ($query) use ($company) {
-                    return $query->where('company_id', $company->id);
-                })
-            ],
-            'email'    => 'required|email',
-            'phone'    => 'required|numeric',
-            'default_pos_order_status'    => 'required',
-            'customers_visibility'    => 'required',
-            'suppliers_visibility'    => 'required',
-            'products_visibility'    => 'required',
-        ];
+    $rules = [
+        'name'    => 'required',
+        'slug'    => [
+            'required',
+            Rule::unique('warehouses', 'slug')->where(function ($query) use ($company) {
+                return $query->where('company_id', $company->id);
+            })
+        ],
+        'email'                    => 'required|email',
+        'phone'                    => 'required|numeric',
+        'default_pos_order_status' => 'required',
+        'customers_visibility'     => 'required',
+        'suppliers_visibility'     => 'required',
+        'products_visibility'      => 'required',
 
-        return $rules;
-    }
+        // NEW:
+        'parent_warehouse_id'      => 'nullable',
+    ];
+
+    return $rules;
+}
+
 }
