@@ -12,15 +12,27 @@ const api = () => {
   const { t } = useI18n();
   const { appSetting } = common();
 
+  // ---- i18n helper so untranslated keys don't appear to users ----
+  const tOrDefault = (key, fallback) => {
+    try {
+      const out = t ? t(key) : "";
+      if (!out || out === key) return fallback;
+      return out;
+    } catch {
+      return fallback;
+    }
+  };
+
   const successToast = (desc) => {
     if (!desc) return;
     notification.success({
       placement: appSetting.value.rtl ? "bottomLeft" : "bottomRight",
-      message: t("common.success"),
+      message: tOrDefault("common.success", "Success"),
       description: desc,
     });
   };
 
+  // details => ["name: The name field is required.", ...]
   const formatDetails = (details) => {
     if (!details || typeof details !== "object") return [];
     const lines = [];
@@ -31,8 +43,15 @@ const api = () => {
     return lines;
   };
 
+  // Normalize error / response shape
   const extractError = (err) => {
-    const resp = err?.response;
+    // Support both AxiosError and "plain response" (because of interceptors)
+    const resp =
+      err?.response || // normal axios error
+      (err && typeof err.status !== "undefined" && typeof err.data !== "undefined"
+        ? err
+        : null);
+
     const status = resp?.status ?? null;
     const data = resp?.data ?? null;
 
@@ -45,19 +64,24 @@ const api = () => {
     const isTimeout = err?.code === "ECONNABORTED";
     const isNetwork = err?.message?.toLowerCase?.().includes("network");
 
+    const timeoutMsg = tOrDefault("common.timeout", "Request timed out");
+    const networkMsg = tOrDefault("common.network_error", "Network error");
+    const unknownMsg = tOrDefault("common.unknown_error", "Unknown error");
+    const serverMsg  = tOrDefault("common.server_error", "Server error");
+
     let topMsg;
     if (payloadMessage) {
       topMsg = String(payloadMessage);
     } else if (isTimeout) {
-      topMsg = t("common.timeout") || "Request timed out";
+      topMsg = timeoutMsg;
     } else if (!resp && isNetwork) {
-      topMsg = t("common.network_error") || "Network error";
+      topMsg = networkMsg;
     } else if (!resp) {
-      topMsg = t("common.unknown_error") || "Unknown error";
+      topMsg = unknownMsg;
     } else if (status >= 500) {
-      topMsg = t("common.server_error") || "Server error";
+      topMsg = serverMsg;
     } else {
-      topMsg = t("common.unknown_error") || "Unknown error";
+      topMsg = unknownMsg;
     }
 
     const details = apiError?.details || data?.errors || null;
@@ -94,7 +118,7 @@ const api = () => {
         if (status === 422 && details && typeof details === "object") {
           const errorRules = {};
           Object.keys(details).forEach((k) => {
-            const key = k.replace(/\./g, "\\.");
+            const key = k.replace(/\./g, "\\."); // support nested fields
             const msg = Array.isArray(details[k]) ? details[k][0] : String(details[k]);
             errorRules[key] = { required: true, message: msg };
           });
@@ -106,7 +130,7 @@ const api = () => {
         // eslint-disable-next-line no-console
         console.error("API ERROR:", { status, err });
 
-        if (configObject.error) configObject.error(err?.response?.data || err);
+        if (configObject.error) configObject.error(err?.data || err?.response?.data || err);
         loading.value = false;
       });
   };
@@ -153,7 +177,7 @@ const api = () => {
         // eslint-disable-next-line no-console
         console.error("API FILE ERROR:", { status, err });
 
-        if (configObject.error) configObject.error(err?.response?.data || err);
+        if (configObject.error) configObject.error(err?.data || err?.response?.data || err);
         loading.value = false;
       });
   };
