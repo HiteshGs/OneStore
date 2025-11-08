@@ -44,7 +44,7 @@ const fields = () => {
         },
         {
             // if you don't have this in lang, just put 'Parent Warehouse'
-            title: t("warehouse.parent") || "Parent Location",
+            title: t("Parent Location") || "Parent Location",
             dataIndex: "parentWarehouse",
         },
         {
