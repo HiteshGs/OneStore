@@ -1,93 +1,116 @@
 <template>
-  <a-drawer
-    :title="pageTitle"
-    :width="drawerWidth"
-    :open="visible"
-    :body-style="{ paddingBottom: '80px' }"
-    :footer-style="{ textAlign: 'right' }"
-    :maskClosable="false"
-    @close="onClose"
-  >
-    <a-form layout="vertical">
-      <a-tabs v-model:activeKey="activeKey">
-        <a-tab-pane key="basic_details">
-          <template #tab>
-            <span>
-              <FileTextOutlined />
-              {{ $t('warehouse.basic_details') }}
-            </span>
-          </template>
+    <a-drawer
+        :title="pageTitle"
+        :width="drawerWidth"
+        :open="visible"
+        :body-style="{ paddingBottom: '80px' }"
+        :footer-style="{ textAlign: 'right' }"
+        :maskClosable="false"
+        @close="onClose"
+    >
+        <a-form layout="vertical">
+            <a-tabs v-model:activeKey="activeKey">
+                <a-tab-pane key="basic_details">
+                    <template #tab>
+                        <span>
+                            <FileTextOutlined />
+                            {{ $t("warehouse.basic_details") }}
+                        </span>
+                    </template>
 
-          <a-row :gutter="16">
-            <a-col :xs="24" :sm="24" :md="24" :lg="24">
-              <!-- NAME / SLUG -->
-              <a-row :gutter="16">
-                <a-col :xs="24" :sm="24" :md="12" :lg="12">
-                  <a-form-item
-                    :label="$t('warehouse.name')"
-                    name="name"
-                    :help="rules.name ? rules.name.message : null"
-                    :validateStatus="rules.name ? 'error' : null"
-                    class="required"
-                  >
-                    <a-input
-                      v-model:value="formData.name"
-                      :placeholder="$t('common.placeholder_default_text', [$t('warehouse.name')])"
-                      @keyup="formData.slug = slugify($event.target.value)"
-                    />
-                  </a-form-item>
-                </a-col>
-                <a-col :xs="24" :sm="24" :md="12" :lg="12">
-                  <a-form-item
-                    :label="$t('warehouse.slug')"
-                    name="slug"
-                    :help="rules.slug ? rules.slug.message : null"
-                    :validateStatus="rules.slug ? 'error' : null"
-                    class="required"
-                  >
-                    <a-input
-                      v-model:value="formData.slug"
-                      :placeholder="$t('common.placeholder_default_text', [$t('warehouse.slug')])"
-                    />
-                  </a-form-item>
-                </a-col>
-              </a-row>
+                    <a-row :gutter="16">
+                        <a-col :xs="24" :sm="24" :md="24" :lg="24">
+                            <!-- NAME / SLUG -->
+                            <a-row :gutter="16">
+                                <a-col :xs="24" :sm="24" :md="12" :lg="12">
+                                    <a-form-item
+                                        :label="$t('warehouse.name')"
+                                        name="name"
+                                        :help="rules.name ? rules.name.message : null"
+                                        :validateStatus="rules.name ? 'error' : null"
+                                        class="required"
+                                    >
+                                        <a-input
+                                            v-model:value="formData.name"
+                                            :placeholder="
+                                                $t('common.placeholder_default_text', [
+                                                    $t('warehouse.name'),
+                                                ])
+                                            "
+                                            @keyup="
+                                                formData.slug = slugify(
+                                                    $event.target.value
+                                                )
+                                            "
+                                        />
+                                    </a-form-item>
+                                </a-col>
+                                <a-col :xs="24" :sm="24" :md="12" :lg="12">
+                                    <a-form-item
+                                        :label="$t('warehouse.slug')"
+                                        name="slug"
+                                        :help="rules.slug ? rules.slug.message : null"
+                                        :validateStatus="rules.slug ? 'error' : null"
+                                        class="required"
+                                    >
+                                        <a-input
+                                            v-model:value="formData.slug"
+                                            :placeholder="
+                                                $t('common.placeholder_default_text', [
+                                                    $t('warehouse.slug'),
+                                                ])
+                                            "
+                                        />
+                                    </a-form-item>
+                                </a-col>
+                            </a-row>
 
-              <!-- PARENT WAREHOUSE DROPDOWN -->
-              <a-row :gutter="16">
-                <a-col :xs="24" :sm="24" :md="12" :lg="12">
-                  <a-form-item
-                    :label="$t('Parent Warehouse')"
-                    name="parent_warehouse_id"
-                    :help="rules.parent_warehouse_id ? rules.parent_warehouse_id.message : null"
-                    :validateStatus="rules.parent_warehouse_id ? 'error' : null"
-                  >
-                    <a-select
-                      v-model:value="formData.parent_warehouse_id"
-                      show-search
-                      allowClear
-                      :placeholder="$t('common.placeholder_default_text', [$t('Parent Warehouse')])"
-                      :filterOption="false"
-                      :loading="parentLoading"
-                      style="width: 100%"
-                      @search="onSearchParent"
-                      @dropdownVisibleChange="onParentOpen"
-                    >
-                      <a-select-option :value="null">
-                        {{ $t('Select Warehouse') }}
-                      </a-select-option>
-                      <a-select-option
-                        v-for="opt in parentOptionsFiltered"
-                        :key="opt.value"
-                        :value="opt.value"
-                      >
-                        {{ opt.label }}
-                      </a-select-option>
-                    </a-select>
-                  </a-form-item>
-                </a-col>
-              </a-row>
+                            <!-- PARENT WAREHOUSE DROPDOWN -->
+                            <a-row :gutter="16">
+                                <a-col :xs="24" :sm="24" :md="12" :lg="12">
+                                    <a-form-item
+                                        :label="$t('Parent Warehouse')"
+                                        name="parent_warehouse_id"
+                                        :help="
+                                            rules.parent_warehouse_id
+                                                ? rules.parent_warehouse_id.message
+                                                : null
+                                        "
+                                        :validateStatus="
+                                            rules.parent_warehouse_id ? 'error' : null
+                                        "
+                                    >
+                                        <a-select
+                                            v-model:value="formData.parent_warehouse_id"
+                                            show-search
+                                            allowClear
+                                            :placeholder="
+                                                $t('common.placeholder_default_text', [
+                                                    $t('Parent Warehouse'),
+                                                ])
+                                            "
+                                            :filterOption="false"
+                                            :loading="parentLoading"
+                                            style="width: 100%"
+                                            @search="onSearchParent"
+                                            @dropdownVisibleChange="onParentOpen"
+                                        >
+                                            <a-select-option :value="null">
+                                                {{ $t("Select Warehouse") }}
+                                            </a-select-option>
+                                            <a-select-option
+                                                v-for="opt in parentOptionsFiltered"
+                                                :key="opt.value"
+                                                :value="opt.value"
+                                            >
+                                                {{ opt.label }}
+                                            </a-select-option>
+                                        </a-select>
+                                    </a-form-item>
+                                </a-col>
+                            </a-row>
 
+                            <!-- EMAIL / PHONE -->
                             <a-row :gutter="16">
                                 <a-col :xs="24" :sm="24" :md="16" :lg="16">
                                     <a-form-item
@@ -130,6 +153,7 @@
                                     </a-form-item>
                                 </a-col>
                             </a-row>
+
                             <a-row :gutter="16">
                                 <a-col :xs="24" :sm="24" :md="16" :lg="16">
                                     <a-form-item
@@ -175,6 +199,7 @@
                         </a-col>
                     </a-row>
 
+                    <!-- LOGOS -->
                     <a-row :gutter="16">
                         <a-col :xs="24" :sm="24" :md="6" :lg="6">
                             <a-row :gutter="16">
@@ -231,6 +256,7 @@
                         </a-col>
                     </a-row>
 
+                    <!-- ADDRESS / BANK / TERMS / SIGNATURE (unchanged) -->
                     <a-row :gutter="16">
                         <a-col :xs="24" :sm="24" :md="24" :lg="24">
                             <a-form-item
@@ -259,7 +285,7 @@
                                     <blockquote>
                                         {{
                                             $t(
-                                                "warehouse.details_will_be_shown_on_invoice"
+                                                'warehouse.details_will_be_shown_on_invoice'
                                             )
                                         }}
                                     </blockquote>
@@ -339,6 +365,8 @@
                         </a-col>
                     </a-row>
                 </a-tab-pane>
+
+                <!-- VISIBILITY TAB (unchanged) -->
                 <a-tab-pane key="visibility">
                     <template #tab>
                         <span>
@@ -431,6 +459,8 @@
                         </a-col>
                     </a-row>
                 </a-tab-pane>
+
+                <!-- POS SETTINGS TAB (unchanged) -->
                 <a-tab-pane key="pos_settings">
                     <template #tab>
                         <span>
@@ -531,6 +561,7 @@
                             </a-form-item>
                         </a-col>
                     </a-row>
+
                     <a-row :gutter="16">
                         <a-col :xs="24" :sm="24" :md="12" :lg="12">
                             <a-form-item
@@ -547,11 +578,11 @@
                                     style="width: 100%"
                                 >
                                     <a-select-option value="barcode">
-                                        {{ $t("warehouse.barcode") }}</a-select-option
-                                    >
+                                        {{ $t("warehouse.barcode") }}
+                                    </a-select-option>
                                     <a-select-option value="qrcode">
-                                        {{ $t("warehouse.qrcode") }}</a-select-option
-                                    >
+                                        {{ $t("warehouse.qrcode") }}
+                                    </a-select-option>
                                 </a-select>
                             </a-form-item>
                         </a-col>
@@ -559,6 +590,7 @@
                 </a-tab-pane>
             </a-tabs>
         </a-form>
+
         <template #footer>
             <a-button
                 type="primary"
@@ -566,7 +598,7 @@
                 style="margin-right: 8px"
                 :loading="loading"
             >
-                <template #icon> <SaveOutlined /> </template>
+                <template #icon><SaveOutlined /></template>
                 {{ addEditType == "add" ? $t("common.create") : $t("common.update") }}
             </a-button>
             <a-button @click="onClose">
@@ -577,7 +609,14 @@
 </template>
 
 <script>
-import { defineComponent, ref, reactive, computed, onMounted, watch } from 'vue';
+import {
+  defineComponent,
+  ref,
+  reactive,
+  computed,
+  onMounted,
+  watch,
+} from "vue";
 import {
   PlusOutlined,
   LoadingOutlined,
@@ -585,23 +624,23 @@ import {
   FileTextOutlined,
   EyeOutlined,
   SettingOutlined,
-} from '@ant-design/icons-vue';
-import apiAdmin from '../../../../common/composable/apiAdmin';
-import Upload from '../../../../common/core/ui/file/Upload.vue';
-import common from '../../../../common/composable/common';
-import { useStore } from 'vuex';
+} from "@ant-design/icons-vue";
+import apiAdmin from "../../../../common/composable/apiAdmin";
+import Upload from "../../../../common/core/ui/file/Upload.vue";
+import common from "../../../../common/composable/common";
+import { useStore } from "vuex";
 
 export default defineComponent({
   props: [
-    'formData',
-    'data',
-    'visible',
-    'url',
-    'addEditType',
-    'pageTitle',
-    'successMessage',
+    "formData",
+    "data",
+    "visible",
+    "url",
+    "addEditType",
+    "pageTitle",
+    "successMessage",
   ],
-  emits: ['addEditSuccess', 'closed'],
+  emits: ["addEditSuccess", "closed"],
   components: {
     PlusOutlined,
     LoadingOutlined,
@@ -616,58 +655,64 @@ export default defineComponent({
     const { addEditRequestAdmin, loading, rules } = apiAdmin();
     const { slugify, salesOrderStatus, selectedWarehouse } = common();
 
-    const activeKey = ref('basic_details');
+    const activeKey = ref("basic_details");
     const radioStyle = reactive({
-      display: 'flex',
-      height: '30px',
-      lineHeight: '30px',
+      display: "flex",
+      height: "30px",
+      lineHeight: "30px",
     });
 
-    // -------- parent warehouse dropdown state ----------
+    // ---------------- Parent warehouse dropdown ----------------
     const parentLoading = ref(false);
     const allWarehouses = ref([]);
-    const searchTerm = ref('');
+    const searchTerm = ref("");
 
-    // ensure the field exists on formData
-    if (props.formData && typeof props.formData.parent_warehouse_id === 'undefined') {
+    // make sure the field exists
+    if (
+      props.formData &&
+      typeof props.formData.parent_warehouse_id === "undefined"
+    ) {
       props.formData.parent_warehouse_id = null;
     }
 
     const currentXid = computed(() => props.formData?.xid || null);
 
     const parentOptionsFiltered = computed(() => {
-      const needle = (searchTerm.value || '').toLowerCase();
+      const needle = (searchTerm.value || "").toLowerCase();
       return allWarehouses.value
-        .filter((w) => !currentXid.value || w.xid !== currentXid.value) // exclude self
-        .filter((w) => !needle || (w.name || '').toLowerCase().includes(needle))
+        .filter((w) => !currentXid.value || w.xid !== currentXid.value)
+        .filter(
+          (w) => !needle || (w.name || "").toLowerCase().includes(needle)
+        )
         .map((w) => ({ value: w.xid, label: w.name }));
     });
 
     const loadParentList = async () => {
       parentLoading.value = true;
       try {
-        const { data } = await axiosAdmin.get('warehouses', {
+        const { data } = await axiosAdmin.get("warehouses", {
           params: {
             per_page: 200,
-            fields: 'xid,name',
-            order: 'name',
+            fields: "xid,name",
+            order: "name",
           },
         });
 
-        // handle { data: { data: [...] } } or { data: [...] }
         const root = data?.data ?? data;
         const rows = root?.data ?? root;
 
         const mapped = (Array.isArray(rows) ? rows : []).map((r) => ({
           xid: r.xid ?? r.x_id ?? r.id,
-          name: r.name ?? '',
+          name: r.name ?? "",
         }));
 
         allWarehouses.value = mapped;
       } catch (e) {
-        // just log; you can show a toast if you want
         // eslint-disable-next-line no-console
-        console.error('Failed to load parent warehouses', e?.response?.data || e);
+        console.error(
+          "Failed to load parent warehouses",
+          e?.response?.data || e
+        );
         allWarehouses.value = [];
       } finally {
         parentLoading.value = false;
@@ -675,7 +720,7 @@ export default defineComponent({
     };
 
     const onSearchParent = (val) => {
-      searchTerm.value = val || '';
+      searchTerm.value = val || "";
     };
 
     const onParentOpen = (isOpen) => {
@@ -684,9 +729,11 @@ export default defineComponent({
       }
     };
 
-    // prefill parent from API response when editing
     const initParentField = () => {
-      if (!props.formData.parent_warehouse_id && props.data?.x_parent_warehouse_id) {
+      if (
+        !props.formData.parent_warehouse_id &&
+        props.data?.x_parent_warehouse_id
+      ) {
         props.formData.parent_warehouse_id = props.data.x_parent_warehouse_id;
       }
     };
@@ -704,7 +751,7 @@ export default defineComponent({
     onMounted(() => {
       loadParentList();
     });
-    // ---------------------------------------------------
+    // -----------------------------------------------------------
 
     const onSubmit = () => {
       addEditRequestAdmin({
@@ -712,7 +759,7 @@ export default defineComponent({
         data: props.formData,
         successMessage: props.successMessage,
         success: (res) => {
-          store.dispatch('auth/updateAllWarehouses');
+          store.dispatch("auth/updateAllWarehouses");
 
           if (
             selectedWarehouse.value &&
@@ -720,26 +767,29 @@ export default defineComponent({
             selectedWarehouse.value.xid == res.xid
           ) {
             axiosAdmin
-              .post('change-warehouse', {
+              .post("change-warehouse", {
                 warehouse_id: res.xid,
               })
               .then((response) => {
-                store.commit('auth/updateWarehouse', response.data.warehouse);
+                store.commit(
+                  "auth/updateWarehouse",
+                  response.data.warehouse
+                );
               });
           }
 
-          emit('addEditSuccess', res.xid);
+          emit("addEditSuccess", res.xid);
 
-          activeKey.value = 'basic_details';
+          activeKey.value = "basic_details";
           rules.value = {};
         },
       });
     };
 
     const onClose = () => {
-      activeKey.value = 'basic_details';
+      activeKey.value = "basic_details";
       rules.value = {};
-      emit('closed');
+      emit("closed");
     };
 
     return {
@@ -751,14 +801,13 @@ export default defineComponent({
       activeKey,
       salesOrderStatus,
       radioStyle,
-      drawerWidth: window.innerWidth <= 991 ? '90%' : '45%',
+      drawerWidth: window.innerWidth <= 991 ? "90%" : "45%",
 
       // parent dropdown bindings
       parentLoading,
       parentOptionsFiltered,
       onSearchParent,
       onParentOpen,
-      formData: props.formData,
     };
   },
 });
