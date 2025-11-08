@@ -144,15 +144,21 @@ export default {
         const { url, addEditUrl, initData, columns, filterableColumns } = fields();
         const crudVariables = crud();
 
+watch(
+        () => crudVariables.table.data,
+        (rows) => {
+            console.log(
+                "WAREHOUSE TABLE DATA >>>",
+                JSON.parse(JSON.stringify(rows))
+            );
+        },
+        { deep: true, immediate: true } // immediate = log on first render too
+    );
         onMounted(async () => {
     crudVariables.tableUrl.value = { url };
     crudVariables.table.filterableColumns = filterableColumns;
 
     await crudVariables.fetch({ page: 1 });
-
-    // ✅ Add this line
-    console.error("WAREHOUSE TABLE DATA >>>", crudVariables.table.data);
-
     crudVariables.crudUrl.value = addEditUrl;
     crudVariables.langKey.value = "warehouse";
     crudVariables.initData.value = { ...initData };
