@@ -357,19 +357,19 @@ export default {
     // roll sizes made smaller so three lines fit
     const barcodeHeight = computed(() => {
       if (isQRLayout.value) return 220;
-      if (isRollLayout.value) return 24; // was 32
+      if (isRollLayout.value) return 24;
       return 18;
     });
 
     const barcodeWidth = computed(() => {
       if (isQRLayout.value) return 2;
-      if (isRollLayout.value) return 1.3; // slightly slimmer
+      if (isRollLayout.value) return 1.3;
       return 1;
     });
 
     const barcodeFontSize = computed(() => {
       if (isQRLayout.value) return 0;
-      if (isRollLayout.value) return 8; // smaller digits
+      if (isRollLayout.value) return 8;
       return 10;
     });
 
@@ -642,6 +642,7 @@ export default {
       rebuildStyles();
     };
 
+    // SINGLE print dialog
     const printBarcodes = async () => {
       await nextTick();
       const node = contentToPrint.value;
@@ -661,7 +662,6 @@ export default {
       document.body.appendChild(iframe);
 
       const doc = iframe.contentDocument || iframe.contentWindow.document;
-
       const isRoll = isRollLayout.value;
 
       const PRINT_CSS = isRoll
@@ -705,7 +705,12 @@ export default {
 </html>`);
       doc.close();
 
+      let printed = false;
+
       const doPrint = () => {
+        if (printed) return;
+        printed = true;
+
         try {
           iframe.contentWindow.focus();
           iframe.contentWindow.print();
@@ -721,7 +726,7 @@ export default {
       iframe.onload = () => setTimeout(doPrint, 120);
       setTimeout(() => {
         if (document.body.contains(iframe)) doPrint();
-      }, 500);
+      }, 800);
     };
 
     watch(
