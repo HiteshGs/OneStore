@@ -226,32 +226,65 @@
                 class="label-inner"
                 :class="{ 'qr-inner': isQRLayout, 'roll-inner': isRollLayout }"
               >
-                <div
-                  v-if="selectPrice && bc.price !== ''"
-                  class="label-price"
-                  :class="{ 'qr-price': isQRLayout, 'roll-price': isRollLayout }"
-                  :style="priceStyle"
-                >
-                  {{ formatAmountCurrency(bc.price) }}
-                </div>
+                <!-- ROLL (TSC) ORDER: NAME → BARCODE → CODE → PRICE -->
+                <template v-if="isRollLayout">
+                  <div
+                    v-if="selectName"
+                    class="label-name roll-name"
+                    :style="nameStyle"
+                  >
+                    {{ bc.name }}
+                  </div>
 
-                <BarcodeGenerator
-                  :value="String(bc.item_code || '')"
-                  :format="isQRLayout ? 'qrcode' : bc.barcode_symbology"
-                  :height="barcodeHeight"
-                  :width="barcodeWidth"
-                  :fontSize="barcodeFontSize"
-                  :elementTag="'svg'"
-                />
+                  <BarcodeGenerator
+                    :value="String(bc.item_code || '')"
+                    :format="bc.barcode_symbology"
+                    :height="barcodeHeight"
+                    :width="barcodeWidth"
+                    :fontSize="0"  <!-- hide internal text, we show our own below -->
+                    :elementTag="'svg'"
+                  />
 
-                <div
-                  v-if="selectName"
-                  class="label-name"
-                  :class="{ 'qr-name': isQRLayout, 'roll-name': isRollLayout }"
-                  :style="nameStyle"
-                >
-                  {{ bc.name }}
-                </div>
+                  <div class="roll-code" :style="codeStyle">
+                    {{ bc.item_code }}
+                  </div>
+
+                  <div
+                    v-if="selectPrice && bc.price !== ''"
+                    class="label-price roll-price"
+                    :style="priceStyle"
+                  >
+                    {{ formatAmountCurrency(bc.price) }}
+                  </div>
+                </template>
+
+                <!-- NORMAL / A4 ORDER: PRICE → BARCODE → NAME (unchanged) -->
+                <template v-else>
+                  <div
+                    v-if="selectPrice && bc.price !== ''"
+                    class="label-price"
+                    :style="priceStyle"
+                  >
+                    {{ formatAmountCurrency(bc.price) }}
+                  </div>
+
+                  <BarcodeGenerator
+                    :value="String(bc.item_code || '')"
+                    :format="isQRLayout ? 'qrcode' : bc.barcode_symbology"
+                    :height="barcodeHeight"
+                    :width="barcodeWidth"
+                    :fontSize="barcodeFontSize"
+                    :elementTag="'svg'"
+                  />
+
+                  <div
+                    v-if="selectName"
+                    class="label-name"
+                    :style="nameStyle"
+                  >
+                    {{ bc.name }}
+                  </div>
+                </template>
               </div>
             </div>
           </div>
@@ -316,7 +349,9 @@ export default {
     ]);
 
     const A4_PAGE = { widthIn: 8.27, heightIn: 11.69, padIn: 0.1 };
-    const ROLL_PAGE = { widthIn: 4.0, heightIn: 1.0, padIn: 0 };
+
+    // 103mm × 25mm sticker = 4.055in × 0.984in
+    const ROLL_PAGE = { widthIn: 4.055, heightIn: 0.984, padIn: 0 };
 
     const selectedProducts = ref([]);
     const perSheetBarcode = ref(40);
@@ -331,7 +366,7 @@ export default {
     const gapMode = ref("normal");
 
     const pages = ref([]);
-       const pageStyleObject = ref({});
+    const pageStyleObject = ref({});
     const lastPageStyleObject = ref({});
     const cellStyleObject = ref({});
     const contentToPrint = ref(null);
@@ -352,16 +387,16 @@ export default {
       () => perSheetBarcode.value === "tsc2" || perSheetBarcode.value === "tsc3"
     );
 
-    // shorter barcode to make room for bigger text
+    // For roll: shorter height but wider, A4 remains same
     const barcodeHeight = computed(() => {
       if (isQRLayout.value) return 220;
-      if (isRollLayout.value) return 16;
+      if (isRollLayout.value) return 18; // big but still fits 25mm height
       return 18;
     });
 
     const barcodeWidth = computed(() => {
       if (isQRLayout.value) return 2;
-      if (isRollLayout.value) return 1.3;
+      if (isRollLayout.value) return 1.4; // slightly wider for roll
       return 1;
     });
 
@@ -373,26 +408,36 @@ export default {
 
     const nameStyle = computed(() => ({
       fontSize: isRollLayout.value ? "9px" : "9px",
-      fontWeight: 600,
+      fontWeight: 700,
       textAlign: "center",
-      lineHeight: "1",
+      lineHeight: "1.1",
       whiteSpace: "nowrap",
       overflow: "hidden",
       textOverflow: "ellipsis",
       width: "100%",
-      margin: 0,
+      margin: "0 0 1mm 0",
       padding: 0,
     }));
 
     const priceStyle = computed(() => ({
       fontSize: isRollLayout.value ? "9px" : "9px",
-      fontWeight: 600,
+      fontWeight: 700,
       textAlign: "center",
-      lineHeight: "1",
+      lineHeight: "1.1",
       whiteSpace: "nowrap",
       width: "100%",
-      margin: 0,
+      margin: "1mm 0 0 0",
       padding: 0,
+    }));
+
+    const codeStyle = computed(() => ({
+      fontSize: isRollLayout.value ? "10px" : "10px",
+      fontWeight: 700,
+      textAlign: "center",
+      lineHeight: "1.1",
+      margin: "0.6mm 0 0.6mm 0",
+      padding: 0,
+      width: "100%",
     }));
 
     const gridStyleObject = (pageIndex) => {
@@ -409,7 +454,7 @@ export default {
         const cols = perSheetBarcode.value === "tsc2" ? 2 : 3;
         const rows = 1;
 
-        // inner width slightly smaller so you always get equal margin left/right
+        // inner area slightly smaller so equal blank margin left & right
         const innerWidth = ROLL_PAGE.widthIn * 0.94;
         const usableW = innerWidth - (cols - 1) * gapX;
         const usableH = ROLL_PAGE.heightIn - (rows - 1) * gapY;
@@ -669,8 +714,8 @@ export default {
         .print-page { page-break-after: always; }
         .grid { display: grid; }
         .cell { display:flex; align-items:stretch; justify-content:stretch; text-align:center; background:#fff; }
-        .label-inner { font-weight: bold; display:flex; flex-direction:column; justify-content:space-between; align-items:center; padding:1mm 1.2mm; box-sizing:border-box; }
-        .label-name, .label-price { text-align:center; font-size:9px; line-height:1; }
+        .label-inner { font-weight: bold; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:1mm 1.2mm; box-sizing:border-box; }
+        .roll-name, .roll-price, .roll-code { text-align:center; }
         svg { max-width: 100%; height: auto; }
       `
         : `
@@ -758,6 +803,7 @@ export default {
       barcodeFontSize,
       nameStyle,
       priceStyle,
+      codeStyle,
 
       pages,
       pageStyleObject,
@@ -822,17 +868,17 @@ td {
 .roll-inner {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
-  padding: 1mm 1.2mm; /* more side padding so text doesn’t touch border */
+  padding: 1mm 1.2mm;
   box-sizing: border-box;
   gap: 0;
 }
 
 .roll-name,
-.roll-price {
-  font-size: 9px;
-  line-height: 1;
+.roll-price,
+.roll-code {
+  line-height: 1.1;
 }
 
 @media print {
