@@ -222,7 +222,6 @@
               :class="{ 'qr-cell': isQRLayout, 'roll-cell': isRollLayout }"
               :style="cellStyleObject"
             >
-              <!-- PRICE (top) / BARCODE / NAME (bottom) -->
               <div
                 class="label-inner"
                 :class="{ 'qr-inner': isQRLayout, 'roll-inner': isRollLayout }"
@@ -332,7 +331,7 @@ export default {
     const gapMode = ref("normal");
 
     const pages = ref([]);
-    const pageStyleObject = ref({});
+       const pageStyleObject = ref({});
     const lastPageStyleObject = ref({});
     const cellStyleObject = ref({});
     const contentToPrint = ref(null);
@@ -353,10 +352,10 @@ export default {
       () => perSheetBarcode.value === "tsc2" || perSheetBarcode.value === "tsc3"
     );
 
-    // Smaller barcode height to give vertical room for bigger text
+    // shorter barcode to make room for bigger text
     const barcodeHeight = computed(() => {
       if (isQRLayout.value) return 220;
-      if (isRollLayout.value) return 18;
+      if (isRollLayout.value) return 16;
       return 18;
     });
 
@@ -373,7 +372,7 @@ export default {
     });
 
     const nameStyle = computed(() => ({
-      fontSize: isRollLayout.value ? "8px" : "9px",
+      fontSize: isRollLayout.value ? "9px" : "9px",
       fontWeight: 600,
       textAlign: "center",
       lineHeight: "1",
@@ -386,7 +385,7 @@ export default {
     }));
 
     const priceStyle = computed(() => ({
-      fontSize: isRollLayout.value ? "8px" : "9px",
+      fontSize: isRollLayout.value ? "9px" : "9px",
       fontWeight: 600,
       textAlign: "center",
       lineHeight: "1",
@@ -405,12 +404,13 @@ export default {
           : 0.07;
       const gapY = isRollLayout.value ? 0.02 : 0.04;
 
-      // Roll layouts – shrink inner area to keep margins equal on left/right
+      // Roll layouts
       if (perSheetBarcode.value === "tsc2" || perSheetBarcode.value === "tsc3") {
         const cols = perSheetBarcode.value === "tsc2" ? 2 : 3;
         const rows = 1;
 
-        const innerWidth = ROLL_PAGE.widthIn * 0.94; // 3% margin on both sides
+        // inner width slightly smaller so you always get equal margin left/right
+        const innerWidth = ROLL_PAGE.widthIn * 0.94;
         const usableW = innerWidth - (cols - 1) * gapX;
         const usableH = ROLL_PAGE.heightIn - (rows - 1) * gapY;
 
@@ -640,7 +640,6 @@ export default {
       rebuildStyles();
     };
 
-    // Single print dialog
     const printBarcodes = async () => {
       await nextTick();
       const node = contentToPrint.value;
@@ -666,12 +665,12 @@ export default {
         ? `
         @page { size: ${ROLL_PAGE.widthIn}in ${ROLL_PAGE.heightIn}in; margin: 0; }
         * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        body { font-family: Arial, Helvetica, sans-serif; margin: 0 0 0 -1mm; } /* tiny left shift to fix right bias */
+        body { font-family: Arial, Helvetica, sans-serif; margin: 0; }
         .print-page { page-break-after: always; }
         .grid { display: grid; }
         .cell { display:flex; align-items:stretch; justify-content:stretch; text-align:center; background:#fff; }
-        .label-inner { font-weight: bold; display:flex; flex-direction:column; justify-content:space-between; align-items:center; padding:0.5mm 1mm; box-sizing:border-box; }
-        .label-name, .label-price { text-align:center; font-size:8px; line-height:1; }
+        .label-inner { font-weight: bold; display:flex; flex-direction:column; justify-content:space-between; align-items:center; padding:1mm 1.2mm; box-sizing:border-box; }
+        .label-name, .label-price { text-align:center; font-size:9px; line-height:1; }
         svg { max-width: 100%; height: auto; }
       `
         : `
@@ -825,14 +824,14 @@ td {
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
-  padding: 0.5mm 1mm; /* more side padding so text doesn’t hit border */
+  padding: 1mm 1.2mm; /* more side padding so text doesn’t touch border */
   box-sizing: border-box;
   gap: 0;
 }
 
 .roll-name,
 .roll-price {
-  font-size: 8px;
+  font-size: 9px;
   line-height: 1;
 }
 
