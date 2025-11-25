@@ -222,24 +222,58 @@
               :class="{ 'qr-cell': isQRLayout }"
               :style="cellStyleObject"
             >
-              <div class="label-inner" :class="{ 'qr-inner': isQRLayout }">
+              <!-- ROLL STYLE (price | barcode | name vertical) -->
+              <div
+                v-if="isRollLayout"
+                class="label-inner roll-inner"
+              >
+                <div
+                  v-if="selectPrice && bc.price !== ''"
+                  class="roll-column roll-price"
+                >
+                  {{ formatAmountCurrency(bc.price) }}
+                </div>
+
+                <div class="roll-column roll-barcode-wrapper">
+                  <BarcodeGenerator
+                    :value="String(bc.item_code || '')"
+                    :format="bc.barcode_symbology"
+                    :height="barcodeHeight"
+                    :width="barcodeWidth"
+                    :fontSize="barcodeFontSize"
+                    :elementTag="'svg'"
+                  />
+                </div>
+
+                <div
+                  v-if="selectName"
+                  class="roll-column roll-name"
+                >
+                  {{ bc.name }}
+                </div>
+              </div>
+
+              <!-- NORMAL / QR STYLE (stacked: name / barcode / price) -->
+              <div
+                v-else
+                class="label-inner"
+                :class="{ 'qr-inner': isQRLayout }"
+              >
                 <div
                   v-if="selectName"
                   class="label-name"
                   :class="{ 'qr-name': isQRLayout }"
+                  :style="nameStyle"
                 >
                   {{ bc.name }}
                 </div>
 
-                <!-- QR STYLE BARCODE -->
                 <BarcodeGenerator
                   :value="String(bc.item_code || '')"
-                  :format="
-                    isQRLayout ? 'qrcode' : bc.barcode_symbology
-                  "
-                  :height="isQRLayout ? 220 : 18"
-                  :width="isQRLayout ? 2 : 1"
-                  :fontSize="isQRLayout ? 0 : 16"
+                  :format="isQRLayout ? 'qrcode' : bc.barcode_symbology"
+                  :height="barcodeHeight"
+                  :width="barcodeWidth"
+                  :fontSize="barcodeFontSize"
                   :elementTag="'svg'"
                 />
 
@@ -247,6 +281,7 @@
                   v-if="selectPrice && bc.price !== ''"
                   class="label-price"
                   :class="{ 'qr-price': isQRLayout }"
+                  :style="priceStyle"
                 >
                   {{ formatAmountCurrency(bc.price) }}
                 </div>
@@ -326,8 +361,11 @@ export default {
     const selectedProducts = ref([]);
     const perSheetBarcode = ref(40);
     const customPerPage = ref(6); // for "custom" mode (1–9)
-    const selectName = ref(false);
-    const selectPrice = ref(false);
+
+    // default ON now
+    const selectName = ref(true);
+    const selectPrice = ref(true);
+
     const fitLastPage = ref(true);
     const centerLastPage = ref(true);
     const previewScale = ref(100);
@@ -355,6 +393,51 @@ export default {
       () => perSheetBarcode.value === "tsc2" || perSheetBarcode.value === "tsc3"
     );
 
+    // Sizing / typography
+    const barcodeHeight = computed(() => {
+      if (isQRLayout.value) return 220;
+      if (isRollLayout.value) {
+        return perSheetBarcode.value === "tsc3" ? 44 : 40; // taller for 3-label
+      }
+      return 18;
+    });
+
+    const barcodeWidth = computed(() => {
+      if (isQRLayout.value) return 2;
+      if (isRollLayout.value) {
+        return perSheetBarcode.value === "tsc3" ? 1.6 : 1.5; // thicker for 3-label
+      }
+      return 1;
+    });
+
+    const barcodeFontSize = computed(() => {
+      if (isQRLayout.value) return 0;
+      if (isRollLayout.value) {
+        return perSheetBarcode.value === "tsc3" ? 13 : 12;
+      }
+      return 10;
+    });
+
+    const nameStyle = computed(() => ({
+      fontSize: isRollLayout.value
+        ? perSheetBarcode.value === "tsc3"
+          ? "11px"
+          : "10px"
+        : "9px",
+      fontWeight: 600,
+      textAlign: "center",
+    }));
+
+    const priceStyle = computed(() => ({
+      fontSize: isRollLayout.value
+        ? perSheetBarcode.value === "tsc3"
+          ? "11px"
+          : "10px"
+        : "9px",
+      fontWeight: 600,
+      textAlign: "center",
+    }));
+
     // Dynamic grid style (supports linear, custom, QR, and roll)
     const gridStyleObject = (pageIndex) => {
       const gapX =
@@ -375,8 +458,14 @@ export default {
         const usableH =
           ROLL_PAGE.heightIn - 2 * ROLL_PAGE.padIn - (rows - 1) * gapY;
 
-        const cellW = usableW / cols;
+        let cellW = usableW / cols;
         const cellH = usableH / rows;
+
+        // for 3-label layout, make the grid a bit narrower
+        // so the trio sits perfectly in the center
+        if (perSheetBarcode.value === "tsc3") {
+          cellW = cellW * 0.9; // 90% width per cell
+        }
 
         return {
           display: "grid",
@@ -634,7 +723,10 @@ export default {
         .grid { display: grid; }
         .cell { display:flex; align-items:center; justify-content:center; text-align:center; background:#fff; }
         .label-inner { font-weight: bold; }
-        .label-name, .label-price { text-align: center; font-size: 10px; }
+        .roll-inner { display:flex; flex-direction:row; align-items:center; justify-content:space-between; width:100%; height:100%; }
+        .roll-column { font-size:10px; font-weight:600; text-align:center; }
+        .roll-price, .roll-name { writing-mode: vertical-rl; text-orientation:mixed; }
+        .roll-barcode-wrapper { transform: rotate(90deg); }
         svg { max-width: 100%; height: auto; }
       `
         : `
@@ -713,6 +805,11 @@ export default {
 
       isQRLayout,
       isRollLayout,
+      barcodeHeight,
+      barcodeWidth,
+      barcodeFontSize,
+      nameStyle,
+      priceStyle,
 
       pages,
       pageStyleObject,
@@ -767,6 +864,29 @@ td {
 .qr-price {
   font-size: 16px;
   margin-top: 6mm;
+}
+
+/* roll preview */
+.roll-inner {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 100%;
+}
+.roll-column {
+  font-size: 10px;
+  font-weight: 600;
+  text-align: center;
+}
+.roll-price,
+.roll-name {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+.roll-barcode-wrapper {
+  transform: rotate(90deg);
 }
 
 @media print {
