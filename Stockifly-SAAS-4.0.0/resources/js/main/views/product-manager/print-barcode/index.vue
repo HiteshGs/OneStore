@@ -236,7 +236,7 @@
                     {{ bc.name }}
                   </div>
 
-                  <!-- hide internal barcode text, we print code ourselves -->
+                  <!-- hide barcode text, we print code manually -->
                   <BarcodeGenerator
                     :value="String(bc.item_code || '')"
                     :format="bc.barcode_symbology"
@@ -259,7 +259,7 @@
                   </div>
                 </template>
 
-                <!-- NORMAL / A4 ORDER: PRICE → BARCODE → NAME (unchanged) -->
+                <!-- NORMAL / A4 ORDER: PRICE → BARCODE → NAME -->
                 <template v-else>
                   <div
                     v-if="selectPrice && bc.price !== ''"
@@ -350,8 +350,7 @@ export default {
     ]);
 
     const A4_PAGE = { widthIn: 8.27, heightIn: 11.69, padIn: 0.1 };
-
-    // 103mm × 25mm sticker = 4.055in × 0.984in
+    // Roll size from you: 103mm × 25mm = 4.055in × 0.984in
     const ROLL_PAGE = { widthIn: 4.055, heightIn: 0.984, padIn: 0 };
 
     const selectedProducts = ref([]);
@@ -388,16 +387,16 @@ export default {
       () => perSheetBarcode.value === "tsc2" || perSheetBarcode.value === "tsc3"
     );
 
-    // For roll: shorter height but wider, A4 remains same
+    // Barcode size
     const barcodeHeight = computed(() => {
       if (isQRLayout.value) return 220;
-      if (isRollLayout.value) return 18; // fits in 25mm height
+      if (isRollLayout.value) return 18; // fits inside 25mm height
       return 18;
     });
 
     const barcodeWidth = computed(() => {
       if (isQRLayout.value) return 2;
-      if (isRollLayout.value) return 1.4; // a bit wider for roll
+      if (isRollLayout.value) return 1.4; // bit wider on roll
       return 1;
     });
 
@@ -407,6 +406,7 @@ export default {
       return 10;
     });
 
+    // Text styles – big but not touching border
     const nameStyle = computed(() => ({
       fontSize: isRollLayout.value ? "9px" : "9px",
       fontWeight: 700,
@@ -416,7 +416,7 @@ export default {
       overflow: "hidden",
       textOverflow: "ellipsis",
       width: "100%",
-      margin: "0 0 1mm 0",
+      margin: "0 0 0.5mm 0",
       padding: 0,
     }));
 
@@ -427,7 +427,7 @@ export default {
       lineHeight: "1.1",
       whiteSpace: "nowrap",
       width: "100%",
-      margin: "1mm 0 0 0",
+      margin: "0.5mm 0 0 0",
       padding: 0,
     }));
 
@@ -436,7 +436,7 @@ export default {
       fontWeight: 700,
       textAlign: "center",
       lineHeight: "1.1",
-      margin: "0.6mm 0 0.6mm 0",
+      margin: "0.4mm 0 0.4mm 0",
       padding: 0,
       width: "100%",
     }));
@@ -450,14 +450,30 @@ export default {
           : 0.07;
       const gapY = isRollLayout.value ? 0.02 : 0.04;
 
-      // Roll layouts
+      // ROLL layouts
       if (perSheetBarcode.value === "tsc2" || perSheetBarcode.value === "tsc3") {
         const cols = perSheetBarcode.value === "tsc2" ? 2 : 3;
         const rows = 1;
 
-        // inner area slightly smaller so equal blank margin left & right
-        const innerWidth = ROLL_PAGE.widthIn * 0.94;
-        const usableW = innerWidth - (cols - 1) * gapX;
+        // TSC 2-up: fixed 50mm label width, centers at 25mm & 75mm
+        if (perSheetBarcode.value === "tsc2") {
+          const labelWidthIn = 50 / 25.4; // 50mm per label
+          const cellW = labelWidthIn;
+          const cellH = ROLL_PAGE.heightIn;
+
+          return {
+            display: "grid",
+            gridTemplateColumns: `repeat(${cols}, ${inch(cellW)})`,
+            gridAutoRows: inch(cellH),
+            columnGap: inch(0), // no gap between labels
+            rowGap: inch(gapY),
+            alignContent: "center",
+            justifyContent: "center", // gives ~1.5mm margin each side
+          };
+        }
+
+        // TSC 3-up: full width divided equally
+        const usableW = ROLL_PAGE.widthIn - (cols - 1) * gapX;
         const usableH = ROLL_PAGE.heightIn - (rows - 1) * gapY;
 
         const cellW = usableW / cols;
@@ -871,7 +887,7 @@ td {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 1mm 1.2mm;
+  padding: 1mm 1.2mm; /* stops text touching border */
   box-sizing: border-box;
   gap: 0;
 }
