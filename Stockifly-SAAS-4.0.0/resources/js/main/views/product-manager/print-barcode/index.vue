@@ -89,27 +89,60 @@
             <a-form-item :label="$t('print_barcode.paper_size')" name="paper_size">
               <a-select
                 v-model:value="perSheetBarcode"
-                :placeholder="$t('common.select_default_text', [$t('print_barcode.paper_size')])"
+                :placeholder="
+                  $t('common.select_default_text', [
+                    $t('print_barcode.paper_size'),
+                  ])
+                "
                 @change="rebuildPages"
               >
-                <a-select-option v-for="opt in paperSizeArray" :key="`size-${opt.value}`" :value="opt.value">
+                <a-select-option
+                  v-for="opt in paperSizeArray"
+                  :key="`size-${opt.value}`"
+                  :value="opt.value"
+                >
                   {{ opt.label }}
                 </a-select-option>
 
                 <!-- Custom 1–9 -->
-                <a-select-option value="custom">Custom (1–9 per page)</a-select-option>
+                <a-select-option value="custom">
+                  Custom (1–9 per page)
+                </a-select-option>
 
-                <!-- NEW: QR layouts -->
-                <a-select-option value="qr1">QR — 1 big per page</a-select-option>
-                <a-select-option value="qr2">QR — 2 big per page</a-select-option>
+                <!-- TSC roll layouts -->
+                <a-select-option value="tsc2">
+                  TSC roll – 2 labels (side-by-side)
+                </a-select-option>
+                <a-select-option value="tsc3">
+                  TSC roll – 3 labels (side-by-side)
+                </a-select-option>
+
+                <!-- QR layouts -->
+                <a-select-option value="qr1">
+                  QR — 1 big per page
+                </a-select-option>
+                <a-select-option value="qr2">
+                  QR — 2 big per page
+                </a-select-option>
               </a-select>
             </a-form-item>
           </a-col>
 
           <!-- Custom count input -->
-          <a-col :xs="24" :sm="12" :md="8" :lg="8" v-if="perSheetBarcode === 'custom'">
+          <a-col
+            :xs="24"
+            :sm="12"
+            :md="8"
+            :lg="8"
+            v-if="perSheetBarcode === 'custom'"
+          >
             <a-form-item label="Custom count (1–9)">
-              <a-input-number v-model:value="customPerPage" :min="1" :max="9" @change="rebuildPages" />
+              <a-input-number
+                v-model:value="customPerPage"
+                :min="1"
+                :max="9"
+                @change="rebuildPages"
+              />
             </a-form-item>
           </a-col>
 
@@ -126,11 +159,19 @@
 
         <a-row :gutter="16" align="middle">
           <a-col :xs="24" :sm="24" :md="12" :lg="12">
-            <div class="hint">Print tip: set <b>Margins → None</b> and uncheck <b>Headers & footers</b>.</div>
+            <div class="hint">
+              Print tip: set <b>Margins → None</b> and uncheck
+              <b>Headers &amp; footers</b>.
+            </div>
           </a-col>
           <a-col :xs="24" :sm="24" :md="12" :lg="12">
             <a-form-item label="Preview zoom (screen only)" class="m-0">
-              <a-slider :min="80" :max="150" :step="5" v-model:value="previewScale" />
+              <a-slider
+                :min="80"
+                :max="150"
+                :step="5"
+                v-model:value="previewScale"
+              />
             </a-form-item>
           </a-col>
         </a-row>
@@ -138,7 +179,7 @@
 
       <div class="mt-16 mb-20">
         <a-space :size="12">
-          <a-button style="color:#fff;background:#e81515" @click="reset">
+          <a-button style="color: #fff; background: #e81515" @click="reset">
             {{ $t("common.reset") }}
             <template #icon><LinkOutlined /></template>
           </a-button>
@@ -153,16 +194,27 @@
       <!-- PREVIEW / PRINT -->
       <div
         class="mt-30 preview-wrapper"
-        :style="{ transform: `scale(${previewScale/100})`, transformOrigin: 'top left' }"
+        :style="{
+          transform: `scale(${previewScale / 100})`,
+          transformOrigin: 'top left',
+        }"
         ref="contentToPrint"
       >
         <div
           class="give-border print-page"
           v-for="(page, pageIndex) in pages"
           :key="`page-${pageIndex}`"
-          :style="pageIndex === pages.length - 1 ? lastPageStyleObject : pageStyleObject"
+          :style="
+            pageIndex === pages.length - 1
+              ? lastPageStyleObject
+              : pageStyleObject
+          "
         >
-          <div class="grid" :class="{ 'qr-grid': isQRLayout }" :style="gridStyleObject(pageIndex)">
+          <div
+            class="grid"
+            :class="{ 'qr-grid': isQRLayout }"
+            :style="gridStyleObject(pageIndex)"
+          >
             <div
               v-for="(bc, idx) in page"
               :key="`bc-${pageIndex}-${idx}`"
@@ -171,21 +223,31 @@
               :style="cellStyleObject"
             >
               <div class="label-inner" :class="{ 'qr-inner': isQRLayout }">
-                <div v-if="selectName" class="label-name" :class="{ 'qr-name': isQRLayout }">
+                <div
+                  v-if="selectName"
+                  class="label-name"
+                  :class="{ 'qr-name': isQRLayout }"
+                >
                   {{ bc.name }}
                 </div>
 
                 <!-- QR STYLE BARCODE -->
                 <BarcodeGenerator
                   :value="String(bc.item_code || '')"
-                  :format="isQRLayout ? 'qrcode' : bc.barcode_symbology"
+                  :format="
+                    isQRLayout ? 'qrcode' : bc.barcode_symbology
+                  "
                   :height="isQRLayout ? 220 : 18"
                   :width="isQRLayout ? 2 : 1"
                   :fontSize="isQRLayout ? 0 : 16"
                   :elementTag="'svg'"
                 />
 
-                <div v-if="selectPrice && bc.price !== ''" class="label-price" :class="{ 'qr-price': isQRLayout }">
+                <div
+                  v-if="selectPrice && bc.price !== ''"
+                  class="label-price"
+                  :class="{ 'qr-price': isQRLayout }"
+                >
                   {{ formatAmountCurrency(bc.price) }}
                 </div>
               </div>
@@ -232,13 +294,13 @@ export default {
     // Built-in linear layouts (strict grid, inches)
     const LAYOUTS = {
       40: { rows: 10, cols: 4, w: 1.799, h: 1.003, a4: true },
-      30: { rows: 10, cols: 3, w: 2.625, h: 1.0,   a4: false },
-      24: { rows: 8,  cols: 3, w: 2.48,  h: 1.334, a4: true },
-      20: { rows: 10, cols: 2, w: 4.0,   h: 1.0,   a4: false },
-      18: { rows: 6,  cols: 3, w: 2.5,   h: 1.835, a4: true },
-      14: { rows: 7,  cols: 2, w: 4.0,   h: 1.33,  a4: false },
-      12: { rows: 4,  cols: 3, w: 2.5,   h: 2.834, a4: true },
-      10: { rows: 5,  cols: 2, w: 4.0,   h: 2.0,   a4: false },
+      30: { rows: 10, cols: 3, w: 2.625, h: 1.0, a4: false },
+      24: { rows: 8, cols: 3, w: 2.48, h: 1.334, a4: true },
+      20: { rows: 10, cols: 2, w: 4.0, h: 1.0, a4: false },
+      18: { rows: 6, cols: 3, w: 2.5, h: 1.835, a4: true },
+      14: { rows: 7, cols: 2, w: 4.0, h: 1.33, a4: false },
+      12: { rows: 4, cols: 3, w: 2.5, h: 2.834, a4: true },
+      10: { rows: 5, cols: 2, w: 4.0, h: 2.0, a4: false },
     };
 
     const paperSizeArray = ref([
@@ -252,12 +314,18 @@ export default {
       { label: "10 per sheet (4 × 2 in)", value: 10 },
     ]);
 
+    // Page models (inches)
+    const A4_PAGE = { widthIn: 8.27, heightIn: 11.69, padIn: 0.1 };
+    const ROLL_PAGE = {
+      widthIn: 4.0, // printable width of TSC roll
+      heightIn: 1.0, // height of one label row
+      padIn: 0.05,
+    };
+
     // State
     const selectedProducts = ref([]);
     const perSheetBarcode = ref(40);
     const customPerPage = ref(6); // for "custom" mode (1–9)
-    const A4_PAGE = { widthIn: 8.27, heightIn: 11.69, padIn: 0.10 };
-
     const selectName = ref(false);
     const selectPrice = ref(false);
     const fitLastPage = ref(true);
@@ -279,43 +347,83 @@ export default {
     ];
 
     const inch = (n) => `${n}in`;
-    const isQRLayout = computed(() => perSheetBarcode.value === "qr1" || perSheetBarcode.value === "qr2");
 
-    // Dynamic grid style (supports linear, custom, and QR)
+    const isQRLayout = computed(
+      () => perSheetBarcode.value === "qr1" || perSheetBarcode.value === "qr2"
+    );
+    const isRollLayout = computed(
+      () => perSheetBarcode.value === "tsc2" || perSheetBarcode.value === "tsc3"
+    );
+
+    // Dynamic grid style (supports linear, custom, QR, and roll)
     const gridStyleObject = (pageIndex) => {
-      const gapX = gapMode.value === "tight" ? 0.04 : gapMode.value === "loose" ? 0.12 : 0.07;
+      const gapX =
+        gapMode.value === "tight"
+          ? 0.04
+          : gapMode.value === "loose"
+          ? 0.12
+          : 0.07;
       const gapY = 0.06;
 
-      // QR layouts: big squares, 1×1 or 2×1 (stack)
+      // TSC TE244 roll layouts: single row, 2 or 3 labels
+      if (perSheetBarcode.value === "tsc2" || perSheetBarcode.value === "tsc3") {
+        const cols = perSheetBarcode.value === "tsc2" ? 2 : 3;
+        const rows = 1;
+
+        const usableW =
+          ROLL_PAGE.widthIn - 2 * ROLL_PAGE.padIn - (cols - 1) * gapX;
+        const usableH =
+          ROLL_PAGE.heightIn - 2 * ROLL_PAGE.padIn - (rows - 1) * gapY;
+
+        const cellW = usableW / cols;
+        const cellH = usableH / rows;
+
+        return {
+          display: "grid",
+          gridTemplateColumns: `repeat(${cols}, ${inch(cellW)})`,
+          gridAutoRows: inch(cellH),
+          columnGap: inch(gapX),
+          rowGap: inch(gapY),
+          alignContent: "center",
+          justifyContent: "center",
+        };
+      }
+
+      // QR layouts: big squares, 1×1 or 2×1
       if (perSheetBarcode.value === "qr1" || perSheetBarcode.value === "qr2") {
         const cols = 1;
         const rows = perSheetBarcode.value === "qr2" ? 2 : 1;
 
-        const usableW = A4_PAGE.widthIn - 2 * A4_PAGE.padIn - (cols - 1) * gapX;
-        const usableH = A4_PAGE.heightIn - 2 * A4_PAGE.padIn - (rows - 1) * gapY;
+        const usableW =
+          A4_PAGE.widthIn - 2 * A4_PAGE.padIn - (cols - 1) * gapX;
+        const usableH =
+          A4_PAGE.heightIn - 2 * A4_PAGE.padIn - (rows - 1) * gapY;
 
-        // each cell should be square; take the limiting dimension
         const cellSide = Math.min(usableW / cols, usableH / rows);
 
-        const base = {
+        return {
           display: "grid",
           gridTemplateColumns: `repeat(${cols}, ${inch(cellSide)})`,
           gridAutoRows: inch(cellSide),
           columnGap: inch(gapX),
           rowGap: inch(gapY),
           alignContent: "start",
-          justifyContent: centerLastPage.value && pageIndex === pages.value.length - 1 ? "center" : "start",
+          justifyContent:
+            centerLastPage.value && pageIndex === pages.value.length - 1
+              ? "center"
+              : "start",
         };
-        return base;
       }
 
-      // Custom 1–9
+      // Custom 1–9 on A4
       if (perSheetBarcode.value === "custom") {
         const n = Math.min(9, Math.max(1, Number(customPerPage.value || 1)));
         const cols = Math.min(3, n);
         const rows = Math.ceil(n / cols);
-        const usableW = A4_PAGE.widthIn - 2 * A4_PAGE.padIn - (cols - 1) * gapX;
-        const usableH = A4_PAGE.heightIn - 2 * A4_PAGE.padIn - (rows - 1) * gapY;
+        const usableW =
+          A4_PAGE.widthIn - 2 * A4_PAGE.padIn - (cols - 1) * gapX;
+        const usableH =
+          A4_PAGE.heightIn - 2 * A4_PAGE.padIn - (rows - 1) * gapY;
         const cellW = usableW / cols;
         const cellH = usableH / rows;
 
@@ -326,11 +434,14 @@ export default {
           columnGap: inch(gapX),
           rowGap: inch(gapY),
           alignContent: "start",
-          justifyContent: centerLastPage.value && pageIndex === pages.value.length - 1 ? "center" : "start",
+          justifyContent:
+            centerLastPage.value && pageIndex === pages.value.length - 1
+              ? "center"
+              : "start",
         };
       }
 
-      // Linear templates
+      // Linear templates (A4 / Letter)
       const L = LAYOUTS[perSheetBarcode.value] || LAYOUTS[40];
       return {
         display: "grid",
@@ -339,44 +450,55 @@ export default {
         columnGap: inch(gapX),
         rowGap: inch(gapY),
         alignContent: "start",
-        justifyContent: centerLastPage.value && pageIndex === pages.value.length - 1 ? "center" : "start",
+        justifyContent:
+          centerLastPage.value && pageIndex === pages.value.length - 1
+            ? "center"
+            : "start",
       };
     };
 
     const rebuildStyles = () => {
+      const isRoll = isRollLayout.value;
+
       const isA4 =
-        perSheetBarcode.value === "custom" ||
+        !isRoll &&
+        (perSheetBarcode.value === "custom" ||
         perSheetBarcode.value === "qr1" ||
         perSheetBarcode.value === "qr2"
           ? true
-          : !!(LAYOUTS[perSheetBarcode.value] || LAYOUTS[40]).a4;
+          : !!(LAYOUTS[perSheetBarcode.value] || LAYOUTS[40]).a4);
 
-      const fullW = isA4 ? "8.27in" : "8.5in";
-      const fullH = isA4 ? "11.69in" : "11in";
+      const fullW = isRoll ? inch(ROLL_PAGE.widthIn) : isA4 ? "8.27in" : "8.5in";
+      const fullH = isRoll
+        ? inch(ROLL_PAGE.heightIn)
+        : isA4
+        ? "11.69in"
+        : "11in";
+      const pad = isRoll ? ROLL_PAGE.padIn : A4_PAGE.padIn;
 
       pageStyleObject.value = {
         width: fullW,
         height: fullH,
-        margin: "10px auto",
-        padding: inch(A4_PAGE.padIn),
+        margin: isRoll ? "0 auto" : "10px auto",
+        padding: inch(pad),
         boxSizing: "border-box",
         pageBreakAfter: "always",
         background: "#fff",
-        border: "1px solid #ddd",
+        border: isRoll ? "none" : "1px solid #ddd",
       };
 
       lastPageStyleObject.value = {
         ...pageStyleObject.value,
-        height: fitLastPage.value ? "auto" : fullH,
-        minHeight: fitLastPage.value ? "unset" : fullH,
-        pageBreakAfter: "auto",
+        height: isRoll || fitLastPage.value ? "auto" : fullH,
+        minHeight: isRoll || fitLastPage.value ? "unset" : fullH,
+        pageBreakAfter: isRoll ? "always" : "auto",
       };
 
       cellStyleObject.value = isQRLayout.value
         ? {
             border: "2px solid #000",
             borderRadius: "6px",
-            padding: "10mm 10mm 8mm 10mm", // generous white space around QR
+            padding: "10mm 10mm 8mm 10mm",
             background: "#fff",
             display: "flex",
             alignItems: "center",
@@ -420,6 +542,10 @@ export default {
         pageSize = 1;
       } else if (perSheetBarcode.value === "qr2") {
         pageSize = 2;
+      } else if (perSheetBarcode.value === "tsc2") {
+        pageSize = 2;
+      } else if (perSheetBarcode.value === "tsc3") {
+        pageSize = 3;
       } else {
         pageSize = Number(perSheetBarcode.value) || 40;
       }
@@ -477,7 +603,6 @@ export default {
       rebuildStyles();
     };
 
-    // Robust iframe print
     const printBarcodes = async () => {
       await nextTick();
       const node = contentToPrint.value;
@@ -486,14 +611,33 @@ export default {
 
       const iframe = document.createElement("iframe");
       Object.assign(iframe.style, {
-        position: "fixed", right: "0", bottom: "0", width: "0", height: "0", border: "0",
+        position: "fixed",
+        right: "0",
+        bottom: "0",
+        width: "0",
+        height: "0",
+        border: "0",
       });
       iframe.setAttribute("aria-hidden", "true");
       document.body.appendChild(iframe);
 
       const doc = iframe.contentDocument || iframe.contentWindow.document;
 
-      const PRINT_CSS = `
+      const isRoll = isRollLayout.value;
+
+      const PRINT_CSS = isRoll
+        ? `
+        @page { size: ${ROLL_PAGE.widthIn}in ${ROLL_PAGE.heightIn}in; margin: 0; }
+        * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        body { font-family: Arial, Helvetica, sans-serif; margin: 0; }
+        .print-page { page-break-after: always; }
+        .grid { display: grid; }
+        .cell { display:flex; align-items:center; justify-content:center; text-align:center; background:#fff; }
+        .label-inner { font-weight: bold; }
+        .label-name, .label-price { text-align: center; font-size: 10px; }
+        svg { max-width: 100%; height: auto; }
+      `
+        : `
         @page { size: A4; margin: 8mm; }
         * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         body { font-family: Arial, Helvetica, sans-serif; margin: 0; }
@@ -504,10 +648,7 @@ export default {
         .give-border { border: 1px solid #ccc; }
         .label-inner { font-weight: bold; }
         .label-name, .label-price { text-align: center; }
-        /* QR emphasis */
-        .qr-grid { }
         .qr-cell { border: 2px solid #000; border-radius: 6px; padding: 10mm 10mm 8mm 10mm; }
-        .qr-inner { }
         .qr-name { font-size: 16px; margin-bottom: 6mm; }
         .qr-price { font-size: 16px; margin-top: 6mm; }
         svg { max-width: 100%; height: auto; }
@@ -526,73 +667,118 @@ export default {
       doc.close();
 
       const doPrint = () => {
-        try { iframe.contentWindow.focus(); iframe.contentWindow.print(); }
-        finally {
-          setTimeout(() => document.body.contains(iframe) && document.body.removeChild(iframe), 600);
+        try {
+          iframe.contentWindow.focus();
+          iframe.contentWindow.print();
+        } finally {
+          setTimeout(() => {
+            if (document.body.contains(iframe)) {
+              document.body.removeChild(iframe);
+            }
+          }, 600);
         }
       };
 
       iframe.onload = () => setTimeout(doPrint, 120);
-      setTimeout(() => document.body.contains(iframe) && doPrint(), 500);
+      setTimeout(() => {
+        if (document.body.contains(iframe)) doPrint();
+      }, 500);
     };
 
-    // Recompute on controls
-    watch([fitLastPage, gapMode, perSheetBarcode, customPerPage], () => rebuildPages());
+    watch(
+      [fitLastPage, gapMode, perSheetBarcode, customPerPage],
+      () => rebuildPages()
+    );
 
     // init
     rebuildStyles();
     pages.value = [[]];
 
     return {
-      // i18n / formatting
-      t, formatAmountCurrency,
+      t,
+      formatAmountCurrency,
 
-      // table/data
-      orderItemColumns, selectedProducts,
+      orderItemColumns,
+      selectedProducts,
 
-      // controls
-      perSheetBarcode, paperSizeArray,
+      perSheetBarcode,
+      paperSizeArray,
       customPerPage,
-      selectName, selectPrice,
-      fitLastPage, centerLastPage,
-      previewScale, gapMode,
+      selectName,
+      selectPrice,
+      fitLastPage,
+      centerLastPage,
+      previewScale,
+      gapMode,
 
-      // computed flags
       isQRLayout,
+      isRollLayout,
 
-      // preview / print
       pages,
-      pageStyleObject, lastPageStyleObject,
-      gridStyleObject, cellStyleObject,
+      pageStyleObject,
+      lastPageStyleObject,
+      gridStyleObject,
+      cellStyleObject,
       contentToPrint,
 
-      // actions
-      productSelected, quantityChanged,
-      showDeleteConfirm, reset,
-      rebuildPages, printBarcodes,
+      productSelected,
+      quantityChanged,
+      showDeleteConfirm,
+      reset,
+      rebuildPages,
+      printBarcodes,
     };
   },
 };
 </script>
 
 <style lang="less" scoped>
-td { border: 1px dotted lightgray; }
+td {
+  border: 1px dotted lightgray;
+}
 
 /* screen preview */
-.preview-wrapper { width: 900px; }
+.preview-wrapper {
+  width: 900px;
+}
 
-.give-border { border: 1px solid #ccc; }
-.label-name, .label-price { text-align: center; }
-.hint { color:#666; font-size:12px; }
+.give-border {
+  border: 1px solid #ccc;
+}
+.label-name,
+.label-price {
+  text-align: center;
+}
+.hint {
+  color: #666;
+  font-size: 12px;
+}
 
 /* QR specific (screen) */
-.qr-cell { border: 2px solid #000; border-radius: 6px; padding: 10mm 10mm 8mm 10mm; }
-.qr-name { font-size: 16px; margin-bottom: 6mm; }
-.qr-price { font-size: 16px; margin-top: 6mm; }
+.qr-cell {
+  border: 2px solid #000;
+  border-radius: 6px;
+  padding: 10mm 10mm 8mm 10mm;
+}
+.qr-name {
+  font-size: 16px;
+  margin-bottom: 6mm;
+}
+.qr-price {
+  font-size: 16px;
+  margin-top: 6mm;
+}
 
 @media print {
-  table { page-break-after: always; }
-  .print-page { page-break-after: always; border: none; }
-  .print-page:last-child { page-break-after: auto; }
+  table {
+    page-break-after: always;
+  }
+  .print-page {
+    page-break-after: always;
+    border: none;
+  }
+  .print-page:last-child {
+    page-break-after: auto;
+  }
 }
 </style>
