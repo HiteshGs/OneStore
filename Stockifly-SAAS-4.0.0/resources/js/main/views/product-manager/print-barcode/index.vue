@@ -219,18 +219,18 @@
               v-for="(bc, idx) in page"
               :key="`bc-${pageIndex}-${idx}`"
               class="cell"
-              :class="{ 'qr-cell': isQRLayout }"
+              :class="{ 'qr-cell': isQRLayout, 'roll-cell': isRollLayout }"
               :style="cellStyleObject"
             >
-              <!-- unified layout for all: name / barcode / price (stacked) -->
+              <!-- unified layout: PRICE (top) / BARCODE / NAME (bottom) -->
               <div
                 class="label-inner"
-                :class="{ 'qr-inner': isQRLayout }"
+                :class="{ 'qr-inner': isQRLayout, 'roll-inner': isRollLayout }"
               >
                 <div
                   v-if="selectPrice && bc.price !== ''"
                   class="label-price"
-                  :class="{ 'qr-price': isQRLayout }"
+                  :class="{ 'qr-price': isQRLayout, 'roll-price': isRollLayout }"
                   :style="priceStyle"
                 >
                   {{ formatAmountCurrency(bc.price) }}
@@ -248,7 +248,7 @@
                 <div
                   v-if="selectName"
                   class="label-name"
-                  :class="{ 'qr-name': isQRLayout }"
+                  :class="{ 'qr-name': isQRLayout, 'roll-name': isRollLayout }"
                   :style="nameStyle"
                 >
                   {{ bc.name }}
@@ -323,7 +323,6 @@ export default {
     const perSheetBarcode = ref(40);
     const customPerPage = ref(6);
 
-    // default checked
     const selectName = ref(true);
     const selectPrice = ref(true);
 
@@ -337,8 +336,6 @@ export default {
     const lastPageStyleObject = ref({});
     const cellStyleObject = ref({});
     const contentToPrint = ref(null);
-
-    const { value: tVal } = { value: t }; // just to avoid lints if needed
 
     const orderItemColumns = [
       { title: "#", dataIndex: "sn" },
@@ -356,42 +353,43 @@ export default {
       () => perSheetBarcode.value === "tsc2" || perSheetBarcode.value === "tsc3"
     );
 
+    // sizes tuned so price+barcode+name all fit on 1" roll
     const barcodeHeight = computed(() => {
       if (isQRLayout.value) return 220;
-      if (isRollLayout.value) return perSheetBarcode.value === "tsc3" ? 44 : 40;
+      if (isRollLayout.value) return 32;
       return 18;
     });
 
     const barcodeWidth = computed(() => {
       if (isQRLayout.value) return 2;
-      if (isRollLayout.value) return perSheetBarcode.value === "tsc3" ? 1.6 : 1.5;
+      if (isRollLayout.value) return 1.4;
       return 1;
     });
 
     const barcodeFontSize = computed(() => {
       if (isQRLayout.value) return 0;
-      if (isRollLayout.value) return perSheetBarcode.value === "tsc3" ? 13 : 12;
+      if (isRollLayout.value) return 9;
       return 10;
     });
 
     const nameStyle = computed(() => ({
-      fontSize: isRollLayout.value
-        ? perSheetBarcode.value === "tsc3"
-          ? "11px"
-          : "10px"
-        : "9px",
+      fontSize: isRollLayout.value ? "8px" : "9px",
       fontWeight: 600,
       textAlign: "center",
+      lineHeight: "1.1",
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      width: "100%",
     }));
 
     const priceStyle = computed(() => ({
-      fontSize: isRollLayout.value
-        ? perSheetBarcode.value === "tsc3"
-          ? "11px"
-          : "10px"
-        : "9px",
+      fontSize: isRollLayout.value ? "8px" : "9px",
       fontWeight: 600,
       textAlign: "center",
+      lineHeight: "1.1",
+      whiteSpace: "nowrap",
+      width: "100%",
     }));
 
     const gridStyleObject = (pageIndex) => {
@@ -401,7 +399,7 @@ export default {
           : gapMode.value === "loose"
           ? 0.12
           : 0.07;
-      const gapY = 0.06;
+      const gapY = 0.04;
 
       if (perSheetBarcode.value === "tsc2" || perSheetBarcode.value === "tsc3") {
         const cols = perSheetBarcode.value === "tsc2" ? 2 : 3;
@@ -416,7 +414,7 @@ export default {
         const cellH = usableH / rows;
 
         if (perSheetBarcode.value === "tsc3") {
-          cellW = cellW * 0.9;
+          cellW = cellW * 0.92;
         }
 
         return {
@@ -545,14 +543,12 @@ export default {
           }
         : {
             border: "1px dotted #ccc",
-            textTransform: "uppercase",
             fontSize: "12px",
-            lineHeight: "14px",
             overflow: "hidden",
             textAlign: "center",
             display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
+            alignItems: "stretch",
+            justifyContent: "stretch",
           };
     };
 
@@ -670,9 +666,9 @@ export default {
         body { font-family: Arial, Helvetica, sans-serif; margin: 0; }
         .print-page { page-break-after: always; }
         .grid { display: grid; }
-        .cell { display:flex; align-items:center; justify-content:center; text-align:center; background:#fff; }
-        .label-inner { font-weight: bold; }
-        .label-name, .label-price { text-align: center; }
+        .cell { display:flex; align-items:stretch; justify-content:stretch; text-align:center; background:#fff; }
+        .label-inner { font-weight: bold; display:flex; flex-direction:column; justify-content:space-between; align-items:center; padding:1mm 1mm; box-sizing:border-box; }
+        .label-name, .label-price { text-align:center; }
         svg { max-width: 100%; height: auto; }
       `
         : `
@@ -682,9 +678,9 @@ export default {
         .print-page { page-break-after: always; }
         .print-page:last-child { page-break-after: auto; }
         .grid { display: grid; }
-        .cell { display:flex; align-items:center; justify-content:center; text-align:center; background:#fff; }
+        .cell { display:flex; align-items:stretch; justify-content:stretch; text-align:center; background:#fff; }
         .give-border { border: 1px solid #ccc; }
-        .label-inner { font-weight: bold; }
+        .label-inner { font-weight: bold; display:flex; flex-direction:column; justify-content:space-between; align-items:center; padding:1mm 1mm; box-sizing:border-box; }
         .label-name, .label-price { text-align: center; }
         .qr-cell { border: 2px solid #000; border-radius: 6px; padding: 10mm 10mm 8mm 10mm; }
         .qr-name { font-size: 16px; margin-bottom: 6mm; }
@@ -809,6 +805,26 @@ td {
 .qr-price {
   font-size: 16px;
   margin-top: 6mm;
+}
+
+/* roll preview tweaks */
+.roll-cell {
+  border-style: dotted;
+}
+
+.roll-inner {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1mm 1mm;
+  box-sizing: border-box;
+}
+
+.roll-name,
+.roll-price {
+  font-size: 8px;
+  line-height: 1.1;
 }
 
 @media print {
