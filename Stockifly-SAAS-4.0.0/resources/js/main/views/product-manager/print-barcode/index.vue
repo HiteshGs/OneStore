@@ -317,13 +317,13 @@ export default {
     ]);
 
     const A4_PAGE = { widthIn: 8.27, heightIn: 11.69, padIn: 0.1 };
-    const ROLL_PAGE = { widthIn: 4.0, heightIn: 1.0, padIn: 0.05 };
+    // Roll 4x1 – no side padding, we want full width
+    const ROLL_PAGE = { widthIn: 4.0, heightIn: 1.0, padIn: 0 };
 
     const selectedProducts = ref([]);
     const perSheetBarcode = ref(40);
     const customPerPage = ref(6);
 
-    // default checked
     const selectName = ref(true);
     const selectPrice = ref(true);
 
@@ -354,10 +354,10 @@ export default {
       () => perSheetBarcode.value === "tsc2" || perSheetBarcode.value === "tsc3"
     );
 
-    // roll sizes made smaller so three lines fit
+    // Small height for roll so three lines fit
     const barcodeHeight = computed(() => {
       if (isQRLayout.value) return 220;
-      if (isRollLayout.value) return 24;
+      if (isRollLayout.value) return 20;
       return 18;
     });
 
@@ -406,20 +406,19 @@ export default {
           : 0.07;
       const gapY = isRollLayout.value ? 0.02 : 0.04;
 
+      // Roll layouts – 4" width, 2 or 3 labels
       if (perSheetBarcode.value === "tsc2" || perSheetBarcode.value === "tsc3") {
         const cols = perSheetBarcode.value === "tsc2" ? 2 : 3;
         const rows = 1;
 
-        const usableW =
-          ROLL_PAGE.widthIn - 2 * ROLL_PAGE.padIn - (cols - 1) * gapX;
-        const usableH =
-          ROLL_PAGE.heightIn - 2 * ROLL_PAGE.padIn - (rows - 1) * gapY;
+        const usableW = ROLL_PAGE.widthIn - (cols - 1) * gapX;
+        const usableH = ROLL_PAGE.heightIn - (rows - 1) * gapY;
 
         let cellW = usableW / cols;
         const cellH = usableH / rows;
 
         if (perSheetBarcode.value === "tsc3") {
-          cellW = cellW * 0.92;
+          cellW = cellW * 0.96; // tiny shrink so 1st/3rd don’t touch edges
         }
 
         return {
@@ -433,6 +432,7 @@ export default {
         };
       }
 
+      // QR layouts
       if (perSheetBarcode.value === "qr1" || perSheetBarcode.value === "qr2") {
         const cols = 1;
         const rows = perSheetBarcode.value === "qr2" ? 2 : 1;
@@ -458,6 +458,7 @@ export default {
         };
       }
 
+      // Custom A4
       if (perSheetBarcode.value === "custom") {
         const n = Math.min(9, Math.max(1, Number(customPerPage.value || 1)));
         const cols = Math.min(3, n);
@@ -483,6 +484,7 @@ export default {
         };
       }
 
+      // Normal A4
       const L = LAYOUTS[perSheetBarcode.value] || LAYOUTS[40];
       return {
         display: "grid",
@@ -515,7 +517,7 @@ export default {
         : isA4
         ? "11.69in"
         : "11in";
-      const pad = isRoll ? ROLL_PAGE.padIn : A4_PAGE.padIn;
+      const pad = isRoll ? 0 : A4_PAGE.padIn; // no padding on roll
 
       pageStyleObject.value = {
         width: fullW,
@@ -642,7 +644,7 @@ export default {
       rebuildStyles();
     };
 
-    // SINGLE print dialog
+    // Single print dialog
     const printBarcodes = async () => {
       await nextTick();
       const node = contentToPrint.value;
@@ -672,7 +674,7 @@ export default {
         .print-page { page-break-after: always; }
         .grid { display: grid; }
         .cell { display:flex; align-items:stretch; justify-content:stretch; text-align:center; background:#fff; }
-        .label-inner { font-weight: bold; display:flex; flex-direction:column; justify-content:space-between; align-items:center; padding:0.5mm 0.5mm; box-sizing:border-box; }
+        .label-inner { font-weight: bold; display:flex; flex-direction:column; justify-content:space-between; align-items:center; padding:0.3mm 0.3mm; box-sizing:border-box; }
         .label-name, .label-price { text-align:center; font-size:7px; line-height:1; }
         svg { max-width: 100%; height: auto; }
       `
@@ -827,7 +829,7 @@ td {
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
-  padding: 0.5mm 0.5mm;
+  padding: 0.3mm 0.3mm; /* tighter so text doesn’t cut */
   box-sizing: border-box;
   gap: 0;
 }
