@@ -236,12 +236,13 @@
                     {{ bc.name }}
                   </div>
 
+                  <!-- hide internal barcode text, we print code ourselves -->
                   <BarcodeGenerator
                     :value="String(bc.item_code || '')"
                     :format="bc.barcode_symbology"
                     :height="barcodeHeight"
                     :width="barcodeWidth"
-                    :fontSize="0"  <!-- hide internal text, we show our own below -->
+                    :fontSize="0"
                     :elementTag="'svg'"
                   />
 
@@ -390,13 +391,13 @@ export default {
     // For roll: shorter height but wider, A4 remains same
     const barcodeHeight = computed(() => {
       if (isQRLayout.value) return 220;
-      if (isRollLayout.value) return 18; // big but still fits 25mm height
+      if (isRollLayout.value) return 18; // fits in 25mm height
       return 18;
     });
 
     const barcodeWidth = computed(() => {
       if (isQRLayout.value) return 2;
-      if (isRollLayout.value) return 1.4; // slightly wider for roll
+      if (isRollLayout.value) return 1.4; // a bit wider for roll
       return 1;
     });
 
