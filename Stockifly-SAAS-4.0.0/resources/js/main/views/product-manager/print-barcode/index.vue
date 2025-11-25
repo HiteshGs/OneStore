@@ -317,7 +317,6 @@ export default {
     ]);
 
     const A4_PAGE = { widthIn: 8.27, heightIn: 11.69, padIn: 0.1 };
-    // Roll 4x1 – no side padding, we want full width
     const ROLL_PAGE = { widthIn: 4.0, heightIn: 1.0, padIn: 0 };
 
     const selectedProducts = ref([]);
@@ -354,10 +353,10 @@ export default {
       () => perSheetBarcode.value === "tsc2" || perSheetBarcode.value === "tsc3"
     );
 
-    // Small height for roll so three lines fit
+    // Smaller barcode height to give vertical room for bigger text
     const barcodeHeight = computed(() => {
       if (isQRLayout.value) return 220;
-      if (isRollLayout.value) return 20;
+      if (isRollLayout.value) return 18;
       return 18;
     });
 
@@ -374,7 +373,7 @@ export default {
     });
 
     const nameStyle = computed(() => ({
-      fontSize: isRollLayout.value ? "7px" : "9px",
+      fontSize: isRollLayout.value ? "8px" : "9px",
       fontWeight: 600,
       textAlign: "center",
       lineHeight: "1",
@@ -387,7 +386,7 @@ export default {
     }));
 
     const priceStyle = computed(() => ({
-      fontSize: isRollLayout.value ? "7px" : "9px",
+      fontSize: isRollLayout.value ? "8px" : "9px",
       fontWeight: 600,
       textAlign: "center",
       lineHeight: "1",
@@ -406,20 +405,17 @@ export default {
           : 0.07;
       const gapY = isRollLayout.value ? 0.02 : 0.04;
 
-      // Roll layouts – 4" width, 2 or 3 labels
+      // Roll layouts – shrink inner area to keep margins equal on left/right
       if (perSheetBarcode.value === "tsc2" || perSheetBarcode.value === "tsc3") {
         const cols = perSheetBarcode.value === "tsc2" ? 2 : 3;
         const rows = 1;
 
-        const usableW = ROLL_PAGE.widthIn - (cols - 1) * gapX;
+        const innerWidth = ROLL_PAGE.widthIn * 0.94; // 3% margin on both sides
+        const usableW = innerWidth - (cols - 1) * gapX;
         const usableH = ROLL_PAGE.heightIn - (rows - 1) * gapY;
 
-        let cellW = usableW / cols;
+        const cellW = usableW / cols;
         const cellH = usableH / rows;
-
-        if (perSheetBarcode.value === "tsc3") {
-          cellW = cellW * 0.96; // tiny shrink so 1st/3rd don’t touch edges
-        }
 
         return {
           display: "grid",
@@ -517,7 +513,7 @@ export default {
         : isA4
         ? "11.69in"
         : "11in";
-      const pad = isRoll ? 0 : A4_PAGE.padIn; // no padding on roll
+      const pad = isRoll ? 0 : A4_PAGE.padIn;
 
       pageStyleObject.value = {
         width: fullW,
@@ -670,12 +666,12 @@ export default {
         ? `
         @page { size: ${ROLL_PAGE.widthIn}in ${ROLL_PAGE.heightIn}in; margin: 0; }
         * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        body { font-family: Arial, Helvetica, sans-serif; margin: 0; }
+        body { font-family: Arial, Helvetica, sans-serif; margin: 0 0 0 -1mm; } /* tiny left shift to fix right bias */
         .print-page { page-break-after: always; }
         .grid { display: grid; }
         .cell { display:flex; align-items:stretch; justify-content:stretch; text-align:center; background:#fff; }
-        .label-inner { font-weight: bold; display:flex; flex-direction:column; justify-content:space-between; align-items:center; padding:0.3mm 0.3mm; box-sizing:border-box; }
-        .label-name, .label-price { text-align:center; font-size:7px; line-height:1; }
+        .label-inner { font-weight: bold; display:flex; flex-direction:column; justify-content:space-between; align-items:center; padding:0.5mm 1mm; box-sizing:border-box; }
+        .label-name, .label-price { text-align:center; font-size:8px; line-height:1; }
         svg { max-width: 100%; height: auto; }
       `
         : `
@@ -829,14 +825,14 @@ td {
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
-  padding: 0.3mm 0.3mm; /* tighter so text doesn’t cut */
+  padding: 0.5mm 1mm; /* more side padding so text doesn’t hit border */
   box-sizing: border-box;
   gap: 0;
 }
 
 .roll-name,
 .roll-price {
-  font-size: 7px;
+  font-size: 8px;
   line-height: 1;
 }
 
