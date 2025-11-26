@@ -21,18 +21,16 @@
   <admin-page-table-content>
     <a-card class="page-content-container mt-20 mb-20">
       <a-form layout="vertical">
-        <!-- product select -->
         <a-row :gutter="16" class="mb-20">
           <a-col :xs="24" :sm="24" :md="12" :lg="24" :xl="24">
             <ProductSearchInput @valueChanged="productSelected" />
           </a-col>
         </a-row>
 
-        <!-- table -->
         <a-row :gutter="16">
           <a-col :xs="24">
             <a-table
-              :row-key="record => record.xid"
+              :row-key="(record) => record.xid"
               :dataSource="selectedProducts"
               :columns="orderItemColumns"
               :pagination="false"
@@ -42,7 +40,7 @@
                   {{ record.name }}
                 </template>
 
-                <template v-else-if="column.dataIndex === 'unit_quantity'">
+                <template v-if="column.dataIndex === 'unit_quantity'">
                   <a-input-number
                     v-model:value="record.quantity"
                     :min="1"
@@ -50,7 +48,7 @@
                   />
                 </template>
 
-                <template v-else-if="column.dataIndex === 'action'">
+                <template v-if="column.dataIndex === 'action'">
                   <a-button type="primary" @click="showDeleteConfirm(record)">
                     <template #icon><DeleteOutlined /></template>
                   </a-button>
@@ -60,7 +58,6 @@
           </a-col>
         </a-row>
 
-        <!-- options -->
         <a-row :gutter="16" class="mt-20" align="middle">
           <a-col :xs="24" :sm="12" :md="6" :lg="6">
             <a-checkbox v-model:checked="selectName">
@@ -87,7 +84,6 @@
           </a-col>
         </a-row>
 
-        <!-- layout controls -->
         <a-row :gutter="16" class="mt-20" align="middle">
           <a-col :xs="24" :sm="12" :md="8" :lg="8">
             <a-form-item :label="$t('print_barcode.paper_size')" name="paper_size">
@@ -108,7 +104,7 @@
                   {{ opt.label }}
                 </a-select-option>
 
-                <!-- Custom 1–9 per A4 -->
+                <!-- Custom 1–9 -->
                 <a-select-option value="custom">
                   Custom (1–9 per page)
                 </a-select-option>
@@ -132,7 +128,7 @@
             </a-form-item>
           </a-col>
 
-          <!-- custom count -->
+          <!-- Custom count input -->
           <a-col
             :xs="24"
             :sm="12"
@@ -150,7 +146,6 @@
             </a-form-item>
           </a-col>
 
-          <!-- gap -->
           <a-col :xs="24" :sm="24" :md="8" :lg="8">
             <a-form-item label="Label gap">
               <a-select v-model:value="gapMode" @change="rebuildPages">
@@ -162,7 +157,6 @@
           </a-col>
         </a-row>
 
-        <!-- hint + zoom -->
         <a-row :gutter="16" align="middle">
           <a-col :xs="24" :sm="24" :md="12" :lg="12">
             <div class="hint">
@@ -183,7 +177,6 @@
         </a-row>
       </a-form>
 
-      <!-- actions -->
       <div class="mt-16 mb-20">
         <a-space :size="12">
           <a-button style="color: #fff; background: #e81515" @click="reset">
@@ -198,7 +191,7 @@
         </a-space>
       </div>
 
-      <!-- PREVIEW / PRINT CONTENT -->
+      <!-- PREVIEW / PRINT -->
       <div
         class="mt-30 preview-wrapper"
         :style="{
@@ -229,7 +222,6 @@
               :class="{ 'qr-cell': isQRLayout, 'roll-cell': isRollLayout }"
               :style="cellStyleObject"
             >
-              <!-- one label -->
               <div
                 class="label-inner"
                 :class="{ 'qr-inner': isQRLayout, 'roll-inner': isRollLayout }"
@@ -254,28 +246,20 @@
                   :elementTag="'svg'"
                 />
 
-                <!-- CODE + PRICE compact for roll -->
-                <div class="roll-bottom-block" v-if="isRollLayout">
-                  <div class="roll-code">{{ bc.item_code }}</div>
-                  <div
-                    v-if="selectPrice && bc.price !== ''"
-                    class="roll-price-text"
-                  >
-                    {{ formatAmountCurrency(bc.price) }}
+                <!-- CODE + PRICE TOGETHER -->
+                <div class="label-bottom">
+                  <div class="label-code" v-if="bc.item_code">
+                    {{ bc.item_code }}
                   </div>
-                </div>
-
-                <!-- normal A4 bottom -->
-                <template v-else>
                   <div
                     v-if="selectPrice && bc.price !== ''"
                     class="label-price"
-                    :class="{ 'qr-price': isQRLayout }"
+                    :class="{ 'qr-price': isQRLayout, 'roll-price': isRollLayout }"
                     :style="priceStyle"
                   >
                     {{ formatAmountCurrency(bc.price) }}
                   </div>
-                </template>
+                </div>
               </div>
             </div>
           </div>
@@ -317,7 +301,7 @@ export default {
     const { formatAmountCurrency } = common();
     const { t } = useI18n();
 
-    // A4 label layouts (same as original)
+    // A4 layouts (unchanged)
     const LAYOUTS = {
       40: { rows: 10, cols: 4, w: 1.799, h: 1.003, a4: true },
       30: { rows: 10, cols: 3, w: 2.625, h: 1.0, a4: false },
@@ -340,10 +324,14 @@ export default {
       { label: "10 per sheet (4 × 2 in)", value: 10 },
     ]);
 
-    // A4 + TSC page sizes
     const A4_PAGE = { widthIn: 8.27, heightIn: 11.69, padIn: 0.1 };
-    // TSC: 103mm × 25mm ≈ 4.055in × 0.985in
-    const ROLL_PAGE = { widthIn: 4.0, heightIn: 1.0, padIn: 0 };
+
+    // Real roll size: 103mm × 25mm
+    const ROLL_PAGE = {
+      widthIn: 103 / 25.4, // ≈ 4.06"
+      heightIn: 25 / 25.4, // ≈ 0.98"
+      padIn: 0,
+    };
 
     const selectedProducts = ref([]);
     const perSheetBarcode = ref(40);
@@ -379,7 +367,7 @@ export default {
       () => perSheetBarcode.value === "tsc2" || perSheetBarcode.value === "tsc3"
     );
 
-    // make room vertically
+    // barcode sizes
     const barcodeHeight = computed(() => {
       if (isQRLayout.value) return 220;
       if (isRollLayout.value) return 16;
@@ -399,7 +387,7 @@ export default {
     });
 
     const nameStyle = computed(() => ({
-      fontSize: isRollLayout.value ? "10px" : "9px",
+      fontSize: isRollLayout.value ? "9px" : "9px",
       fontWeight: 600,
       textAlign: "center",
       lineHeight: "1",
@@ -412,7 +400,7 @@ export default {
     }));
 
     const priceStyle = computed(() => ({
-      fontSize: isRollLayout.value ? "10px" : "9px",
+      fontSize: isRollLayout.value ? "9px" : "9px",
       fontWeight: 600,
       textAlign: "center",
       lineHeight: "1",
@@ -431,35 +419,39 @@ export default {
           : 0.07;
       const gapY = isRollLayout.value ? 0.02 : 0.04;
 
-      // ROLL layouts (TSC 2 / 3) – back to original symmetric layout
-      if (perSheetBarcode.value === "tsc2" || perSheetBarcode.value === "tsc3") {
-        const cols = perSheetBarcode.value === "tsc2" ? 2 : 3;
-        const rows = 1;
-
-        const usableW =
-          ROLL_PAGE.widthIn - 2 * ROLL_PAGE.padIn - (cols - 1) * gapX;
-        const usableH =
-          ROLL_PAGE.heightIn - 2 * ROLL_PAGE.padIn - (rows - 1) * gapY;
-
-        let cellW = usableW / cols;
-        const cellH = usableH / rows;
-
-        if (perSheetBarcode.value === "tsc3") {
-          cellW = cellW * 0.92;
-        }
+      // ---- TSC ROLL LAYOUTS ----
+      if (perSheetBarcode.value === "tsc2") {
+        // 2 labels on 103mm roll, each ~40mm wide, centered with equal left/right margin
+        const LABEL_W_IN = 40 / 25.4; // ≈ 1.57"
+        const GAP_IN = 23 / 25.4; // ≈ 0.9" between labels
 
         return {
           display: "grid",
-          gridTemplateColumns: `repeat(${cols}, ${inch(cellW)})`,
-          gridAutoRows: inch(cellH),
-          columnGap: inch(gapX),
-          rowGap: inch(gapY),
+          gridTemplateColumns: `repeat(2, ${inch(LABEL_W_IN)})`,
+          gridAutoRows: inch(ROLL_PAGE.heightIn),
+          columnGap: inch(GAP_IN),
+          rowGap: 0,
+          alignContent: "center",
+          justifyContent: "center", // center both labels together
+        };
+      }
+
+      if (perSheetBarcode.value === "tsc3") {
+        // Generic 3-up roll
+        const LABEL_W_IN = 30 / 25.4; // ≈ 1.18"
+        const GAP_IN = 4 / 25.4; // small gap
+        return {
+          display: "grid",
+          gridTemplateColumns: `repeat(3, ${inch(LABEL_W_IN)})`,
+          gridAutoRows: inch(ROLL_PAGE.heightIn),
+          columnGap: inch(GAP_IN),
+          rowGap: 0,
           alignContent: "center",
           justifyContent: "center",
         };
       }
 
-      // QR layouts
+      // ---- QR layouts ----
       if (perSheetBarcode.value === "qr1" || perSheetBarcode.value === "qr2") {
         const cols = 1;
         const rows = perSheetBarcode.value === "qr2" ? 2 : 1;
@@ -485,7 +477,7 @@ export default {
         };
       }
 
-      // Custom A4 grid
+      // ---- Custom A4 ----
       if (perSheetBarcode.value === "custom") {
         const n = Math.min(9, Math.max(1, Number(customPerPage.value || 1)));
         const cols = Math.min(3, n);
@@ -511,7 +503,7 @@ export default {
         };
       }
 
-      // Normal A4 (same as original)
+      // ---- Normal A4 ----
       const L = LAYOUTS[perSheetBarcode.value] || LAYOUTS[40];
       return {
         display: "grid",
@@ -544,7 +536,7 @@ export default {
         : isA4
         ? "11.69in"
         : "11in";
-      const pad = isRoll ? ROLL_PAGE.padIn : A4_PAGE.padIn;
+      const pad = isRoll ? 0 : A4_PAGE.padIn;
 
       pageStyleObject.value = {
         width: fullW,
@@ -700,13 +692,13 @@ export default {
         .print-page { page-break-after: always; }
         .grid { display: grid; }
         .cell { display:flex; align-items:stretch; justify-content:stretch; text-align:center; background:#fff; }
-        .label-inner { font-weight: bold; display:flex; flex-direction:column; justify-content:space-between; align-items:center; padding:1mm 1.2mm; box-sizing:border-box; }
-        .label-name, .label-price { text-align:center; font-size:10px; line-height:1; }
-        .roll-bottom-block { margin-top: 0.5mm; }
-        .roll-code { font-size:9px; line-height:1.1; }
-        .roll-price-text { font-size:10px; line-height:1.1; }
-        /* extra left padding only on LEFT label (odd cell) to push it ~3mm to the right */
-        .cell:nth-child(2n+1) .label-inner { padding-left: 3mm; }
+        .label-inner { font-weight: bold; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:0.2mm 0.8mm; box-sizing:border-box; }
+        .label-name, .label-price, .label-code { text-align:center; font-size:9px; line-height:1.1; margin:0; }
+        .label-bottom { display:flex; flex-direction:column; gap:0.5mm; margin-top:0.5mm; }
+        /* left sticker (first in each row) extra padding so it comes to center of its label */
+        .cell:nth-child(2n + 1) .label-inner {
+          padding-left: 28px;
+        }
         svg { max-width: 100%; height: auto; }
       `
         : `
@@ -719,7 +711,8 @@ export default {
         .cell { display:flex; align-items:stretch; justify-content:stretch; text-align:center; background:#fff; }
         .give-border { border: 1px solid #ccc; }
         .label-inner { font-weight: bold; display:flex; flex-direction:column; justify-content:space-between; align-items:center; padding:1mm 1mm; box-sizing:border-box; }
-        .label-name, .label-price { text-align: center; }
+        .label-name, .label-price, .label-code { text-align: center; }
+        .label-bottom { margin-top:1mm; }
         .qr-cell { border: 2px solid #000; border-radius: 6px; padding: 10mm 10mm 8mm 10mm; }
         .qr-name { font-size: 16px; margin-bottom: 6mm; }
         .qr-price { font-size: 16px; margin-top: 6mm; }
@@ -835,7 +828,7 @@ td {
   font-size: 12px;
 }
 
-/* QR preview */
+/* QR specific (screen) */
 .qr-cell {
   border: 2px solid #000;
   border-radius: 6px;
@@ -858,28 +851,28 @@ td {
 .roll-inner {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
-  padding: 1mm 1.2mm;
+  padding: 0.2mm 0.8mm;
   box-sizing: border-box;
-  gap: 0;
+  gap: 0.5mm;
 }
 
-/* preview: extra left padding only for LEFT label (odd cells) */
-.roll-cell:nth-child(2n+1) .roll-inner {
-  padding-left: 3mm;
+/* ONLY LEFT sticker in preview – push content inside to center on label */
+.roll-cell:nth-child(2n + 1) .roll-inner {
+  padding-left: 28px;
 }
 
-.roll-bottom-block {
-  margin-top: 0.5mm;
-}
-.roll-code {
+.roll-name,
+.roll-price {
   font-size: 9px;
   line-height: 1.1;
 }
-.roll-price-text {
-  font-size: 10px;
-  line-height: 1.1;
+
+.label-bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5mm;
 }
 
 @media print {
