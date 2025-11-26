@@ -226,37 +226,41 @@
                 class="label-inner"
                 :class="{ 'qr-inner': isQRLayout, 'roll-inner': isRollLayout }"
               >
-                <!-- NAME TOP -->
-                <div
-                  v-if="selectName"
-                  class="label-name"
-                  :class="{ 'qr-name': isQRLayout, 'roll-name': isRollLayout }"
-                  :style="nameStyle"
-                >
-                  {{ bc.name }}
-                </div>
-
-                <!-- BARCODE -->
-                <BarcodeGenerator
-                  :value="String(bc.item_code || '')"
-                  :format="isQRLayout ? 'qrcode' : bc.barcode_symbology"
-                  :height="barcodeHeight"
-                  :width="barcodeWidth"
-                  :fontSize="barcodeFontSize"
-                  :elementTag="'svg'"
-                />
-
-                <!-- CODE + PRICE TOGETHER -->
-               <div class="label-bottom">
-  <div
-    v-if="selectPrice && bc.price !== ''"
-    class="label-price"
-    :class="{ 'qr-price': isQRLayout, 'roll-price': isRollLayout }"
-    :style="priceStyle"
-  >
-    {{ formatAmountCurrency(bc.price) }}
-  </div>
+               <!-- PRICE TOP -->
+<div
+  v-if="selectPrice && bc.price !== ''"
+  class="label-price"
+  :class="{ 'qr-price': isQRLayout, 'roll-price': isRollLayout }"
+  :style="priceStyle"
+>
+  {{ formatAmountCurrency(bc.price) }}
 </div>
+
+<!-- BARCODE -->
+<BarcodeGenerator
+  :value="String(bc.item_code || '')"
+  :format="isQRLayout ? 'qrcode' : bc.barcode_symbology"
+  :height="barcodeHeight"
+  :width="barcodeWidth"
+  :fontSize="barcodeFontSize"
+  :elementTag="'svg'"
+/>
+
+<!-- BARCODE TEXT (e.g. *00005843*) -->
+<div class="label-code" :style="codeStyle">
+  *{{ String(bc.item_code || "") }}*
+</div>
+
+<!-- NAME BOTTOM -->
+<div
+  v-if="selectName"
+  class="label-name"
+  :class="{ 'qr-name': isQRLayout, 'roll-name': isRollLayout }"
+  :style="nameStyle"
+>
+  {{ bc.name }}
+</div>
+
 
               </div>
             </div>
@@ -409,6 +413,18 @@ export default {
       padding: 0,
       marginBottom: isRollLayout.value ? "1mm" : "0", // extra bottom space for TSC
     }));
+const codeStyle = computed(() => ({
+  fontSize: isRollLayout.value ? "14px" : "9px",
+  fontWeight: 600,
+  textAlign: "center",
+  lineHeight: "1",
+  whiteSpace: "nowrap",
+  overflow: "visible",
+  textOverflow: "ellipsis",
+  width: "100%",
+  margin: "0.5mm 0 0",
+  padding: 0,
+}));
 
     const gridStyleObject = (pageIndex) => {
       const gapX =
@@ -786,7 +802,7 @@ export default {
       barcodeFontSize,
       nameStyle,
       priceStyle,
-
+      codeStyle,
       pages,
       pageStyleObject,
       lastPageStyleObject,
