@@ -385,7 +385,7 @@ export default {
     });
 
     const nameStyle = computed(() => ({
-      fontSize: isRollLayout.value ? "11px" : "9px",
+      fontSize: isRollLayout.value ? "12px" : "9px",
       fontWeight: 600,
       textAlign: "center",
       lineHeight: "1",
@@ -399,7 +399,7 @@ export default {
     }));
 
     const priceStyle = computed(() => ({
-      fontSize: isRollLayout.value ? "11px" : "9px",
+      fontSize: isRollLayout.value ? "12px" : "9px",
       fontWeight: 600,
       textAlign: "center",
       lineHeight: "1",
