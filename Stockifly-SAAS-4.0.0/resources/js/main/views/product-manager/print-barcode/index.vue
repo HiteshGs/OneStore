@@ -395,7 +395,7 @@ export default {
       width: "100%",
       margin: 0,
       padding: 0,
-      marginTop: isRollLayout.value ? "2mm" : "0", // extra top space for TSC
+      marginTop: isRollLayout.value ? "1mm" : "0", // extra top space for TSC
     }));
 
     const priceStyle = computed(() => ({
@@ -407,6 +407,7 @@ export default {
       width: "100%",
       margin: 0,
       padding: 0,
+      marginBottom: isRollLayout.value ? "1mm" : "0", // extra bottom space for TSC
     }));
 
     const gridStyleObject = (pageIndex) => {
