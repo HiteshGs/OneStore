@@ -380,7 +380,7 @@ export default {
 
     const barcodeFontSize = computed(() => {
       if (isQRLayout.value) return 0;
-      if (isRollLayout.value) return 14;
+      if (isRollLayout.value) return 12;
       return 16;
     });
 
@@ -710,7 +710,7 @@ export default {
         .give-border { border: 1px solid #ccc; }
         .label-inner { font-weight: bold; display:flex; flex-direction:column; justify-content:space-between; align-items:center; padding:1mm 1mm; box-sizing:border-box; }
         .label-name, .label-price, .label-code { text-align: center; }
-        .label-bottom { margin-top:1mm; }
+        .label-bottom { margin-top:2mm; }
         .qr-cell { border: 2px solid #000; border-radius: 6px; padding: 10mm 10mm 8mm 10mm; }
         .qr-name { font-size: 16px; margin-bottom: 6mm; }
         .qr-price { font-size: 16px; margin-top: 6mm; }
