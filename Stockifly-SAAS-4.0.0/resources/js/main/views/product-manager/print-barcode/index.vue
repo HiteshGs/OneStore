@@ -696,7 +696,7 @@ export default {
         .label-bottom { display:flex; flex-direction:column; gap:0.5mm; margin-top:0.5mm; }
         /* left sticker (first in each row) extra padding so it comes to center of its label */
         .cell:nth-child(2n + 1) .label-inner {
-          padding-left: 28px;
+          padding-left: 11px;
         }
         svg { max-width: 100%; height: auto; }
       `
@@ -852,14 +852,14 @@ td {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 1.2mm 5.8mm;
+  padding: 1.2mm 3.8mm;
   box-sizing: border-box;
   gap: 0.5mm;
 }
 
 /* ONLY LEFT sticker in preview – push content inside to center on label */
 .roll-cell:nth-child(2n + 1) .roll-inner {
-  padding-left: 28px;
+  padding-left: 11px;
 }
 
 .roll-name,
