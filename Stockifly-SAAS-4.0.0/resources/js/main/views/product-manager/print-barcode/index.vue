@@ -247,19 +247,17 @@
                 />
 
                 <!-- CODE + PRICE TOGETHER -->
-                <div class="label-bottom">
-                  <div class="label-code" v-if="bc.item_code">
-                    {{ bc.item_code }}
-                  </div>
-                  <div
-                    v-if="selectPrice && bc.price !== ''"
-                    class="label-price"
-                    :class="{ 'qr-price': isQRLayout, 'roll-price': isRollLayout }"
-                    :style="priceStyle"
-                  >
-                    {{ formatAmountCurrency(bc.price) }}
-                  </div>
-                </div>
+               <div class="label-bottom">
+  <div
+    v-if="selectPrice && bc.price !== ''"
+    class="label-price"
+    :class="{ 'qr-price': isQRLayout, 'roll-price': isRollLayout }"
+    :style="priceStyle"
+  >
+    {{ formatAmountCurrency(bc.price) }}
+  </div>
+</div>
+
               </div>
             </div>
           </div>
@@ -382,8 +380,8 @@ export default {
 
     const barcodeFontSize = computed(() => {
       if (isQRLayout.value) return 0;
-      if (isRollLayout.value) return 8;
-      return 10;
+      if (isRollLayout.value) return 14;
+      return 16;
     });
 
     const nameStyle = computed(() => ({
