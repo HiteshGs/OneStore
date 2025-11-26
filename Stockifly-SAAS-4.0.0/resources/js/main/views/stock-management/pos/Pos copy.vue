@@ -1123,8 +1123,6 @@ export default {
                 state.products = [];
                 recalculateFinalTotal();
 
-                var audioObj = new Audio(appSetting.value.beep_audio_url);
-                audioObj.play();
             } else {
                 const newProductSelection = find(selectedProducts.value, [
                     "xid",
@@ -1151,8 +1149,7 @@ export default {
                     });
                     selectedProducts.value = newResults;
 
-                    var audioObj = new Audio(appSetting.value.beep_audio_url);
-                    audioObj.play();
+                  
 
                     state.orderSearchTerm = undefined;
                     state.products = [];

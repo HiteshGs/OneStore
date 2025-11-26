@@ -110,8 +110,7 @@ const stockManagement = () => {
             state.products = [];
             recalculateFinalTotal();
 
-            var audioObj = new Audio(appSetting.value.beep_audio_url);
-            audioObj.play();
+         
         } else {
             const newProductSelection = find(selectedProducts.value, [
                 "xid",
@@ -140,8 +139,7 @@ const stockManagement = () => {
                 });
                 selectedProducts.value = newResults;
 
-                var audioObj = new Audio(appSetting.value.beep_audio_url);
-                audioObj.play();
+              
 
                 state.orderSearchTerm = undefined;
                 state.products = [];
