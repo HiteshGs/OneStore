@@ -380,12 +380,12 @@ export default {
 
     const barcodeFontSize = computed(() => {
       if (isQRLayout.value) return 0;
-      if (isRollLayout.value) return 12;
-      return 16;
+      if (isRollLayout.value) return 16;
+      return 12;
     });
 
     const nameStyle = computed(() => ({
-      fontSize: isRollLayout.value ? "9px" : "9px",
+      fontSize: isRollLayout.value ? "11px" : "9px",
       fontWeight: 600,
       textAlign: "center",
       lineHeight: "1",
@@ -395,10 +395,11 @@ export default {
       width: "100%",
       margin: 0,
       padding: 0,
+      marginTop: isRollLayout.value ? "2mm" : "0", // extra top space for TSC
     }));
 
     const priceStyle = computed(() => ({
-      fontSize: isRollLayout.value ? "9px" : "9px",
+      fontSize: isRollLayout.value ? "11px" : "9px",
       fontWeight: 600,
       textAlign: "center",
       lineHeight: "1",
@@ -692,7 +693,7 @@ export default {
         .cell { display:flex; align-items:stretch; justify-content:stretch; text-align:center; background:#fff; }
         .label-inner { font-weight: bold; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:0.2mm 0.8mm; box-sizing:border-box; }
         .label-name, .label-price, .label-code { text-align:center; font-size:9px; line-height:1.1; margin:0; }
-        .label-bottom { display:flex; flex-direction:column; gap:0.5mm; margin-top:0.5mm; }
+        .label-bottom { display:flex; flex-direction:column; gap:0.5mm; margin-top:1.5mm; }
         /* left sticker (first in each row) extra padding so it comes to center of its label */
         .cell:nth-child(2n + 1) .label-inner {
           padding-left: 28px;
