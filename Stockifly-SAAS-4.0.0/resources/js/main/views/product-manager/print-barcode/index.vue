@@ -424,7 +424,7 @@ const codeStyle = computed(() => ({
   overflow: "visible",
   textOverflow: "ellipsis",
   width: "100%",
-  margin: isRollLayout.value ? "0.5mm 0 0.5mm" : "0.05mm 0 0.05mm",
+  margin: isRollLayout.value ? "0.3 mm 0 0.1mm" : "0.05mm 0 0.05mm",
   padding: 0,
 }));
 
