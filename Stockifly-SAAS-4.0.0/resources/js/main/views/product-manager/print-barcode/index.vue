@@ -692,8 +692,8 @@ export default {
         .grid { display: grid; }
         .cell { display:flex; align-items:stretch; justify-content:stretch; text-align:center; background:#fff; }
         .label-inner { font-weight: bold; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:0.2mm 0.8mm; box-sizing:border-box; }
-        .label-name, .label-price, .label-code { text-align:center; font-size:9px; line-height:1.1; margin:0; }
-        .label-bottom { display:flex; flex-direction:column; gap:0.5mm; margin-top:2mm; }
+        .label-name, .label-price, .label-code { text-align:center; font-size:12px; line-height:1.1; margin:0; }
+        .label-bottom { display:flex; flex-direction:column; gap:0.5mm; margin-top:0.5mm; }
         /* left sticker (first in each row) extra padding so it comes to center of its label */
         .cell:nth-child(2n + 1) .label-inner {
           padding-left: 28px;
@@ -711,7 +711,7 @@ export default {
         .give-border { border: 1px solid #ccc; }
         .label-inner { font-weight: bold; display:flex; flex-direction:column; justify-content:space-between; align-items:center; padding:1mm 1mm; box-sizing:border-box; }
         .label-name, .label-price, .label-code { text-align: center; }
-        .label-bottom { margin-top:3mm; }
+        .label-bottom { margin-top:0.5mm; }
         .qr-cell { border: 2px solid #000; border-radius: 6px; padding: 10mm 10mm 8mm 10mm; }
         .qr-name { font-size: 16px; margin-bottom: 6mm; }
         .qr-price { font-size: 16px; margin-top: 6mm; }
