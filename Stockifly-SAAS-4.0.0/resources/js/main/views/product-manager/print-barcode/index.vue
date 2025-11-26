@@ -381,16 +381,16 @@ export default {
     const barcodeFontSize = computed(() => {
       if (isQRLayout.value) return 0;
       if (isRollLayout.value) return 16;
-      return 12;
+      return 15;
     });
 
     const nameStyle = computed(() => ({
-      fontSize: isRollLayout.value ? "11px" : "9px",
+      fontSize: isRollLayout.value ? "12px" : "9px",
       fontWeight: 600,
       textAlign: "center",
       lineHeight: "1",
       whiteSpace: "nowrap",
-      overflow: "hidden",
+      overflow: "visible",
       textOverflow: "ellipsis",
       width: "100%",
       margin: 0,
@@ -399,7 +399,7 @@ export default {
     }));
 
     const priceStyle = computed(() => ({
-      fontSize: isRollLayout.value ? "11px" : "9px",
+      fontSize: isRollLayout.value ? "12px" : "9px",
       fontWeight: 600,
       textAlign: "center",
       lineHeight: "1",
