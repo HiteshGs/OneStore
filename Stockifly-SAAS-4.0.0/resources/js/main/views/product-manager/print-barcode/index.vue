@@ -402,7 +402,7 @@ const nameStyle = computed(() => ({
   width: "100%",
   margin: isRollLayout.value ? "0.2mm 0 0.3mm" : "0.1mm 0 0.2mm",
   padding: 0,
-  marginBottom: "1.3mm" // extra bottom space for TSC
+  marginBottom: "1.6mm" // extra bottom space for TSC
 }));
     const priceStyle = computed(() => ({
       fontSize: isRollLayout.value ? "14px" : "9px",
@@ -424,7 +424,7 @@ const codeStyle = computed(() => ({
   overflow: "visible",
   textOverflow: "ellipsis",
   width: "100%",
-  margin: isRollLayout.value ? "0.3 mm 0 0.1mm" : "0.05mm 0 0.05mm",
+  margin: isRollLayout.value ? "0.5mm 0 0.5mm" : "0.05mm 0 0.05mm",
   padding: 0,
 }));
 
