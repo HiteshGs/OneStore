@@ -852,7 +852,7 @@ td {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 0.2mm 0.8mm;
+  padding: 1.2mm 5.8mm;
   box-sizing: border-box;
   gap: 0.5mm;
 }
