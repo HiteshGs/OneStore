@@ -238,6 +238,7 @@
 
 <!-- BARCODE -->
 <BarcodeGenerator
+  class="barcode-svg"
   :value="String(bc.item_code || '')"
   :format="isQRLayout ? 'qrcode' : bc.barcode_symbology"
   :height="barcodeHeight"
@@ -371,22 +372,25 @@ export default {
 
     // barcode sizes
     const barcodeHeight = computed(() => {
-      if (isQRLayout.value) return 220;
-      if (isRollLayout.value) return 16;
-      return 18;
-    });
+  if (isQRLayout.value) return 220;   // QR stays as is
+  if (isRollLayout.value) return 40;  // taller for 50×25mm roll
+  return 40;                          // A4 labels also decent height
+});
 
-    const barcodeWidth = computed(() => {
-      if (isQRLayout.value) return 2;
-      if (isRollLayout.value) return 1.3;
-      return 1;
-    });
 
-    const barcodeFontSize = computed(() => {
-      if (isQRLayout.value) return 0;
-      if (isRollLayout.value) return 16;
-      return 12;
-    });
+   const barcodeWidth = computed(() => {
+  if (isQRLayout.value) return 2;     // QR internal use
+  // IMPORTANT: this is "bar width" in px for Code128 etc.
+  // 2px gives a normal density like your original example
+  return 2;
+});
+
+   const barcodeFontSize = computed(() => {
+  if (isQRLayout.value) return 0;     // no text inside QR
+  if (isRollLayout.value) return 14;  // readable on small sticker
+  return 12;
+});
+
 
     const nameStyle = computed(() => ({
       fontSize: isRollLayout.value ? "14px" : "9px",
@@ -803,6 +807,7 @@ const codeStyle = computed(() => ({
       nameStyle,
       priceStyle,
       codeStyle,
+
       pages,
       pageStyleObject,
       lastPageStyleObject,
@@ -885,7 +890,12 @@ td {
   flex-direction: column;
   gap: 0.5mm;
 }
-
+.barcode-svg {
+  display: block;
+  margin: 1mm auto 0.5mm;  // center horizontally, small vertical space
+  max-width: 80%;
+  height: auto;
+}
 @media print {
   table {
     page-break-after: always;
