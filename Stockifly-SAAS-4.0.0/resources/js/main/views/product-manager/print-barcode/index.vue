@@ -400,7 +400,7 @@ const nameStyle = computed(() => ({
   overflow: "visible",
   textOverflow: "ellipsis",
   width: "100%",
-  margin: isRollLayout.value ? "0.5mm 0 0.5mm" : "0.3mm 0 0.3mm",
+  margin: isRollLayout.value ? "0.2mm 0 0.3mm" : "0.1mm 0 0.2mm",
   padding: 0,
 }));
     const priceStyle = computed(() => ({
@@ -423,7 +423,7 @@ const codeStyle = computed(() => ({
   overflow: "visible",
   textOverflow: "ellipsis",
   width: "100%",
-  margin: isRollLayout.value ? "0.3mm 0 0.3mm" : "0.2mm 0 0.2mm",
+  margin: isRollLayout.value ? "0.1mm 0 0.1mm" : "0.05mm 0 0.05mm",
   padding: 0,
 }));
 
