@@ -385,27 +385,24 @@ export default {
   return 2;
 });
 
-   const barcodeFontSize = computed(() => {
-  if (isQRLayout.value) return 0;     // no text inside QR
-  if (isRollLayout.value) return 14;  // readable on small sticker
-  return 12;
+  const barcodeFontSize = computed(() => {
+  // Bars only, text hum niche label-code se dikhayenge
+  return 0;
 });
 
 
-    const nameStyle = computed(() => ({
-      fontSize: isRollLayout.value ? "14px" : "9px",
-      fontWeight: 600,
-      textAlign: "center",
-      lineHeight: "1",
-      whiteSpace: "nowrap",
-      overflow: "visible",
-      textOverflow: "ellipsis",
-      width: "100%",
-      margin: 0,
-      padding: 0,
-      marginTop: isRollLayout.value ? "1mm" : "0", // extra top space for TSC
-    }));
-
+const nameStyle = computed(() => ({
+  fontSize: isRollLayout.value ? "14px" : "9px",
+  fontWeight: 600,
+  textAlign: "center",
+  lineHeight: "1",
+  whiteSpace: "nowrap",
+  overflow: "visible",
+  textOverflow: "ellipsis",
+  width: "100%",
+  margin: isRollLayout.value ? "0.5mm 0 0.5mm" : "0.3mm 0 0.3mm",
+  padding: 0,
+}));
     const priceStyle = computed(() => ({
       fontSize: isRollLayout.value ? "14px" : "9px",
       fontWeight: 600,
@@ -426,7 +423,7 @@ const codeStyle = computed(() => ({
   overflow: "visible",
   textOverflow: "ellipsis",
   width: "100%",
-  margin: "0.5mm 0 0",
+  margin: isRollLayout.value ? "0.3mm 0 0.3mm" : "0.2mm 0 0.2mm",
   padding: 0,
 }));
 
