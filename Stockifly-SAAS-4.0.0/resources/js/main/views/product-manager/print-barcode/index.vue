@@ -420,21 +420,22 @@ export default {
       const gapY = isRollLayout.value ? 0.02 : 0.04;
 
       // ---- TSC ROLL LAYOUTS ----
-      if (perSheetBarcode.value === "tsc2") {
-        // 2 labels on 103mm roll, each ~40mm wide, centered with equal left/right margin
-        const LABEL_W_IN = 40 / 25.4; // ≈ 1.57"
-        const GAP_IN = 23 / 25.4; // ≈ 0.9" between labels
+     if (perSheetBarcode.value === "tsc2") {
+  // 2 labels on 103mm roll, each 50mm wide, with ~3mm gap in the middle
+  const LABEL_W_IN = 50 / 25.4;         // ≈ 1.97"
+  const GAP_IN = (103 - 2 * 50) / 25.4; // 3mm gap ≈ 0.12"
 
-        return {
-          display: "grid",
-          gridTemplateColumns: `repeat(2, ${inch(LABEL_W_IN)})`,
-          gridAutoRows: inch(ROLL_PAGE.heightIn),
-          columnGap: inch(GAP_IN),
-          rowGap: 0,
-          alignContent: "center",
-          justifyContent: "center", // center both labels together
-        };
-      }
+  return {
+    display: "grid",
+    gridTemplateColumns: `repeat(2, ${inch(LABEL_W_IN)})`,
+    gridAutoRows: inch(ROLL_PAGE.heightIn), // 25mm high
+    columnGap: inch(GAP_IN),
+    rowGap: 0,
+    alignContent: "center",
+    justifyContent: "center",
+  };
+}
+
 
       if (perSheetBarcode.value === "tsc3") {
         // Generic 3-up roll
@@ -696,9 +697,7 @@ export default {
         .label-name, .label-price, .label-code { text-align:center; font-size:14px; line-height:1.1; margin:0; }
         .label-bottom { display:flex; flex-direction:column; gap:0.5mm; margin-top:0.5mm; }
         /* left sticker (first in each row) extra padding so it comes to center of its label */
-        .cell:nth-child(2n + 1) .label-inner {
-          padding-left: 28px;
-        }
+        
         svg { max-width: 100%; height: auto; }
       `
         : `
@@ -858,14 +857,10 @@ td {
   gap: 0.5mm;
 }
 
-/* ONLY LEFT sticker in preview – push content inside to center on label */
-.roll-cell:nth-child(2n + 1) .roll-inner {
-  padding-left: 28px;
-}
 
 .roll-name,
 .roll-price {
-  font-size: 9px;
+  font-size: 13px;
   line-height: 1.1;
 }
 
