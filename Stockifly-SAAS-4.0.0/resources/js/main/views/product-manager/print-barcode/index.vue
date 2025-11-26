@@ -234,7 +234,7 @@
                 class="label-inner"
                 :class="{ 'qr-inner': isQRLayout, 'roll-inner': isRollLayout }"
               >
-                <!-- NAME TOP (for TSC as per photo) -->
+                <!-- NAME TOP -->
                 <div
                   v-if="selectName"
                   class="label-name"
@@ -254,7 +254,7 @@
                   :elementTag="'svg'"
                 />
 
-                <!-- CODE + PRICE COMPACT -->
+                <!-- CODE + PRICE compact for roll -->
                 <div class="roll-bottom-block" v-if="isRollLayout">
                   <div class="roll-code">{{ bc.item_code }}</div>
                   <div
@@ -265,7 +265,7 @@
                   </div>
                 </div>
 
-                <!-- non-roll bottom (normal A4) -->
+                <!-- normal A4 bottom -->
                 <template v-else>
                   <div
                     v-if="selectPrice && bc.price !== ''"
@@ -317,7 +317,7 @@ export default {
     const { formatAmountCurrency } = common();
     const { t } = useI18n();
 
-    // A4 label layouts (same as old code)
+    // A4 label layouts (same as original)
     const LAYOUTS = {
       40: { rows: 10, cols: 4, w: 1.799, h: 1.003, a4: true },
       30: { rows: 10, cols: 3, w: 2.625, h: 1.0, a4: false },
@@ -342,14 +342,13 @@ export default {
 
     // A4 + TSC page sizes
     const A4_PAGE = { widthIn: 8.27, heightIn: 11.69, padIn: 0.1 };
-    // TSC: 103mm × 25mm ≈ 4.055in × 0.985in; we keep 4×1 and shift with padding
+    // TSC: 103mm × 25mm ≈ 4.055in × 0.985in
     const ROLL_PAGE = { widthIn: 4.0, heightIn: 1.0, padIn: 0 };
 
     const selectedProducts = ref([]);
     const perSheetBarcode = ref(40);
     const customPerPage = ref(6);
 
-    // default ON (as you asked)
     const selectName = ref(true);
     const selectPrice = ref(true);
 
@@ -383,7 +382,7 @@ export default {
     // make room vertically
     const barcodeHeight = computed(() => {
       if (isQRLayout.value) return 220;
-      if (isRollLayout.value) return 16; // shorter for TSC
+      if (isRollLayout.value) return 16;
       return 18;
     });
 
@@ -432,18 +431,22 @@ export default {
           : 0.07;
       const gapY = isRollLayout.value ? 0.02 : 0.04;
 
-      // ROLL layouts (TSC 2 / 3)
+      // ROLL layouts (TSC 2 / 3) – back to original symmetric layout
       if (perSheetBarcode.value === "tsc2" || perSheetBarcode.value === "tsc3") {
         const cols = perSheetBarcode.value === "tsc2" ? 2 : 3;
         const rows = 1;
 
-        // slightly shrink inner width so both labels float inside with equal margin
-        const innerWidth = ROLL_PAGE.widthIn * 0.92;
-        const usableW = innerWidth - (cols - 1) * gapX;
-        const usableH = ROLL_PAGE.heightIn - (rows - 1) * gapY;
+        const usableW =
+          ROLL_PAGE.widthIn - 2 * ROLL_PAGE.padIn - (cols - 1) * gapX;
+        const usableH =
+          ROLL_PAGE.heightIn - 2 * ROLL_PAGE.padIn - (rows - 1) * gapY;
 
-        const cellW = usableW / cols;
+        let cellW = usableW / cols;
         const cellH = usableH / rows;
+
+        if (perSheetBarcode.value === "tsc3") {
+          cellW = cellW * 0.92;
+        }
 
         return {
           display: "grid",
@@ -452,11 +455,11 @@ export default {
           columnGap: inch(gapX),
           rowGap: inch(gapY),
           alignContent: "center",
-          justifyContent: "flex-start",
+          justifyContent: "center",
         };
       }
 
-      // QR layouts (A4)
+      // QR layouts
       if (perSheetBarcode.value === "qr1" || perSheetBarcode.value === "qr2") {
         const cols = 1;
         const rows = perSheetBarcode.value === "qr2" ? 2 : 1;
@@ -541,19 +544,13 @@ export default {
         : isA4
         ? "11.69in"
         : "11in";
-      const pad = isRoll ? 0 : A4_PAGE.padIn;
-
-      // extra left padding ONLY for roll layouts (about 2mm, as you asked)
-      const rollPadLeftIn = 0.08; // ≈ 2mm
+      const pad = isRoll ? ROLL_PAGE.padIn : A4_PAGE.padIn;
 
       pageStyleObject.value = {
         width: fullW,
         height: fullH,
         margin: isRoll ? "0 auto" : "10px auto",
-        paddingTop: inch(pad),
-        paddingBottom: inch(pad),
-        paddingLeft: isRoll ? inch(rollPadLeftIn) : inch(pad),
-        paddingRight: isRoll ? inch(0) : inch(pad),
+        padding: inch(pad),
         boxSizing: "border-box",
         pageBreakAfter: "always",
         background: "#fff",
@@ -708,6 +705,8 @@ export default {
         .roll-bottom-block { margin-top: 0.5mm; }
         .roll-code { font-size:9px; line-height:1.1; }
         .roll-price-text { font-size:10px; line-height:1.1; }
+        /* extra left padding only on LEFT label (odd cell) to push it ~3mm to the right */
+        .cell:nth-child(2n+1) .label-inner { padding-left: 3mm; }
         svg { max-width: 100%; height: auto; }
       `
         : `
@@ -864,6 +863,11 @@ td {
   padding: 1mm 1.2mm;
   box-sizing: border-box;
   gap: 0;
+}
+
+/* preview: extra left padding only for LEFT label (odd cells) */
+.roll-cell:nth-child(2n+1) .roll-inner {
+  padding-left: 3mm;
 }
 
 .roll-bottom-block {
