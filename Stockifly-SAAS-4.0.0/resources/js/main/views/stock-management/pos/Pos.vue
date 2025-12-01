@@ -203,9 +203,10 @@
             v-if="record.tax_rate !== null && record.tax_rate !== undefined && Number(record.tax_rate) > 0"
             class="subtotal-meta"
         >
-          <a-tag color="gold" class="subtotal-tag">
-    GST {{ record.tax_rate }}% Exclusive
+      <a-tag color="gold" class="subtotal-tag">
+    GST {{ record.tax_rate }}%
 </a-tag>
+
 
         </div>
     </div>
@@ -615,8 +616,9 @@
             class="subtotal-meta"
         >
           <a-tag color="gold" class="subtotal-tag">
-    GST {{ record.tax_rate }}% Exclusive
+    GST {{ record.tax_rate }}%
 </a-tag>
+
 
         </div>
     </div>
