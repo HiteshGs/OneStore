@@ -594,9 +594,18 @@
                                                 @change="quantityChanged(record)"
                                             />
                                         </template>
-                                        <template v-if="column.dataIndex === 'subtotal'">
-                                            {{ formatAmountCurrency(record.subtotal) }}
-                                        </template>
+                                        <template
+    v-if="
+        column.dataIndex ===
+        'subtotal'
+    "
+>
+    {{ formatAmountCurrency(record.subtotal) }}
+    <template v-if="record.tax_rate !== null && record.tax_rate !== undefined">
+        ({{ record.tax_rate }}%)
+    </template>
+</template>
+
                                         <template v-if="column.dataIndex === 'action'">
                                             <a-button
                                                 type="primary"
