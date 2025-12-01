@@ -203,13 +203,10 @@
             v-if="record.tax_rate !== null && record.tax_rate !== undefined && Number(record.tax_rate) > 0"
             class="subtotal-meta"
         >
-            <a-tag
-                :color="record.tax_type === 'inclusive' ? 'blue' : 'gold'"
-                class="subtotal-tag"
-            >
-                GST {{ record.tax_rate }}%
-                {{ record.tax_type === 'inclusive' ? 'Inclusive' : 'Exclusive' }}
-            </a-tag>
+          <a-tag color="gold" class="subtotal-tag">
+    GST {{ record.tax_rate }}% Exclusive
+</a-tag>
+
         </div>
     </div>
 </template>
@@ -617,14 +614,10 @@
             v-if="record.tax_rate !== null && record.tax_rate !== undefined && Number(record.tax_rate) > 0"
             class="subtotal-meta"
         >
-            <a-tag
-                :color="record.tax_type === 'inclusive' ? 'blue' : 'gold'"
-                class="subtotal-tag"
-            >
-                GST {{ record.tax_rate }}%
-                {{ record.tax_type === 'inclusive' ? 'Inclusive' : 'Exclusive' }}
-            </a-tag>
-        </div>
+          <a-tag color="gold" class="subtotal-tag">
+    GST {{ record.tax_rate }}% Exclusive
+</a-tag>
+
     </div>
 </template>
 
@@ -1112,8 +1105,7 @@ export default {
                     unit_price: formatAmount(newProduct.unit_price),
                     tax_amount: formatAmount(newProduct.tax_amount),
                     subtotal: formatAmount(newProduct.subtotal),
-                                tax_type: newProduct.tax_type || "exclusive",
-
+                    tax_type: "exclusive",
                 });
                 state.orderSearchTerm = undefined;
                 state.products = [];
@@ -1181,17 +1173,26 @@ export default {
             var singleUnitPrice = unitPrice;
 
             // Tax Amount
-            if (product.tax_rate > 0) {
-                if (product.tax_type == "inclusive") {
-                    singleUnitPrice =
-                        (totalPriceAfterDiscount * 100) / (100 + product.tax_rate);
-                    taxAmount = singleUnitPrice * (product.tax_rate / 100);
-                } else {
-                    taxAmount = totalPriceAfterDiscount * (product.tax_rate / 100);
-                    subtotal = totalPriceAfterDiscount + taxAmount;
-                    singleUnitPrice = totalPriceAfterDiscount;
-                }
-            }
+           // Tax Amount – always treat as EXCLUSIVE
+if (product.tax_rate > 0) {
+    taxAmount = totalPriceAfterDiscount * (product.tax_rate / 100);
+    subtotal = totalPriceAfterDiscount + taxAmount;
+    singleUnitPrice = totalPriceAfterDiscount;
+}
+
+const newObject = {
+    ...product,
+    total_discount: totalDiscount * quantityValue,
+    subtotal: subtotal * quantityValue,
+    quantity: quantityValue,
+    total_tax: taxAmount * quantityValue,
+    max_quantity: maxQuantity,
+    single_unit_price: singleUnitPrice,
+
+    // 🔥 normalize every recalculated line as EXCLUSIVE
+    tax_type: "exclusive",
+};
+
 
             const newObject = {
                 ...product,
@@ -1370,13 +1371,16 @@ const getRowTaxAmount = (record) => {
                     : "exclusive";
 
             const newData = {
-                ...record[0],
-                discount_rate: parseFloat(addEditFormData.value.discount_rate),
-                unit_price: parseFloat(addEditFormData.value.unit_price),
-                tax_id: addEditFormData.value.tax_id,
-                tax_rate: selecteTax[0] ? selecteTax[0].rate : 0,
-                tax_type: taxType,
-            };
+    ...record[0],
+    discount_rate: parseFloat(addEditFormData.value.discount_rate),
+    unit_price: parseFloat(addEditFormData.value.unit_price),
+    tax_id: addEditFormData.value.tax_id,
+    tax_rate: selecteTax[0] ? selecteTax[0].rate : 0,
+
+    // 🔥 force exclusive on save too
+    tax_type: "exclusive",
+};
+
             quantityChanged(newData);
             onAddEditClose();
         };
