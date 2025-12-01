@@ -191,17 +191,15 @@
                                                             "
                                                         />
                                                     </template>
-                                                   <template
-    v-if="
-        column.dataIndex ===
-        'subtotal'
-    "
->
-    {{
-        formatAmountCurrency(
-            record.subtotal
-        )
-    }}
+                                                  <template v-if="column.dataIndex === 'subtotal'">
+    <span>
+        {{ formatAmountCurrency(record.subtotal) }}
+         <template v-if="record.tax_rate !== null && record.tax_rate !== undefined && Number(record.tax_rate) > 0">
+            &nbsp;+ {{ record.tax_rate }}%
+            =
+            {{ formatAmountCurrency(getRowSubtotalWithTax(record)) }}
+        </template>
+    </span>
 </template>
 
                                                     <template
@@ -595,9 +593,17 @@
                                                 @change="quantityChanged(record)"
                                             />
                                         </template>
-                                        <template v-if="column.dataIndex === 'subtotal'">
-                                            {{ formatAmountCurrency(record.subtotal) }}
-                                        </template>
+                                    <template v-if="column.dataIndex === 'subtotal'">
+    <span>
+        {{ formatAmountCurrency(record.subtotal) }}
+        <template v-if="record.tax_rate !== null && record.tax_rate !== undefined && Number(record.tax_rate) > 0">
+            &nbsp;+ {{ record.tax_rate }}%
+            =
+            {{ formatAmountCurrency(getRowSubtotalWithTax(record)) }}
+        </template>
+    </span>
+</template>
+
                                         <template v-if="column.dataIndex === 'action'">
                                             <a-button
                                                 type="primary"
@@ -1222,6 +1228,14 @@ export default {
             formData.value.tax_amount = formatAmount(tax);
             formData.value.discount = discountAmount;
         };
+const getRowSubtotalWithTax = (record) => {
+    const base = Number(record.subtotal) || 0;
+    const rate = Number(record.tax_rate) || 0;
+
+    if (!rate) return base; // no tax
+
+    return base + (base * rate) / 100;
+};
 
         const showDeleteConfirm = (product) => {
             // Delete selected product and rearrange SN
@@ -1425,6 +1439,7 @@ export default {
             inputValueChanged,
 
             showMobileCart,
+            getRowSubtotalWithTax,
         };
     },
 };
