@@ -191,39 +191,31 @@
                                                             "
                                                         />
                                                     </template>
-                                           <template v-if="column.dataIndex === 'subtotal'">
+                                          <template v-if="column.dataIndex === 'subtotal'">
     <div class="subtotal-cell">
+        <!-- Main: total price with tax -->
         <div class="subtotal-main">
-            {{ formatAmountCurrency(record.subtotal) }}
+            {{ formatAmountCurrency(getRowSubtotalWithTax(record)) }}
         </div>
 
+        <!-- Meta: badge + base + tax -->
         <div
             v-if="record.tax_rate !== null && record.tax_rate !== undefined && Number(record.tax_rate) > 0"
             class="subtotal-meta"
         >
-            <a-tag
-                v-if="record.tax_type === 'inclusive'"
-                color="green"
-                class="subtotal-tag"
-            >
+            <a-tag color="green" class="subtotal-tag">
                 GST {{ record.tax_rate }}% incl.
             </a-tag>
 
-            <a-tag
-                v-else
-                color="blue"
-                class="subtotal-tag"
-            >
-                GST {{ record.tax_rate }}%
-            </a-tag>
-
-            <span v-if="record.total_tax">
-                · {{ $t('product.tax') }}:
-                {{ formatAmountCurrency(record.total_tax) }}
+            <span>
+                ({{ formatAmountCurrency(record.subtotal) }}
+                +
+                {{ formatAmountCurrency(getRowTaxAmount(record)) }})
             </span>
         </div>
     </div>
 </template>
+
 
                                                     <template
                                                         v-if="
@@ -616,39 +608,29 @@
                                                 @change="quantityChanged(record)"
                                             />
                                         </template>
-                                  <template v-if="column.dataIndex === 'subtotal'">
+                                <template v-if="column.dataIndex === 'subtotal'">
     <div class="subtotal-cell">
         <div class="subtotal-main">
-            {{ formatAmountCurrency(record.subtotal) }}
+            {{ formatAmountCurrency(getRowSubtotalWithTax(record)) }}
         </div>
 
         <div
             v-if="record.tax_rate !== null && record.tax_rate !== undefined && Number(record.tax_rate) > 0"
             class="subtotal-meta"
         >
-            <a-tag
-                v-if="record.tax_type === 'inclusive'"
-                color="green"
-                class="subtotal-tag"
-            >
+            <a-tag color="green" class="subtotal-tag">
                 GST {{ record.tax_rate }}% incl.
             </a-tag>
 
-            <a-tag
-                v-else
-                color="blue"
-                class="subtotal-tag"
-            >
-                GST {{ record.tax_rate }}%
-            </a-tag>
-
-            <span v-if="record.total_tax">
-                · {{ $t('product.tax') }}:
-                {{ formatAmountCurrency(record.total_tax) }}
+            <span>
+                ({{ formatAmountCurrency(record.subtotal) }}
+                +
+                {{ formatAmountCurrency(getRowTaxAmount(record)) }})
             </span>
         </div>
     </div>
 </template>
+
                                         <template v-if="column.dataIndex === 'action'">
                                             <a-button
                                                 type="primary"
@@ -1276,11 +1258,19 @@ export default {
 const getRowSubtotalWithTax = (record) => {
     const base = Number(record.subtotal) || 0;
     const rate = Number(record.tax_rate) || 0;
-
-    if (!rate) return base; // no tax
+    if (!rate) return base;
 
     return base + (base * rate) / 100;
 };
+
+const getRowTaxAmount = (record) => {
+    const base = Number(record.subtotal) || 0;
+    const rate = Number(record.tax_rate) || 0;
+    if (!rate) return 0;
+
+    return (base * rate) / 100;
+};
+
 
         const showDeleteConfirm = (product) => {
             // Delete selected product and rearrange SN
@@ -1484,8 +1474,8 @@ const getRowSubtotalWithTax = (record) => {
             inputValueChanged,
 
             showMobileCart,
-            getRowSubtotalWithTax,
-        };
+getRowSubtotalWithTax,
+    getRowTaxAmount,        };
     },
 };
 </script>
