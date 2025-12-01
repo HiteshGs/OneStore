@@ -77,7 +77,7 @@
         <div class="bill-party-row">
           <div class="bill-party-left">
             <h3 class="bill-title">
-              {{ $t("sales.bill_to_party") }}
+              Bill To Party
             </h3>
             <p class="party-line party-name">
               {{ order.user?.name }}
