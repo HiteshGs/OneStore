@@ -107,6 +107,10 @@
                 v-for="(item, index) in order.items"
                 :key="item.xid"
               >
+                <script>
+                  console.log("Invoice Item:", JSON.parse(JSON.stringify(item)));
+                </script>
+
                 <td>{{ index + 1 }}</td>
 
                 <!-- Item name + custom fields -->
