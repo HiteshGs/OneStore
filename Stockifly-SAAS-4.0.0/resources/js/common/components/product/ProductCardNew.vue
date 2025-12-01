@@ -38,6 +38,8 @@ export default {
     props: ["product"],
     setup(props) {
         const { formatAmountCurrency } = common();
+            console.log("Product received in POS component:", props.product);
+
 
         return {
             formatAmountCurrency,
