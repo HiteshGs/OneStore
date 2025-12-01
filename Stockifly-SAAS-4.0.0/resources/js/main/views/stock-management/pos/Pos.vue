@@ -618,6 +618,7 @@
     GST {{ record.tax_rate }}% Exclusive
 </a-tag>
 
+        </div>
     </div>
 </template>
 
