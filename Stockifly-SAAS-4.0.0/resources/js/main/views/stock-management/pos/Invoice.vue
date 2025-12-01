@@ -107,10 +107,6 @@
                 v-for="(item, index) in order.items"
                 :key="item.xid"
               >
-                <script>
-                  console.log("Invoice Item:", JSON.parse(JSON.stringify(item)));
-                </script>
-
                 <td>{{ index + 1 }}</td>
 
                 <!-- Item name + custom fields -->
@@ -497,11 +493,28 @@ export default defineComponent({
       newWindow.print();
     };
 
+    // 🔍 Log order + each item whenever modal opens
     watch(
       () => props.visible,
       (v) => {
-        if (v && props.autoOpen) {
-          setTimeout(() => printInvoice(), 250);
+        if (v) {
+          console.log(
+            "[InvoiceModal] Order data:",
+            JSON.parse(JSON.stringify(props.order))
+          );
+
+          if (props.order && Array.isArray(props.order.items)) {
+            props.order.items.forEach((item, index) => {
+              console.log(
+                `[InvoiceModal] Item #${index + 1}:`,
+                JSON.parse(JSON.stringify(item))
+              );
+            });
+          }
+
+          if (props.autoOpen) {
+            setTimeout(() => printInvoice(), 250);
+          }
         }
       }
     );
