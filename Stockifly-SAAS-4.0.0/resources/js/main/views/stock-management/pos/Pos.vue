@@ -191,30 +191,29 @@
                                                             "
                                                         />
                                                     </template>
-                                          <template v-if="column.dataIndex === 'subtotal'">
+                                         <template v-if="column.dataIndex === 'subtotal'">
     <div class="subtotal-cell">
-        <!-- Main: total price with tax -->
+        <!-- Main: show subtotal as-is -->
         <div class="subtotal-main">
-            {{ formatAmountCurrency(getRowSubtotalWithTax(record)) }}
+            {{ formatAmountCurrency(record.subtotal) }}
         </div>
 
-        <!-- Meta: badge + base + tax -->
+        <!-- Only show badge if tax exists -->
         <div
             v-if="record.tax_rate !== null && record.tax_rate !== undefined && Number(record.tax_rate) > 0"
             class="subtotal-meta"
         >
-            <a-tag color="green" class="subtotal-tag">
-                GST {{ record.tax_rate }}% incl.
+            <a-tag
+                :color="record.tax_type === 'inclusive' ? 'blue' : 'gold'"
+                class="subtotal-tag"
+            >
+                GST {{ record.tax_rate }}%
+                {{ record.tax_type === 'inclusive' ? 'Inclusive' : 'Exclusive' }}
             </a-tag>
-
-            <span>
-                ({{ formatAmountCurrency(record.subtotal) }}
-                +
-                {{ formatAmountCurrency(getRowTaxAmount(record)) }})
-            </span>
         </div>
     </div>
 </template>
+
 
 
                                                     <template
@@ -608,25 +607,23 @@
                                                 @change="quantityChanged(record)"
                                             />
                                         </template>
-                                <template v-if="column.dataIndex === 'subtotal'">
+                               <template v-if="column.dataIndex === 'subtotal'">
     <div class="subtotal-cell">
         <div class="subtotal-main">
-            {{ formatAmountCurrency(getRowSubtotalWithTax(record)) }}
+            {{ formatAmountCurrency(record.subtotal) }}
         </div>
 
         <div
             v-if="record.tax_rate !== null && record.tax_rate !== undefined && Number(record.tax_rate) > 0"
             class="subtotal-meta"
         >
-            <a-tag color="green" class="subtotal-tag">
-                GST {{ record.tax_rate }}% incl.
+            <a-tag
+                :color="record.tax_type === 'inclusive' ? 'blue' : 'gold'"
+                class="subtotal-tag"
+            >
+                GST {{ record.tax_rate }}%
+                {{ record.tax_type === 'inclusive' ? 'Inclusive' : 'Exclusive' }}
             </a-tag>
-
-            <span>
-                ({{ formatAmountCurrency(record.subtotal) }}
-                +
-                {{ formatAmountCurrency(getRowTaxAmount(record)) }})
-            </span>
         </div>
     </div>
 </template>
@@ -1115,6 +1112,8 @@ export default {
                     unit_price: formatAmount(newProduct.unit_price),
                     tax_amount: formatAmount(newProduct.tax_amount),
                     subtotal: formatAmount(newProduct.subtotal),
+                                tax_type: newProduct.tax_type || "exclusive",
+
                 });
                 state.orderSearchTerm = undefined;
                 state.products = [];
