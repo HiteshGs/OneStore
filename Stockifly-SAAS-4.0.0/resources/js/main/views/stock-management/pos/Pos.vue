@@ -191,15 +191,38 @@
                                                             "
                                                         />
                                                     </template>
-                                                  <template v-if="column.dataIndex === 'subtotal'">
-    <span>
-        {{ formatAmountCurrency(record.subtotal) }}
-         <template v-if="record.tax_rate !== null && record.tax_rate !== undefined && Number(record.tax_rate) > 0">
-            &nbsp;+ {{ record.tax_rate }}%
-            =
-            {{ formatAmountCurrency(getRowSubtotalWithTax(record)) }}
-        </template>
-    </span>
+                                           <template v-if="column.dataIndex === 'subtotal'">
+    <div class="subtotal-cell">
+        <div class="subtotal-main">
+            {{ formatAmountCurrency(record.subtotal) }}
+        </div>
+
+        <div
+            v-if="record.tax_rate !== null && record.tax_rate !== undefined && Number(record.tax_rate) > 0"
+            class="subtotal-meta"
+        >
+            <a-tag
+                v-if="record.tax_type === 'inclusive'"
+                color="green"
+                class="subtotal-tag"
+            >
+                GST {{ record.tax_rate }}% incl.
+            </a-tag>
+
+            <a-tag
+                v-else
+                color="blue"
+                class="subtotal-tag"
+            >
+                GST {{ record.tax_rate }}%
+            </a-tag>
+
+            <span v-if="record.total_tax">
+                · {{ $t('product.tax') }}:
+                {{ formatAmountCurrency(record.total_tax) }}
+            </span>
+        </div>
+    </div>
 </template>
 
                                                     <template
@@ -593,17 +616,39 @@
                                                 @change="quantityChanged(record)"
                                             />
                                         </template>
-                                    <template v-if="column.dataIndex === 'subtotal'">
-    <span>
-        {{ formatAmountCurrency(record.subtotal) }}
-        <template v-if="record.tax_rate !== null && record.tax_rate !== undefined && Number(record.tax_rate) > 0">
-            &nbsp;+ {{ record.tax_rate }}%
-            =
-            {{ formatAmountCurrency(getRowSubtotalWithTax(record)) }}
-        </template>
-    </span>
-</template>
+                                  <template v-if="column.dataIndex === 'subtotal'">
+    <div class="subtotal-cell">
+        <div class="subtotal-main">
+            {{ formatAmountCurrency(record.subtotal) }}
+        </div>
 
+        <div
+            v-if="record.tax_rate !== null && record.tax_rate !== undefined && Number(record.tax_rate) > 0"
+            class="subtotal-meta"
+        >
+            <a-tag
+                v-if="record.tax_type === 'inclusive'"
+                color="green"
+                class="subtotal-tag"
+            >
+                GST {{ record.tax_rate }}% incl.
+            </a-tag>
+
+            <a-tag
+                v-else
+                color="blue"
+                class="subtotal-tag"
+            >
+                GST {{ record.tax_rate }}%
+            </a-tag>
+
+            <span v-if="record.total_tax">
+                · {{ $t('product.tax') }}:
+                {{ formatAmountCurrency(record.total_tax) }}
+            </span>
+        </div>
+    </div>
+</template>
                                         <template v-if="column.dataIndex === 'action'">
                                             <a-button
                                                 type="primary"
@@ -1566,4 +1611,28 @@ const getRowSubtotalWithTax = (record) => {
     text-align: center;
     border-top: 1px solid #e8e8e8;
 }
+.subtotal-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.subtotal-main {
+    font-weight: 500;
+}
+
+.subtotal-meta {
+    font-size: 11px;
+    color: #666;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+}
+
+.subtotal-tag {
+    border-radius: 999px;
+    padding: 0 6px;
+}
+
 </style>
