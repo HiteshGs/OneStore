@@ -14,31 +14,35 @@
         v-if="order && order.xid"
         style="margin: 0 auto"
       >
-        <!-- TOP IMAGE + STORE INFO (LIKE YOUR PDF) -->
+        <!-- TOP HEADER (STORE INFO) -->
         <div class="invoice-header">
           <img
-            v-if="headerImage"
-            class="invoice-header-image"
-            :src="headerImage"
+            class="invoice-logo"
+            :src="selectedWarehouse.logo_url"
             :alt="selectedWarehouse.name"
           />
-          <h1 class="store-name">
-            {{ selectedWarehouse.name }}
-          </h1>
-          <p class="store-address">
-            {{ selectedWarehouse.address }}
-          </p>
-          <p class="store-contact">
-            <span v-if="selectedWarehouse.phone">
-              {{ $t("common.phone") }}: {{ selectedWarehouse.phone }}
-            </span>
-            <span v-if="selectedWarehouse.email">
-              &nbsp;|&nbsp;{{ $t("common.email") }}: {{ selectedWarehouse.email }}
-            </span>
-          </p>
+          <div class="invoice-header-text">
+            <h1 class="store-name">
+              {{ selectedWarehouse.name }}
+            </h1>
+            <p class="store-address">
+              {{ selectedWarehouse.address }}
+            </p>
+            <p class="store-contact">
+              <span v-if="selectedWarehouse.phone">
+                {{ $t("common.phone") }}: {{ selectedWarehouse.phone }}
+              </span>
+              <span v-if="selectedWarehouse.email">
+                &nbsp;|&nbsp;{{ $t("common.email") }}: {{ selectedWarehouse.email }}
+              </span>
+              <span v-if="selectedWarehouse.gst_number" class="store-gst">
+                &nbsp;|&nbsp;GSTN: {{ selectedWarehouse.gst_number }}
+              </span>
+            </p>
+          </div>
         </div>
 
-        <!-- TAX INVOICE + INVOICE NUMBER / DATE ROW -->
+        <!-- TAX INVOICE + META (LIKE PDF TOP BOX) -->
         <div class="invoice-meta-row">
           <div class="invoice-meta-left">
             <h2 class="tax-invoice-title">
@@ -69,14 +73,14 @@
           </div>
         </div>
 
-        <!-- BILL TO PARTY (LIKE PDF: sales.bill_to_party / Walk In Customer) -->
+        <!-- BILL TO (LIKE "BILL TO PARTY" BLOCK) -->
         <div class="bill-party-row">
           <div class="bill-party-left">
             <h3 class="bill-title">
               {{ $t("sales.bill_to_party") }}
             </h3>
             <p class="party-line party-name">
-              {{ order.user?.name || "Walk In Customer" }}
+              {{ order.user?.name }}
             </p>
             <p v-if="order.user?.phone" class="party-line">
               Mo : {{ order.user.phone }}
@@ -96,27 +100,30 @@
           </div>
 
           <div class="bill-party-right">
-            <p class="party-line" v-if="order.staff_member?.name">
-              {{ $t("stock.sold_by") }} : {{ order.staff_member.name }}
-            </p>
+            <div v-if="selectedWarehouse.city" class="party-line">
+              {{ selectedWarehouse.city }}
+            </div>
+            <div v-if="selectedWarehouse.state" class="party-line">
+              {{ selectedWarehouse.state }}
+            </div>
           </div>
         </div>
 
-        <!-- ITEMS TABLE (MATCHING PDF COLUMNS) -->
+        <!-- ITEMS TABLE (LIKE PDF: NO / PARTICULAR / HSN / UNIT / QTY / RATE / TAXABLE / GST% / TOTAL) -->
         <div class="tax-invoice-items">
           <table class="items-table">
             <thead>
               <tr>
                 <th style="width: 5%">NO</th>
                 <th style="width: 25%">{{ $t("common.item") }}</th>
-                <th style="width: 10%">product.hsn</th>
+                <th style="width: 10%">{{ $t("product.hsn") || "HSN NO" }}</th>
                 <th style="width: 8%">{{ $t("product.unit") }}</th>
                 <th style="width: 8%">{{ $t("common.qty") }}</th>
                 <th style="width: 12%">{{ $t("common.rate") }}</th>
                 <th style="width: 14%">
-                  invoice.taxable_amount
+                  {{ $t("invoice.taxable_amount") || "Taxable Amount" }}
                 </th>
-                <th style="width: 8%">Tax %</th>
+                <th style="width: 8%">{{ $t("product.tax") }} %</th>
                 <th style="width: 10%; text-align: right">
                   {{ $t("common.total") }}
                 </th>
@@ -151,7 +158,7 @@
                   </div>
                 </td>
 
-                <!-- HSN from item or product -->
+                <!-- HSN NO -->
                 <td class="center">
                   {{ item.hsn_code || item.product?.hsn_code || "-" }}
                 </td>
@@ -171,12 +178,12 @@
                   {{ formatAmountCurrency(item.unit_price) }}
                 </td>
 
-                <!-- TAXABLE AMOUNT -->
+                <!-- TAXABLE AMOUNT = subtotal - tax -->
                 <td class="right">
                   {{ formatAmountCurrency(getTaxableAmount(item)) }}
                 </td>
 
-                <!-- TAX % -->
+                <!-- GST % -->
                 <td class="center">
                   <span v-if="getTaxRate(item)">
                     {{ getTaxRate(item) }}%
@@ -184,13 +191,13 @@
                   <span v-else>-</span>
                 </td>
 
-                <!-- TOTAL -->
+                <!-- TOTAL (WITH TAX) -->
                 <td class="right">
                   {{ formatAmountCurrency(item.subtotal) }}
                 </td>
               </tr>
 
-              <!-- Order Tax / Discount / Shipping rows -->
+              <!-- ORDER TAX / DISCOUNT / SHIPPING LINES UNDER TABLE -->
               <tr class="item-row-other">
                 <td colspan="7" class="right">
                   {{ $t("stock.order_tax") }}
@@ -221,35 +228,40 @@
           </table>
         </div>
 
-        <!-- GROSS / GST SUMMARY BLOCK (LIKE YOUR PDF) -->
+        <!-- TOTALS LIKE PDF (GROSS / SGST / CGST / IGST / NET) -->
         <div class="tax-invoice-totals">
           <table style="width: 100%">
             <tbody>
               <tr>
-                <td style="width: 50%" class="amount-summary-cell">
-                  <p>
-                    <strong>GROSS AMT :</strong>
-                    {{ formatAmountCurrency(getGrossAmount(order)) }}
-                  </p>
-                  <p>
-                    <strong>SGST :</strong>
-                    {{ formatAmountCurrency(order.sgst_amount || 0) }}
-                  </p>
-                  <p>
-                    <strong>CGST :</strong>
-                    {{ formatAmountCurrency(order.cgst_amount || 0) }}
-                  </p>
-                  <p>
-                    <strong>IGST :</strong>
-                    {{ formatAmountCurrency(order.igst_amount || 0) }}
-                  </p>
-                  <p>
-                    <strong>NET AMOUNT :</strong>
-                    {{ formatAmountCurrency(order.total) }}
-                  </p>
-                </td>
-
                 <td style="width: 50%">
+                  <div class="amount-summary-block">
+                    <p>
+                      <strong>GROSS AMT :</strong>
+                      {{ formatAmountCurrency(getGrossAmount(order)) }}
+                    </p>
+                    <p>
+                      <strong>SGST :</strong>
+                      {{ formatAmountCurrency(order.sgst_amount || 0) }}
+                    </p>
+                    <p>
+                      <strong>CGST :</strong>
+                      {{ formatAmountCurrency(order.cgst_amount || 0) }}
+                    </p>
+                    <p>
+                      <strong>IGST :</strong>
+                      {{ formatAmountCurrency(order.igst_amount || 0) }}
+                    </p>
+                    <p>
+                      <strong>NET AMOUNT :</strong>
+                      {{ formatAmountCurrency(order.total) }}
+                    </p>
+                    <p v-if="order.amount_in_words" class="amount-words">
+                      Rupees (in words) :- {{ order.amount_in_words }}
+                    </p>
+                  </div>
+                </td>
+                <td style="width: 50%">
+                  <!-- SIMPLE GST SLAB SUMMARY BOX (OPTIONAL) -->
                   <div class="gst-summary-block">
                     <table>
                       <thead>
@@ -261,7 +273,10 @@
                         </tr>
                       </thead>
                       <tbody>
-                        <tr v-for="row in gstSummary" :key="row.rate">
+                        <tr
+                          v-for="row in gstSummary"
+                          :key="row.rate"
+                        >
                           <td class="center">{{ row.rate }}%</td>
                           <td class="right">
                             {{ formatAmountCurrency(row.taxable) }}
@@ -274,7 +289,7 @@
                           </td>
                         </tr>
                         <tr class="gst-summary-total">
-                          <td class="center">Total</td>
+                          <td class="center">{{ $t("common.total") }}</td>
                           <td class="right">
                             {{ formatAmountCurrency(gstSummaryTotals.taxable) }}
                           </td>
@@ -294,7 +309,7 @@
           </table>
         </div>
 
-        <!-- PAID / DUE AMOUNT ROW -->
+        <!-- PAID / DUE (LIKE PDF BOTTOM BOX) -->
         <div class="paid-amount-deatils">
           <table style="width: 100%">
             <thead style="background: #eee">
@@ -316,65 +331,63 @@
           </table>
         </div>
 
-        <!-- PAYMENT MODE LINE (CENTER, LIKE PDF) -->
-        <div class="payment-mode-row">
-          <span v-if="order.order_payments && order.order_payments.length">
-            Payment Modes:
-            <span
-              v-for="p in order.order_payments"
-              :key="p.xid"
-              style="margin-right: 5px"
-            >
-              {{ formatAmountCurrency(p.amount) }}
-              (<span v-if="p.payment?.payment_mode?.name">
-                {{ p.payment.payment_mode.name }}
-              </span>
-              )
-            </span>
-          </span>
-          <span v-else>Payment Modes: -</span>
+        <!-- PAYMENT MODE LINE -->
+        <div>
+          <table style="width: 100%">
+            <tbody>
+              <tr style="text-align: center">
+                <td style="width: 100%">
+                  <h4 style="margin-bottom: 0px" v-if="order.order_payments">
+                    {{ $t("invoice.payment_mode") }}:
+                    <span
+                      v-for="p in order.order_payments"
+                      :key="p.xid"
+                      style="margin-right: 5px"
+                    >
+                      {{ formatAmountCurrency(p.amount) }}
+                      (<span v-if="p.payment?.payment_mode?.name">
+                        {{ p.payment.payment_mode.name }}
+                      </span>
+                      )
+                    </span>
+                  </h4>
+                  <h3 style="margin-bottom: 0px" v-else>
+                    {{ $t("invoice.payment_mode") }}: -
+                  </h3>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
-        <!-- DISCOUNT / TAX SUMMARY TEXT -->
+        <!-- DISCOUNT / TAX SUMMARY (OPTIONAL EXTRA SECTION) -->
         <div
           v-if="selectedWarehouse.show_discount_tax_on_invoice"
           class="discount-details"
         >
           <p>
-            Total Discount On MRP : -
+            {{ $t("invoice.total_discount_on_mrp") }} :
             {{ formatAmountCurrency(order.saving_on_mrp) }}
           </p>
           <p>
-            Total Discount : {{ order.saving_percentage }}%
+            {{ $t("invoice.total_discount") }} :
+            {{ order.saving_percentage }}%
           </p>
           <p>
-            Total Tax : {{ formatAmountCurrency(order.total_tax_on_items) }}
+            {{ $t("invoice.total_tax") }} :
+            {{ formatAmountCurrency(order.total_tax_on_items) }}
           </p>
         </div>
 
-        <!-- TERMS / SIGNATURE / BANK DETAILS / BARCODE LIKE PDF -->
-        <div class="terms-bank-row">
-          <div class="terms-col">
-            <p><strong>Terms Of Sales :</strong></p>
-            <p class="terms-text">
-              {{
-                selectedWarehouse.invoice_terms ||
-                "Goods once sold will be taken back or exchanged within 10 Days."
-              }}
-            </p>
-            <p class="for-text">
-              For : {{ selectedWarehouse.name }}
-            </p>
-            <p>Authorised Signatory</p>
-          </div>
-
-          <div class="bank-col" v-if="hasBankDetails">
-            <p><strong>BANK DETAIL :</strong></p>
+        <!-- BANK DETAIL + TERMS + SIGN (LIKE PDF BOTTOM) -->
+        <div class="bottom-row">
+          <div class="bank-details" v-if="hasBankDetails">
+            <h4>BANK DETAIL :</h4>
             <p v-if="selectedWarehouse.bank_account_name">
               Name : {{ selectedWarehouse.bank_account_name }}
             </p>
             <p v-if="selectedWarehouse.bank_account_no">
-              A/c No : {{ selectedWarehouse.bank_account_no }}
+              Ac/No : {{ selectedWarehouse.bank_account_no }}
             </p>
             <p v-if="selectedWarehouse.bank_name">
               Bank : {{ selectedWarehouse.bank_name }}
@@ -386,9 +399,25 @@
               IFSC : {{ selectedWarehouse.ifsc_code }}
             </p>
           </div>
+
+          <div class="terms-sign">
+            <div class="terms">
+              <p class="terms-title">Terms Of Sales :</p>
+              <p class="terms-text">
+                {{
+                  selectedWarehouse.invoice_terms ||
+                  "Goods once sold will be taken back or exchanged within 10 Days."
+                }}
+              </p>
+            </div>
+            <div class="sign-block">
+              <p>For : {{ selectedWarehouse.name }}</p>
+              <p>Authorised Signatory</p>
+            </div>
+          </div>
         </div>
 
-        <!-- BARCODE / QR + INVOICE NUMBER BELOW + THANK YOU -->
+        <!-- BARCODE / QR + THANKS -->
         <div
           v-if="selectedWarehouse.barcode_type == 'barcode'"
           class="barcode-details"
@@ -400,19 +429,13 @@
             :fontSize="15"
             :elementTag="'svg'"
           />
-          <div class="barcode-text">
-            {{ order.invoice_number }}
-          </div>
         </div>
         <div v-else style="text-align: center" class="qrcode-details">
           <QRcodeGenerator :text="order.invoice_number + ''" />
-          <div class="barcode-text">
-            {{ order.invoice_number }}
-          </div>
         </div>
 
         <div class="thanks-details">
-          <h3>Thank You For Shopping With Us. Please Come Again</h3>
+          <h3>{{ $t("invoice.thanks_message") }}</h3>
         </div>
       </div>
     </div>
@@ -481,7 +504,7 @@ export default defineComponent({
       });
     });
 
-    // ✅ Console log to see entire order and items
+    // ✅ Console logs for debugging: full order + items
     watch(
       () => props.order,
       (o) => {
@@ -528,15 +551,6 @@ export default defineComponent({
       return "a4-invoice";
     });
 
-    // Use special header image if you have one in warehouse; fallback to logo
-    const headerImage = computed(() => {
-      return (
-        selectedWarehouse.invoice_image_url ||
-        selectedWarehouse.logo_url ||
-        null
-      );
-    });
-
     const buildPrintCss = () => {
       const s = (props.size || "A4").toUpperCase();
       if (s === "A5") {
@@ -551,7 +565,10 @@ export default defineComponent({
           @page { size: 80mm auto; margin: 5mm; }
           .invoice-root { max-width: 80mm; width: 80mm; }
           body, table { font-size: 11px; }
-          .invoice-header-image { width: 60px; height: 60px; object-fit: cover; }
+          .invoice-logo { width: 70px; }
+          .company-details h2 { font-size: 14px; }
+          .company-details, .tax-invoice-title { margin-top: 2px; }
+          table td { padding: 2px 0; }
         `;
       }
       if (s === "58MM") {
@@ -559,7 +576,10 @@ export default defineComponent({
           @page { size: 58mm auto; margin: 4mm; }
           .invoice-root { max-width: 58mm; width: 58mm; }
           body, table { font-size: 10px; }
-          .invoice-header-image { width: 50px; height: 50px; object-fit: cover; }
+          .invoice-logo { width: 60px; }
+          .company-details h2 { font-size: 12px; }
+          .tax-invoice-title { font-size: 12px; }
+          table td { padding: 2px 0; }
         `;
       }
       return `
@@ -582,7 +602,7 @@ export default defineComponent({
             <style>
               ${buildPrintCss()}
               .invoice-header { text-align:center; border-bottom:1px dotted #ddd !important; padding-bottom:4px; }
-              .invoice-header-image { width:100px; height:100px; object-fit:cover; margin-bottom:4px; }
+              .invoice-logo { width:100px; margin-bottom:4px; }
               .store-name { margin:0; font-size:18px; font-weight:700; text-transform:uppercase; }
               .store-address { margin:0; white-space:break-spaces; }
               .store-contact { margin:0; font-size:12px; }
@@ -598,7 +618,6 @@ export default defineComponent({
               .paid-amount-row { border-top:2px dotted #ddd !important; border-bottom:2px dotted #ddd !important; }
               .thanks-details { margin-top:5px; text-align:center; }
               .barcode-details { margin-top:10px; text-align:center; }
-              .barcode-text { margin-top:4px; font-size:12px; text-align:center; }
               .discount-details { padding:5px 0px; border-top:2px dotted #ddd !important; border-bottom:2px dotted #ddd !important; }
               .discount-details p { margin-bottom:0px; }
               table { width:100%; border-collapse:collapse; }
@@ -617,7 +636,7 @@ export default defineComponent({
       newWindow.print();
     };
 
-    // Helpers
+    // Helpers for item-level taxable and tax rate
     const getTaxableAmount = (item) => {
       const subtotal = Number(item.subtotal) || 0;
       const tax =
@@ -649,16 +668,16 @@ export default defineComponent({
     };
 
     const getGrossAmount = (order) => {
+      // Try to compute similar to PDF: total - tax + discount - shipping (if needed)
       if (order.subtotal) return order.subtotal;
       const total = Number(order.total) || 0;
       const tax = Number(order.tax_amount) || 0;
       const discount = Number(order.discount) || 0;
       const shipping = Number(order.shipping) || 0;
-      // approximate: total - tax + discount - shipping
       return total - tax + discount - shipping;
     };
 
-    // GST slab summary grouped by tax_rate
+    // Basic GST slab summary from items (group by tax_rate)
     const gstSummary = computed(() => {
       const map = {};
       if (!props.order || !Array.isArray(props.order.items)) return [];
@@ -725,7 +744,6 @@ export default defineComponent({
       isSending,
       isVerified,
       sizeClass,
-      headerImage,
       getTaxableAmount,
       getTaxRate,
       getGrossAmount,
@@ -743,11 +761,12 @@ export default defineComponent({
   border-bottom: 1px dotted #ddd !important;
   padding-bottom: 6px;
 }
-.invoice-header-image {
+.invoice-logo {
   width: 100px;
-  height: 100px;
-  object-fit: cover;
   margin-bottom: 4px;
+}
+.invoice-header-text {
+  margin-top: 4px;
 }
 .store-name {
   margin: 0;
@@ -762,6 +781,9 @@ export default defineComponent({
 .store-contact {
   margin: 0;
   font-size: 12px;
+}
+.store-gst {
+  font-weight: 500;
 }
 
 .invoice-meta-row {
@@ -856,9 +878,13 @@ export default defineComponent({
   border-bottom: 2px dotted #ddd !important;
   padding: 4px 0;
 }
-.amount-summary-cell p {
+.amount-summary-block p {
   margin: 0;
   font-size: 12px;
+}
+.amount-words {
+  margin-top: 4px;
+  font-style: italic;
 }
 .gst-summary-block table {
   width: 100%;
@@ -877,7 +903,7 @@ export default defineComponent({
   font-weight: 600;
 }
 
-/* Paid / Due, payment mode */
+/* Paid / Due, footer etc */
 .paid-amount-deatils {
   margin-top: 10px;
   text-align: center;
@@ -886,43 +912,12 @@ export default defineComponent({
   border-top: 2px dotted #ddd !important;
   border-bottom: 2px dotted #ddd !important;
 }
-.payment-mode-row {
-  margin-top: 6px;
+.thanks-details {
+  margin-top: 5px;
   text-align: center;
-  font-size: 12px;
-}
-
-/* Terms + bank + barcode + thanks */
-.terms-bank-row {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 10px;
-  font-size: 12px;
-}
-.terms-col {
-  width: 55%;
-}
-.bank-col {
-  width: 40%;
-  text-align: left;
-}
-.terms-text {
-  margin: 0 0 6px 0;
-}
-.for-text {
-  margin-top: 12px;
 }
 .barcode-details {
   margin-top: 10px;
-  text-align: center;
-}
-.barcode-text {
-  margin-top: 4px;
-  font-size: 12px;
-  text-align: center;
-}
-.thanks-details {
-  margin-top: 5px;
   text-align: center;
 }
 .footer-button {
@@ -935,6 +930,37 @@ export default defineComponent({
 }
 .discount-details p {
   margin-bottom: 0px;
+}
+
+/* Bank + terms bottom row */
+.bottom-row {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 12px;
+}
+.bank-details {
+  width: 45%;
+}
+.bank-details h4 {
+  margin: 0 0 4px 0;
+}
+.bank-details p {
+  margin: 0;
+}
+.terms-sign {
+  width: 50%;
+  text-align: right;
+}
+.terms-title {
+  margin: 0 0 2px 0;
+  font-weight: 600;
+}
+.terms-text {
+  margin: 0 0 6px 0;
+}
+.sign-block p {
+  margin: 0;
 }
 
 /* size previews */
