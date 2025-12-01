@@ -1033,9 +1033,13 @@ export default {
         // For mobile Design
         const showMobileCart = ref(false);
 
-        onMounted(() => {
-            getPreFetchData();
-        });
+       onMounted(async () => {
+    await getPreFetchData();
+
+    // 🔥 Make sure all existing lines are recalculated as EXCLUSIVE by default
+    normalizeExistingLinesToExclusive();
+});
+
 
         const reFetchProducts = () => {
             axiosAdmin
@@ -1091,70 +1095,82 @@ export default {
         };
 
         const selectSaleProduct = (newProduct) => {
-              console.log("Selected product:", {
-                xid: newProduct.xid,
-                name: newProduct.name,
-                subtotal: newProduct.subtotal,
-                tax_rate: newProduct.tax_rate,
-            });
-            if (!includes(selectedProductIds.value, newProduct.xid)) {
-                selectedProductIds.value.push(newProduct.xid);
+    console.log("Selected product:", {
+        xid: newProduct.xid,
+        name: newProduct.name,
+        subtotal: newProduct.subtotal,
+        tax_rate: newProduct.tax_rate,
+    });
 
-                selectedProducts.value.push({
-                    ...newProduct,
-                    sn: selectedProducts.value.length + 1,
-                    unit_price: formatAmount(newProduct.unit_price),
-                    tax_amount: formatAmount(newProduct.tax_amount),
-                    subtotal: formatAmount(newProduct.subtotal),
-                    tax_type: "exclusive",
-                });
-                state.orderSearchTerm = undefined;
-                state.products = [];
-                recalculateFinalTotal();
+    if (!includes(selectedProductIds.value, newProduct.xid)) {
+        selectedProductIds.value.push(newProduct.xid);
 
-               
-            } else {
-                const newProductSelection = find(selectedProducts.value, [
-                    "xid",
-                    newProduct.xid,
-                ]);
+        // 🔹 Build base line item
+        const baseLine = {
+            ...newProduct,
+            sn: selectedProducts.value.length + 1,
+            // make sure we have a quantity
+            quantity: newProduct.quantity || 1,
+            discount_rate: newProduct.discount_rate || 0,
+            unit_price: formatAmount(newProduct.unit_price),
+            tax_rate: newProduct.tax_rate || 0,
 
-                if (
-                    newProductSelection &&
-                    (newProductSelection.quantity < newProductSelection.stock_quantity ||
-                        newProductSelection.product_type == "service")
-                ) {
-                    const newResults = [];
-                    var foundRecord = {};
-
-                    selectedProducts.value.map((selectedProduct) => {
-                        var newQuantity = selectedProduct.quantity;
-
-                        if (selectedProduct.xid == newProduct.xid) {
-                            newQuantity += 1;
-                            selectedProduct.quantity = newQuantity;
-                            foundRecord = selectedProduct;
-                        }
-
-                        newResults.push(selectedProduct);
-                    });
-                    selectedProducts.value = newResults;
-
-                 
-                    state.orderSearchTerm = undefined;
-                    state.products = [];
-
-                    quantityChanged(foundRecord);
-                } else {
-                    state.orderSearchTerm = undefined;
-                    state.products = [];
-
-                    message.error(t("common.out_of_stock"));
-                }
-            }
+            // force exclusive logic from day one
+            tax_type: "exclusive",
         };
 
-        const recalculateValues = (product) => {
+        // 🔹 Recalculate subtotal / tax as EXCLUSIVE
+        const calculatedLine = recalculateValues(baseLine);
+
+        selectedProducts.value.push(calculatedLine);
+
+        state.orderSearchTerm = undefined;
+        state.products = [];
+        recalculateFinalTotal();
+    } else {
+        // existing logic (increment quantity)
+        const newProductSelection = find(selectedProducts.value, [
+            "xid",
+            newProduct.xid,
+        ]);
+
+        if (
+            newProductSelection &&
+            (newProductSelection.quantity < newProductSelection.stock_quantity ||
+                newProductSelection.product_type == "service")
+        ) {
+            const newResults = [];
+            let foundRecord = {};
+
+            selectedProducts.value.map((selectedProduct) => {
+                let newQuantity = selectedProduct.quantity;
+
+                if (selectedProduct.xid == newProduct.xid) {
+                    newQuantity += 1;
+                    selectedProduct.quantity = newQuantity;
+                    foundRecord = selectedProduct;
+                }
+
+                newResults.push(selectedProduct);
+            });
+
+            selectedProducts.value = newResults;
+
+            state.orderSearchTerm = undefined;
+            state.products = [];
+
+            quantityChanged(foundRecord);
+        } else {
+            state.orderSearchTerm = undefined;
+            state.products = [];
+
+            message.error(t("common.out_of_stock"));
+        }
+    }
+};
+
+
+    const recalculateValues = (product) => {
     let quantityValue = parseFloat(product.quantity);
     const maxQuantity = parseFloat(product.stock_quantity);
     const unitPrice = parseFloat(product.unit_price);
@@ -1195,6 +1211,21 @@ export default {
 
     return newObject;
 };
+const normalizeExistingLinesToExclusive = () => {
+    if (!selectedProducts.value.length) return;
+
+    selectedProducts.value = selectedProducts.value.map((p) =>
+        recalculateValues({
+            ...p,
+            quantity: p.quantity || 1,
+            discount_rate: p.discount_rate || 0,
+            tax_type: "exclusive",
+        })
+    );
+
+    recalculateFinalTotal();
+};
+
 
 
         const quantityChanged = (record) => {
