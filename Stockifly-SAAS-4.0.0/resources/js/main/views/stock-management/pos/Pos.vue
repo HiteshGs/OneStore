@@ -1155,58 +1155,47 @@ export default {
         };
 
         const recalculateValues = (product) => {
-            var quantityValue = parseFloat(product.quantity);
-            var maxQuantity = parseFloat(product.stock_quantity);
-            const unitPrice = parseFloat(product.unit_price);
+    let quantityValue = parseFloat(product.quantity);
+    const maxQuantity = parseFloat(product.stock_quantity);
+    const unitPrice = parseFloat(product.unit_price);
 
-            // Check if entered quantity value is greater
-            if (product.product_type != "service") {
-                quantityValue = quantityValue > maxQuantity ? maxQuantity : quantityValue;
-            }
+    // Clamp quantity to available stock (for non-service)
+    if (product.product_type != "service") {
+        quantityValue = quantityValue > maxQuantity ? maxQuantity : quantityValue;
+    }
 
-            // Discount Amount
-            const discountRate = product.discount_rate;
-            const totalDiscount = discountRate > 0 ? (discountRate / 100) * unitPrice : 0;
-            const totalPriceAfterDiscount = unitPrice - totalDiscount;
+    // Discount
+    const discountRate = product.discount_rate || 0;
+    const totalDiscount = discountRate > 0 ? (discountRate / 100) * unitPrice : 0;
+    const totalPriceAfterDiscount = unitPrice - totalDiscount;
 
-            var taxAmount = 0;
-            var subtotal = totalPriceAfterDiscount;
-            var singleUnitPrice = unitPrice;
+    // Tax (always EXCLUSIVE)
+    let taxAmount = 0;
+    let subtotal = totalPriceAfterDiscount;
+    let singleUnitPrice = unitPrice;
 
-            // Tax Amount
-           // Tax Amount – always treat as EXCLUSIVE
-if (product.tax_rate > 0) {
-    taxAmount = totalPriceAfterDiscount * (product.tax_rate / 100);
-    subtotal = totalPriceAfterDiscount + taxAmount;
-    singleUnitPrice = totalPriceAfterDiscount;
-}
+    if (product.tax_rate > 0) {
+        taxAmount = totalPriceAfterDiscount * (product.tax_rate / 100);
+        subtotal = totalPriceAfterDiscount + taxAmount;
+        singleUnitPrice = totalPriceAfterDiscount;
+    }
 
-const newObject = {
-    ...product,
-    total_discount: totalDiscount * quantityValue,
-    subtotal: subtotal * quantityValue,
-    quantity: quantityValue,
-    total_tax: taxAmount * quantityValue,
-    max_quantity: maxQuantity,
-    single_unit_price: singleUnitPrice,
+    const newObject = {
+        ...product,
+        total_discount: totalDiscount * quantityValue,
+        subtotal: subtotal * quantityValue,
+        quantity: quantityValue,
+        total_tax: taxAmount * quantityValue,
+        max_quantity: maxQuantity,
+        single_unit_price: singleUnitPrice,
 
-    // 🔥 normalize every recalculated line as EXCLUSIVE
-    tax_type: "exclusive",
+        // normalize every recalculated line as EXCLUSIVE
+        tax_type: "exclusive",
+    };
+
+    return newObject;
 };
 
-
-            const newObject = {
-                ...product,
-                total_discount: totalDiscount * quantityValue,
-                subtotal: subtotal * quantityValue,
-                quantity: quantityValue,
-                total_tax: taxAmount * quantityValue,
-                max_quantity: maxQuantity,
-                single_unit_price: singleUnitPrice,
-            };
-
-            return newObject;
-        };
 
         const quantityChanged = (record) => {
             const newResults = [];
