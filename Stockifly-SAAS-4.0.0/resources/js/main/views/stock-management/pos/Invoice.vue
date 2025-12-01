@@ -113,7 +113,6 @@
                 <td>
                   {{ item.product.name }}
 
-                  <!-- Custom fields for each item -->
                   <div
                     v-if="item.custom_fields && item.custom_fields.length"
                     class="item-custom-fields"
@@ -132,26 +131,26 @@
                   {{ item.quantity + "" + (item.unit?.short_name || "") }}
                 </td>
 
+                <!-- Optional MRP -->
                 <td v-if="selectedWarehouse.show_mrp_on_invoice">
                   {{ item.mrp ? formatAmountCurrency(item.mrp) : "-" }}
                 </td>
 
-                <!-- Per-row tax -->
+                <!-- Per-row tax: percentage + amount -->
                 <td>
-                  <div v-if="item.tax_rate || item.tax_amount">
-                    <div v-if="item.tax_rate">
-                      {{ item.tax_rate }}%
-                    </div>
-                    <div v-if="item.tax_amount">
-                      ({{ formatAmountCurrency(item.tax_amount) }})
-                    </div>
+                  <div v-if="getItemTaxAmount(item)">
+                    <div>{{ getItemTaxRate(item) }}%</div>
+                    <div>({{ formatAmountCurrency(getItemTaxAmount(item)) }})</div>
                   </div>
                   <div v-else>-</div>
                 </td>
 
+                <!-- Rate (original price per unit) -->
                 <td>
                   {{ formatAmountCurrency(item.unit_price) }}
                 </td>
+
+                <!-- Total (with tax) -->
                 <td style="text-align: right">
                   {{ formatAmountCurrency(item.subtotal) }}
                 </td>
@@ -160,9 +159,7 @@
               <!-- Order tax row -->
               <tr class="item-row-other">
                 <td
-                  :colspan="
-                    selectedWarehouse.show_mrp_on_invoice ? 5 : 4
-                  "
+                  :colspan="selectedWarehouse.show_mrp_on_invoice ? 5 : 4"
                   style="text-align: right"
                 >
                   {{ $t("stock.order_tax") }}
@@ -175,9 +172,7 @@
               <!-- Discount row -->
               <tr class="item-row-other">
                 <td
-                  :colspan="
-                    selectedWarehouse.show_mrp_on_invoice ? 5 : 4
-                  "
+                  :colspan="selectedWarehouse.show_mrp_on_invoice ? 5 : 4"
                   style="text-align: right"
                 >
                   {{ $t("stock.discount") }}
@@ -190,9 +185,7 @@
               <!-- Shipping row -->
               <tr class="item-row-other">
                 <td
-                  :colspan="
-                    selectedWarehouse.show_mrp_on_invoice ? 5 : 4
-                  "
+                  :colspan="selectedWarehouse.show_mrp_on_invoice ? 5 : 4"
                   style="text-align: right"
                 >
                   {{ $t("stock.shipping") }}
@@ -493,7 +486,35 @@ export default defineComponent({
       newWindow.print();
     };
 
-    // 🔍 Log order + each item whenever modal opens
+    // Helpers to compute base, tax amount, and tax %
+    const getItemBaseAmount = (item) => {
+      const qty = Number(item.quantity || 0);
+      const rate = Number(item.unit_price || 0);
+      return qty * rate;
+    };
+
+    const getItemTaxAmount = (item) => {
+      // Prefer total_tax, then tax_amount, then (subtotal - base)
+      if (item.total_tax != null) {
+        return Number(item.total_tax) || 0;
+      }
+      if (item.tax_amount != null) {
+        return Number(item.tax_amount) || 0;
+      }
+      const base = getItemBaseAmount(item);
+      const subtotal = Number(item.subtotal || 0);
+      const diff = subtotal - base;
+      return diff > 0 ? diff : 0;
+    };
+
+    const getItemTaxRate = (item) => {
+      const base = getItemBaseAmount(item);
+      if (!base) return 0;
+      const tax = getItemTaxAmount(item);
+      return Number(((tax / base) * 100).toFixed(2));
+    };
+
+    // Log when modal opens (optional, keep if you still want console data)
     watch(
       () => props.visible,
       (v) => {
@@ -507,7 +528,12 @@ export default defineComponent({
             props.order.items.forEach((item, index) => {
               console.log(
                 `[InvoiceModal] Item #${index + 1}:`,
-                JSON.parse(JSON.stringify(item))
+                JSON.parse(JSON.stringify(item)),
+                {
+                  base: getItemBaseAmount(item),
+                  taxAmount: getItemTaxAmount(item),
+                  taxRate: getItemTaxRate(item),
+                }
               );
             });
           }
@@ -530,6 +556,8 @@ export default defineComponent({
       isSending,
       isVerified,
       sizeClass,
+      getItemTaxAmount,
+      getItemTaxRate,
     };
   },
 });
