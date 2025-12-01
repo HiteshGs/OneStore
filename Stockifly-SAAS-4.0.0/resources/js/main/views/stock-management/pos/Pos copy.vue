@@ -175,18 +175,18 @@
                                                             "
                                                         />
                                                     </template>
-                                                    <template
-                                                        v-if="
-                                                            column.dataIndex ===
-                                                            'subtotal'
-                                                        "
-                                                    >
-                                                        {{
-                                                            formatAmountCurrency(
-                                                                record.subtotal
-                                                            )
-                                                        }}
-                                                    </template>
+                                                   <template
+    v-if="
+        column.dataIndex ===
+        'subtotal'
+    "
+>
+    {{ formatAmountCurrency(record.subtotal) }}
+    <template v-if="record.tax_rate !== null && record.tax_rate !== undefined">
+        ({{ record.tax_rate }}%)
+    </template>
+</template>
+
                                                     <template
                                                         v-if="
                                                             column.dataIndex === 'action'
@@ -1109,6 +1109,12 @@ export default {
         };
 
         const selectSaleProduct = (newProduct) => {
+            console.log("Selected product:", {
+                xid: newProduct.xid,
+                name: newProduct.name,
+                subtotal: newProduct.subtotal,
+                tax_rate: newProduct.tax_rate,
+            });
             if (!includes(selectedProductIds.value, newProduct.xid)) {
                 selectedProductIds.value.push(newProduct.xid);
 
