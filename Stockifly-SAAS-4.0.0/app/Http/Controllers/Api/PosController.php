@@ -40,33 +40,9 @@ class PosController extends ApiBaseController
             ->join('product_details', 'product_details.product_id', '=', 'products.id')
             ->leftJoin('taxes', 'taxes.id', '=', 'product_details.tax_id')
             ->join('units', 'units.id', '=', 'products.unit_id')
-            ->where('product_details.warehouse_id', '=', $warehouseId);
-
-        $products = $products->where(function ($query) {
-            $query->where(function ($qry) {
-                $qry->where('products.product_type', '!=', 'service')
-                    ->where('product_details.current_stock', '>', 0);
-            })->orWhere('products.product_type', '=', 'service');
-        });
-
-        if ($warehouse->products_visibility == 'warehouse') {
-            $products->where('products.warehouse_id', '=', $warehouse->id);
-        }
-
-        // Category Filters
-        if ($request->has('category_id') && $request->category_id != "") {
-            $categoryId = $this->getIdFromHash($request->category_id);
-            $products = $products->where('category_id', '=', $categoryId);
-        }
-
-        // Brand Filters
-        if ($request->has('brand_id') && $request->brand_id != "") {
-            $brandId = $this->getIdFromHash($request->brand_id);
-            $products = $products->where('brand_id', '=', $brandId);
-        }
-
-
-        $products =    $products->get();
+            ->where('product_details.warehouse_id', '=', $warehouseId)
+            ->with('customFields') // Eager-load custom fields
+            ->get();
 
         foreach ($products as $product) {
             $stockQuantity = $product->current_stock;
@@ -94,6 +70,27 @@ class PosController extends ApiBaseController
                 $subTotal = $singleUnitPrice;
             }
 
+            // Add custom fields
+            $customFields = [];
+            if ($product->customFields) {
+                foreach ($product->customFields as $cf) {
+                    $customFields[] = [
+                        'id'    => $cf->xid,
+                        'name'  => $cf->field_name,
+                        'label' => $cf->field_name,
+                        'value' => $cf->field_value,
+                    ];
+
+                    // If item has no hsn_code, fill from "HSN Code"
+                    if (
+                        (empty($product->hsn_code) || $product->hsn_code === null) &&
+                        strcasecmp($cf->field_name, 'HSN Code') === 0
+                    ) {
+                        $product->hsn_code = $cf->field_value;
+                    }
+                }
+            }
+
             $allProducs[] = [
                 'item_id'    =>  '',
                 'xid'    =>  $product->xid,
@@ -114,7 +111,9 @@ class PosController extends ApiBaseController
                 'quantity'    =>  1,
                 'stock_quantity'    =>  $stockQuantity,
                 'unit_short_name'    =>  $unit ? $unit->short_name : '',
-                'product_type'      => $product->product_type
+                'product_type'      => $product->product_type,
+                'custom_fields' => $customFields, // Attach custom fields here
+                'hsn_code' => $product->hsn_code, // Ensure HSN code is populated
             ];
         }
 
@@ -132,7 +131,6 @@ class PosController extends ApiBaseController
 
     public function savePosPayments()
     {
-
         $request = request();
         $loggedInUser = user();
         $warehouse = warehouse();
@@ -220,10 +218,61 @@ class PosController extends ApiBaseController
 
         Common::updateOrderAmount($order->id);
 
-        $savedOrder = Order::select('id', 'unique_id', 'invoice_number', 'user_id', 'staff_user_id', 'order_date', 'discount', 'shipping', 'tax_amount', 'subtotal', 'total', 'paid_amount', 'due_amount', 'total_items', 'total_quantity')
-            ->with(['user:id,name,email', 'items:id,order_id,product_id,unit_id,unit_price,subtotal,quantity,mrp,total_tax', 'items.product:id,name', 'items.unit:id,name,short_name', 'orderPayments:id,order_id,payment_id,amount', 'orderPayments.payment:id,payment_mode_id', 'orderPayments.payment.paymentMode:id,name', 'staffMember:id,name'])
-            ->find($order->id);
+        $savedOrder = Order::select(
+            'id',
+            'unique_id',
+            'invoice_number',
+            'user_id',
+            'staff_user_id',
+            'order_date',
+            'discount',
+            'shipping',
+            'tax_amount',
+            'subtotal',
+            'total',
+            'paid_amount',
+            'due_amount',
+            'total_items',
+            'total_quantity'
+        )
+        ->with([
+            'user:id,name,email',
+            'items:id,order_id,product_id,unit_id,unit_price,subtotal,quantity,mrp,total_tax,hsn_code',
+            'items.product:id,name',
+            'items.product.customFields', // Load custom fields for each item
+            'items.unit:id,name,short_name',
+            'orderPayments:id,order_id,payment_id,amount',
+            'orderPayments.payment:id,payment_mode_id',
+            'orderPayments.payment.paymentMode:id,name',
+            'staffMember:id,name',
+        ])
+        ->find($order->id);
 
+        // Add custom fields to each item
+        foreach ($savedOrder->items as $item) {
+            $item->custom_fields = [];
+
+            if ($item->product && $item->product->customFields) {
+                foreach ($item->product->customFields as $cf) {
+                    $item->custom_fields[] = [
+                        'id'    => $cf->xid,
+                        'name'  => $cf->field_name,
+                        'label' => $cf->field_name,
+                        'value' => $cf->field_value,
+                    ];
+
+                    // If item has no hsn_code, try to fill from "HSN Code"
+                    if (
+                        (empty($item->hsn_code) || $item->hsn_code === null) &&
+                        strcasecmp($cf->field_name, 'HSN Code') === 0
+                    ) {
+                        $item->hsn_code = $cf->field_value;
+                    }
+                }
+            }
+        }
+
+        // Calculate savings and other totals
         $totalMrp = 0;
         $totalTax = 0;
         foreach ($savedOrder->items as $orderItem) {
