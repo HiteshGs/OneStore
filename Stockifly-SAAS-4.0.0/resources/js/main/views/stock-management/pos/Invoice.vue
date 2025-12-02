@@ -487,6 +487,13 @@
 
         <div class="thanks-details">
           <h3>{{ $t('invoice.thanks_message') }}</h3>
+          <tr>
+  <td colspan="2" style="padding: 6px 0; font-size: 13px;">
+    Printed By: <strong>{{ displayName }}</strong><br />
+    Time: <strong>{{ currentTime }}</strong>
+  </td>
+</tr>
+
         </div>
       </div>
     </div>
@@ -537,6 +544,7 @@ const authUser = JSON.parse(localStorage.getItem('auth_user')) || {};
 // Extract the role and display_name from authUser
 const role = authUser.role || {};
 const displayName = role.display_name || "Unknown User"; // Default to "Unknown User" if display_name is not found
+const currentTime = new Date().toLocaleString();
 
 // Log the display_name in the console
 console.log("User Display Name:", displayName);
@@ -822,6 +830,8 @@ export default defineComponent({
     return {
       onClose,
       formatDate,
+      displayName,
+      currentTime,
       selectedWarehouse,
       formatAmountCurrency,
       printInvoice,
