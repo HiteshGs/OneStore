@@ -26,21 +26,24 @@ class PosController extends ApiBaseController
         $warehouseId = $warehouse->id;
 
         $products = Product::select(
-            'products.id',
-            'products.name',
-            'products.image',
-            'products.product_type',
-            'product_details.sales_price',
-            'products.unit_id',
-            'product_details.sales_tax_type',
-            'product_details.tax_id',
-            'product_details.current_stock',
-            'taxes.rate'
-        )
-            ->join('product_details', 'product_details.product_id', '=', 'products.id')
-            ->leftJoin('taxes', 'taxes.id', '=', 'product_details.tax_id')
-            ->join('units', 'units.id', '=', 'products.unit_id')
-            ->where('product_details.warehouse_id', '=', $warehouseId);
+        'products.id',
+        'products.name',
+        'products.image',
+        'products.product_type',
+        'product_details.sales_price',
+        'products.unit_id',
+        'product_details.sales_tax_type',
+        'product_details.tax_id',
+        'product_details.current_stock',
+        'taxes.rate'
+    )
+    ->join('product_details', 'product_details.product_id', '=', 'products.id')
+    ->leftJoin('taxes', 'taxes.id', '=', 'product_details.tax_id')
+    ->join('units', 'units.id', '=', 'products.unit_id')
+    ->where('product_details.warehouse_id', '=', $warehouseId)
+    ->with('customFields') // Eager-load custom fields
+    ->get();
+
 
         $products = $products->where(function ($query) {
             $query->where(function ($qry) {
@@ -256,7 +259,7 @@ foreach ($savedOrder->items as $item) {
     if ($item->product && $item->product->customFields) {
         foreach ($item->product->customFields as $cf) {
             $item->custom_fields[] = [
-                'id'    => $cf->xid,             // or raw id if you prefer
+                'id'    => $cf->xid,
                 'name'  => $cf->field_name,
                 'label' => $cf->field_name,      // used as label in Vue
                 'value' => $cf->field_value,
