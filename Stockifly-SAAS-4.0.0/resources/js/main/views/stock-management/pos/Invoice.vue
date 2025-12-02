@@ -30,14 +30,14 @@
             </p>
             <p class="store-contact">
               <span v-if="selectedWarehouse.phone">
-                {{ $t("common.phone") }}: {{ selectedWarehouse.phone }}
+                {{ $t('common.phone') }}: {{ selectedWarehouse.phone }}
               </span>
               <span v-if="selectedWarehouse.email">
-                &nbsp;|&nbsp;{{ $t("common.email") }}: {{ selectedWarehouse.email }}
+                &nbsp;|&nbsp;{{ $t('common.email') }}: {{ selectedWarehouse.email }}
               </span>
-              <!-- GSTIN with static fallback -->
+              <!-- Always show GSTIN (warehouse or static fallback) -->
               <span class="store-gst">
-                &nbsp;|&nbsp;GSTIN: {{ warehouseGstNumber }}
+                &nbsp;|&nbsp;GSTIN: {{ displayGstNumber }}
               </span>
             </p>
           </div>
@@ -47,7 +47,7 @@
         <div class="invoice-meta-row">
           <div class="invoice-meta-left">
             <h2 class="tax-invoice-title">
-              {{ $t("sales.tax_invoice") }}
+              {{ $t('sales.tax_invoice') }}
             </h2>
           </div>
           <div class="invoice-meta-right">
@@ -55,7 +55,7 @@
               <tbody>
                 <tr>
                   <td class="meta-label">
-                    {{ $t("sales.invoice") }}
+                    {{ $t('sales.invoice') }}
                   </td>
                   <td class="meta-value">
                     : {{ order.invoice_number }}
@@ -63,7 +63,7 @@
                 </tr>
                 <tr>
                   <td class="meta-label">
-                    {{ $t("common.date") }}
+                    {{ $t('common.date') }}
                   </td>
                   <td class="meta-value">
                     : {{ formatDate(order.order_date) }}
@@ -90,7 +90,7 @@
               {{ order.user.alt_phone }}
             </p>
             <p v-if="order.user?.gst_number" class="party-line">
-              GSTN : {{ order.user.gst_number }}
+              GSTIN : {{ order.user.gst_number }}
             </p>
             <p v-if="order.user?.address" class="party-line">
               {{ order.user.address }}
@@ -116,17 +116,17 @@
             <thead>
               <tr>
                 <th style="width: 5%">NO</th>
-                <th style="width: 25%">{{ $t("common.item") }}</th>
-                <th style="width: 10%">{{ $t("product.hsn") || "HSN NO" }}</th>
-                <th style="width: 8%">{{ $t("product.unit") }}</th>
-                <th style="width: 8%">{{ $t("common.qty") }}</th>
-                <th style="width: 12%">{{ $t("common.rate") }}</th>
+                <th style="width: 25%">{{ $t('common.item') }}</th>
+                <th style="width: 10%">{{ $t('product.hsn') || 'HSN NO' }}</th>
+                <th style="width: 8%">{{ $t('product.unit') }}</th>
+                <th style="width: 8%">{{ $t('common.qty') }}</th>
+                <th style="width: 12%">{{ $t('common.rate') }}</th>
                 <th style="width: 14%">
-                  {{ $t("invoice.taxable_amount") || "Taxable Amount" }}
+                  {{ $t('invoice.taxable_amount') || 'Taxable Amount' }}
                 </th>
-                <th style="width: 8%">{{ $t("product.tax") }} %</th>
+                <th style="width: 8%">{{ $t('product.tax') }} %</th>
                 <th style="width: 10%; text-align: right">
-                  {{ $t("common.total") }}
+                  {{ $t('common.total') }}
                 </th>
               </tr>
             </thead>
@@ -140,33 +140,33 @@
                   {{ index + 1 }}
                 </td>
 
-                <!-- Item name + custom fields from product_custom_fields -->
+                <!-- Item name + custom fields -->
                 <td>
                   <div class="item-name">
                     {{ item.product?.name }}
                   </div>
                   <div
-                    v-if="getItemCustomFields(item).length"
+                    v-if="item.custom_fields && item.custom_fields.length"
                     class="item-custom-fields"
                   >
                     <span
-                      v-for="cf in getItemCustomFields(item)"
-                      :key="cf.id || cf.field_name"
+                      v-for="cf in item.custom_fields"
+                      :key="cf.id || cf.name || cf.label"
                       class="item-custom-field-line"
                     >
-                      {{ cf.field_name }}: {{ cf.field_value }}
+                      {{ cf.label || cf.name }}: {{ cf.value }}
                     </span>
                   </div>
                 </td>
 
-                <!-- HSN NO (from item/product/custom_fields) -->
+                <!-- HSN NO -->
                 <td class="center">
-                  {{ getItemHsnCode(item) }}
+                  {{ item.hsn_code || item.product?.hsn_code || '-' }}
                 </td>
 
                 <!-- UNIT -->
                 <td class="center">
-                  {{ item.unit?.short_name || item.unit?.name || "-" }}
+                  {{ item.unit?.short_name || item.unit?.name || '-' }}
                 </td>
 
                 <!-- QTY -->
@@ -201,7 +201,7 @@
               <!-- ORDER TAX / DISCOUNT / SHIPPING LINES UNDER TABLE -->
               <tr class="item-row-other">
                 <td colspan="7" class="right">
-                  {{ $t("stock.order_tax") }}
+                  {{ $t('stock.order_tax') }}
                 </td>
                 <td colspan="2" class="right">
                   {{ formatAmountCurrency(order.tax_amount) }}
@@ -210,7 +210,7 @@
 
               <tr class="item-row-other">
                 <td colspan="7" class="right">
-                  {{ $t("stock.discount") }}
+                  {{ $t('stock.discount') }}
                 </td>
                 <td colspan="2" class="right">
                   {{ formatAmountCurrency(order.discount) }}
@@ -219,7 +219,7 @@
 
               <tr class="item-row-other">
                 <td colspan="7" class="right">
-                  {{ $t("stock.shipping") }}
+                  {{ $t('stock.shipping') }}
                 </td>
                 <td colspan="2" class="right">
                   {{ formatAmountCurrency(order.shipping) }}
@@ -262,7 +262,7 @@
                   </div>
                 </td>
                 <td style="width: 50%">
-                  <!-- SIMPLE GST SLAB SUMMARY BOX -->
+                  <!-- SIMPLE GST SLAB SUMMARY BOX (OPTIONAL) -->
                   <div class="gst-summary-block">
                     <table>
                       <thead>
@@ -290,7 +290,7 @@
                           </td>
                         </tr>
                         <tr class="gst-summary-total">
-                          <td class="center">{{ $t("common.total") }}</td>
+                          <td class="center">{{ $t('common.total') }}</td>
                           <td class="right">
                             {{ formatAmountCurrency(gstSummaryTotals.taxable) }}
                           </td>
@@ -316,10 +316,10 @@
             <thead style="background: #eee">
               <tr>
                 <td style="width: 50%">
-                  {{ $t("payments.paid_amount") }}
+                  {{ $t('payments.paid_amount') }}
                 </td>
                 <td style="width: 50%">
-                  {{ $t("payments.due_amount") }}
+                  {{ $t('payments.due_amount') }}
                 </td>
               </tr>
             </thead>
@@ -339,7 +339,7 @@
               <tr style="text-align: center">
                 <td style="width: 100%">
                   <h4 style="margin-bottom: 0px" v-if="order.order_payments">
-                    {{ $t("invoice.payment_mode") }}:
+                    {{ $t('invoice.payment_mode') }}:
                     <span
                       v-for="p in order.order_payments"
                       :key="p.xid"
@@ -353,7 +353,7 @@
                     </span>
                   </h4>
                   <h3 style="margin-bottom: 0px" v-else>
-                    {{ $t("invoice.payment_mode") }}: -
+                    {{ $t('invoice.payment_mode') }}: -
                   </h3>
                 </td>
               </tr>
@@ -367,74 +367,92 @@
           class="discount-details"
         >
           <p>
-            {{ $t("invoice.total_discount_on_mrp") }} :
+            {{ $t('invoice.total_discount_on_mrp') }} :
             {{ formatAmountCurrency(order.saving_on_mrp) }}
           </p>
           <p>
-            {{ $t("invoice.total_discount") }} :
+            {{ $t('invoice.total_discount') }} :
             {{ order.saving_percentage }}%
           </p>
           <p>
-            {{ $t("invoice.total_tax") }} :
+            {{ $t('invoice.total_tax') }} :
             {{ formatAmountCurrency(order.total_tax_on_items) }}
           </p>
         </div>
 
-        <!-- BANK DETAIL + TERMS + SIGN (LIKE PDF BOTTOM) -->
-        <div class="bottom-row">
-          <!-- BANK DETAILS TABLE (with fallback) -->
-          <div class="bank-details">
-            <h4>BANK DETAILS :</h4>
-            <table class="bank-table">
-              <tbody>
-                <tr>
-                  <td class="bank-label">Name</td>
-                  <td class="bank-sep">:</td>
-                  <td class="bank-value">{{ bankDetails.name }}</td>
-                </tr>
-                <tr>
-                  <td class="bank-label">A/c No</td>
-                  <td class="bank-sep">:</td>
-                  <td class="bank-value">{{ bankDetails.account_no }}</td>
-                </tr>
-                <tr>
-                  <td class="bank-label">Bank</td>
-                  <td class="bank-sep">:</td>
-                  <td class="bank-value">{{ bankDetails.bank_name }}</td>
-                </tr>
-                <tr>
-                  <td class="bank-label">Branch</td>
-                  <td class="bank-sep">:</td>
-                  <td class="bank-value">{{ bankDetails.branch }}</td>
-                </tr>
-                <tr>
-                  <td class="bank-label">IFSC</td>
-                  <td class="bank-sep">:</td>
-                  <td class="bank-value">{{ bankDetails.ifsc }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+        <!-- BANK DETAIL + TERMS + SIGN IN BOXED TABLE (LIKE PDF) -->
+        <table class="bottom-table">
+          <tbody>
+            <tr>
+              <!-- LEFT: BANK DETAILS -->
+              <td class="bottom-td bank-td">
+                <div class="bank-details">
+                  <h4 class="bank-title">BANK DETAILS :</h4>
+                  <table class="bank-table">
+                    <tbody>
+                      <tr>
+                        <td class="bank-label">Name</td>
+                        <td class="bank-sep">:</td>
+                        <td class="bank-value">{{ bankDetails.name }}</td>
+                      </tr>
+                      <tr>
+                        <td class="bank-label">A/c No</td>
+                        <td class="bank-sep">:</td>
+                        <td class="bank-value">{{ bankDetails.account_no }}</td>
+                      </tr>
+                      <tr>
+                        <td class="bank-label">Bank</td>
+                        <td class="bank-sep">:</td>
+                        <td class="bank-value">{{ bankDetails.bank_name }}</td>
+                      </tr>
+                      <tr>
+                        <td class="bank-label">Branch</td>
+                        <td class="bank-sep">:</td>
+                        <td class="bank-value">{{ bankDetails.branch }}</td>
+                      </tr>
+                      <tr>
+                        <td class="bank-label">IFSC</td>
+                        <td class="bank-sep">:</td>
+                        <td class="bank-value">{{ bankDetails.ifsc }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </td>
 
-          <!-- TERMS + AUTHORISED SIGNATORY BOX FOR STAMP -->
-          <div class="terms-sign">
-            <div class="terms">
-              <p class="terms-title">Terms Of Sales :</p>
-              <p class="terms-text">
-                {{
-                  selectedWarehouse.invoice_terms ||
-                  "Goods once sold will be taken back or exchanged within 10 Days."
-                }}
-              </p>
-            </div>
-            <div class="sign-block">
-              <p>For : {{ selectedWarehouse.name }}</p>
-              <div class="sign-stamp-box">
-                <span>Authorised Signatory</span>
-              </div>
-            </div>
-          </div>
-        </div>
+              <!-- RIGHT: TERMS + AUTHORISED SIGNATORY BOX -->
+              <td class="bottom-td terms-td">
+                <table class="terms-table">
+                  <tbody>
+                    <tr>
+                      <td class="terms-header">
+                        <span class="terms-title">Terms Of Sales :</span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td class="terms-text-cell">
+                        <p class="terms-text">
+                          {{
+                            selectedWarehouse.invoice_terms ||
+                            'Goods once sold will be taken back or exchanged within 10 Days.'
+                          }}
+                        </p>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td class="sign-cell">
+                        <div class="for-store">For : {{ selectedWarehouse.name }}</div>
+                        <div class="sign-box">
+                          Authorised Signatory
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </td>
+            </tr>
+          </tbody>
+        </table>
 
         <!-- BARCODE / QR + THANKS -->
         <div
@@ -454,7 +472,7 @@
         </div>
 
         <div class="thanks-details">
-          <h3>{{ $t("invoice.thanks_message") }}</h3>
+          <h3>{{ $t('invoice.thanks_message') }}</h3>
         </div>
       </div>
     </div>
@@ -468,12 +486,12 @@
           :loading="isSending"
         >
           <template #icon><SendOutlined /></template>
-          {{ $t("common.send_invoice") }}
+          {{ $t('common.send_invoice') }}
         </a-button>
 
         <a-button type="primary" @click="printInvoice">
           <template #icon><PrinterOutlined /></template>
-          {{ $t("common.print_invoice") }}
+          {{ $t('common.print_invoice') }}
         </a-button>
       </div>
     </template>
@@ -481,35 +499,24 @@
 </template>
 
 <script>
-import { ref, defineComponent, onMounted, computed, watch } from "vue";
-import { PrinterOutlined, SendOutlined } from "@ant-design/icons-vue";
-import common from "../../../../common/composable/common";
-import BarcodeGenerator from "../../../../common/components/barcode/BarcodeGenerator.vue";
-import QRcodeGenerator from "../../../../common/components/barcode/QRcodeGenerator.vue";
-import { notification } from "ant-design-vue";
-import { useI18n } from "vue-i18n";
+import { ref, defineComponent, onMounted, computed, watch } from 'vue';
+import { PrinterOutlined, SendOutlined } from '@ant-design/icons-vue';
+import common from '../../../../common/composable/common';
+import BarcodeGenerator from '../../../../common/components/barcode/BarcodeGenerator.vue';
+import QRcodeGenerator from '../../../../common/components/barcode/QRcodeGenerator.vue';
+import { notification } from 'ant-design-vue';
+import { useI18n } from 'vue-i18n';
 
-// axiosAdmin is assumed to be globally available as in your existing code
 const posInvoiceCssUrl = window.config.pos_invoice_css;
-
-// Default static fallbacks if warehouse does not have GST / Bank details
-const DEFAULT_GSTIN = "24BNGPG0699R1ZD"; // 🔁 Replace with your real default GSTIN
-const DEFAULT_BANK = {
-  name: "ROOPKALA FASHION",
-  account_no: "18650200016691",
-  bank_name: "THE FEDERAL BANK",
-  branch: "SURAT VARACHHA",
-  ifsc: "FDRL0001865",
-};
 
 export default defineComponent({
   props: {
     visible: { type: Boolean, default: false },
     order: { type: Object, default: null },
-    size: { type: String, default: "A4" }, // 'A4' | 'A5' | '80mm' | '58mm'
+    size: { type: String, default: 'A4' }, // 'A4' | 'A5' | '80mm' | '58mm'
     autoOpen: { type: Boolean, default: false },
   },
-  emits: ["closed", "success"],
+  emits: ['closed', 'success'],
   components: {
     PrinterOutlined,
     BarcodeGenerator,
@@ -526,83 +533,46 @@ export default defineComponent({
     } = common();
 
     const isSending = ref(false);
-    const isVerified = ref("");
-
-    // Custom fields cache: { [product_xid]: [{ field_name, field_value }, ...] }
-    const productCustomFields = ref({});
+    const isVerified = ref('');
 
     onMounted(() => {
-      axiosAdmin.get("verified-email").then((response) => {
+      axiosAdmin.get('verified-email').then((response) => {
         isVerified.value = response.data?.verified;
       });
     });
 
-    // ✅ Console logs + load custom fields whenever order changes
-    const fetchProductCustomFields = async (o) => {
-      try {
-        if (!o || !Array.isArray(o.items)) return;
-
-        const productXids = [
-          ...new Set(
-            o.items
-              .map((item) => item.product?.xid)
-              .filter((xid) => !!xid)
-          ),
-        ];
-
-        if (!productXids.length) return;
-
-        // 🔁 Adjust this API to match your backend implementation
-        const res = await axiosAdmin.get("product-custom-fields", {
-          params: {
-            product_ids: productXids.join(","), // e.g. "jrYAzpr5,darj1yW9"
-            warehouse_id: selectedWarehouse.xid, // hashed warehouse id
-          },
-        });
-
-        // Expecting: { [product_xid]: [{ field_name, field_value }, ...] }
-        productCustomFields.value = res.data || {};
-        console.log(
-          "Loaded product custom fields:",
-          JSON.parse(JSON.stringify(productCustomFields.value))
-        );
-      } catch (e) {
-        console.error("Failed to load product custom fields", e);
-      }
-    };
-
+    // Debug logs
     watch(
       () => props.order,
       (o) => {
         if (o) {
-          console.log("POS Invoice Order:", JSON.parse(JSON.stringify(o)));
+          console.log('POS Invoice Order:', JSON.parse(JSON.stringify(o)));
           if (Array.isArray(o.items)) {
             console.log(
-              "POS Invoice Order Items:",
-              JSON.parse(JSON.stringify(o.items))
+              'POS Invoice Order Items:',
+              JSON.parse(JSON.stringify(o.items)),
             );
           }
-          fetchProductCustomFields(o);
         }
       },
-      { immediate: true }
+      { immediate: true },
     );
 
-    const onClose = () => emit("closed");
+    const onClose = () => emit('closed');
 
     const sendInvoiceMail = async (xid, lang) => {
       isSending.value = true;
       try {
         await axiosAdmin.get(`send-mail/${xid}/${lang}`);
         notification.success({
-          message: t("common.success"),
-          description: t("common.mail_sent_successfully"),
+          message: t('common.success'),
+          description: t('common.mail_sent_successfully'),
           duration: 4.5,
         });
       } catch (error) {
         notification.error({
-          message: t("common.error"),
-          description: t("common.failed_to_send_mail"),
+          message: t('common.error'),
+          description: t('common.failed_to_send_mail'),
           duration: 4.5,
         });
       } finally {
@@ -611,109 +581,56 @@ export default defineComponent({
     };
 
     const sizeClass = computed(() => {
-      const s = (props.size || "A4").toUpperCase();
-      if (s === "A5") return "a5-invoice";
-      if (s === "80MM") return "thermal-80";
-      if (s === "58MM") return "thermal-58";
-      return "a4-invoice";
-    });
-
-    const warehouseGstNumber = computed(() => {
-      return selectedWarehouse.gst_number || DEFAULT_GSTIN;
-    });
-
-    const bankDetails = computed(() => {
-      const w = selectedWarehouse;
-      return {
-        name: w.bank_account_name || DEFAULT_BANK.name,
-        account_no: w.bank_account_no || DEFAULT_BANK.account_no,
-        bank_name: w.bank_name || DEFAULT_BANK.bank_name,
-        branch: w.bank_branch || DEFAULT_BANK.branch,
-        ifsc: w.ifsc_code || DEFAULT_BANK.ifsc,
-      };
+      const s = (props.size || 'A4').toUpperCase();
+      if (s === 'A5') return 'a5-invoice';
+      if (s === '80MM') return 'thermal-80';
+      if (s === '58MM') return 'thermal-58';
+      return 'a4-invoice';
     });
 
     const buildPrintCss = () => {
-      const s = (props.size || "A4").toUpperCase();
-      const base = `
-        .invoice-header { text-align:center; border-bottom:1px dotted #ddd !important; padding-bottom:4px; }
-        .invoice-logo { width:100px; margin-bottom:4px; }
-        .store-name { margin:0; font-size:18px; font-weight:700; text-transform:uppercase; }
-        .store-address { margin:0; white-space:break-spaces; }
-        .store-contact { margin:0; font-size:12px; }
-        .invoice-meta-row { margin-top:6px; border-bottom:1px dotted #ddd !important; padding-bottom:4px; display:flex; justify-content:space-between; }
-        .tax-invoice-title { margin:0; font-size:16px; font-weight:600; text-transform:uppercase; }
-        .items-table { width:100%; border-collapse:collapse; margin-top:8px; }
-        .items-table th, .items-table td { border:1px solid #ddd; padding:4px; font-size:12px; }
-        .items-table thead { background:#eee; font-weight:600; }
-        .right { text-align:right; }
-        .center { text-align:center; }
-        .tax-invoice-totals { margin-top:6px; border-top:2px dotted #ddd !important; border-bottom:2px dotted #ddd !important; padding:4px 0; }
-        .paid-amount-deatils { margin-top:10px; text-align:center; }
-        .paid-amount-row { border-top:2px dotted #ddd !important; border-bottom:2px dotted #ddd !important; }
-        .thanks-details { margin-top:5px; text-align:center; }
-        .barcode-details { margin-top:10px; text-align:center; }
-        .discount-details { padding:5px 0px; border-top:2px dotted #ddd !important; border-bottom:2px dotted #ddd !important; }
-        .discount-details p { margin-bottom:0px; }
-        .bottom-row { display:flex; justify-content:space-between; margin-top:8px; font-size:12px; }
-        .bank-details { width:45%; }
-        .bank-table { width:100%; border-collapse:collapse; font-size:12px; }
-        .bank-table td { padding:2px 2px; }
-        .bank-label { width:30%; font-weight:500; }
-        .bank-sep { width:5%; }
-        .bank-value { width:65%; }
-        .terms-sign { width:50%; text-align:right; }
-        .terms-title { margin:0 0 2px 0; font-weight:600; }
-        .terms-text { margin:0 0 6px 0; }
-        .sign-block { margin-top:8px; display:inline-block; }
-        .sign-stamp-box { border:1px solid #000; padding:12px 8px 32px; min-height:60px; margin-top:4px; display:flex; align-items:flex-end; justify-content:center; font-size:12px; }
-        table { width:100%; border-collapse:collapse; }
-        thead { background:#eee; }
-        @media print {
-          table { page-break-inside:auto; }
-          tr, td, th { page-break-inside:avoid; }
-        }
-      `;
-
-      if (s === "A5") {
+      const s = (props.size || 'A4').toUpperCase();
+      if (s === 'A5') {
         return `
           @page { size: A5; margin: 10mm; }
           .invoice-root { max-width: 148mm; width: 148mm; }
           body, table { font-size: 12px; }
-          ${base}
         `;
       }
-      if (s === "80MM") {
+      if (s === '80MM') {
         return `
           @page { size: 80mm auto; margin: 5mm; }
           .invoice-root { max-width: 80mm; width: 80mm; }
           body, table { font-size: 11px; }
           .invoice-logo { width: 70px; }
-          ${base}
+          .company-details h2 { font-size: 14px; }
+          .company-details, .tax-invoice-title { margin-top: 2px; }
+          table td { padding: 2px 0; }
         `;
       }
-      if (s === "58MM") {
+      if (s === '58MM') {
         return `
           @page { size: 58mm auto; margin: 4mm; }
           .invoice-root { max-width: 58mm; width: 58mm; }
           body, table { font-size: 10px; }
           .invoice-logo { width: 60px; }
-          ${base}
+          .company-details h2 { font-size: 12px; }
+          .tax-invoice-title { font-size: 12px; }
+          table td { padding: 2px 0; }
         `;
       }
       return `
         @page { size: A4; margin: 12mm; }
         .invoice-root { max-width: 210mm; width: 210mm; }
         body, table { font-size: 13px; }
-        ${base}
       `;
     };
 
     const printInvoice = () => {
-      const wrapper = document.getElementById("pos-invoice-inner");
+      const wrapper = document.getElementById('pos-invoice-inner');
       if (!wrapper) return;
       const invoiceContent = wrapper.outerHTML;
-      const newWindow = window.open("", "", "height=800,width=800");
+      const newWindow = window.open('', '', 'height=800,width=800');
       newWindow.document.write(`
         <html>
           <head>
@@ -721,6 +638,31 @@ export default defineComponent({
             <link rel="stylesheet" href="${posInvoiceCssUrl}">
             <style>
               ${buildPrintCss()}
+              .invoice-header { text-align:center; border-bottom:1px dotted #ddd !important; padding-bottom:4px; }
+              .invoice-logo { width:100px; margin-bottom:4px; }
+              .store-name { margin:0; font-size:18px; font-weight:700; text-transform:uppercase; }
+              .store-address { margin:0; white-space:break-spaces; }
+              .store-contact { margin:0; font-size:12px; }
+              .invoice-meta-row { margin-top:6px; border-bottom:1px dotted #ddd !important; padding-bottom:4px; display:flex; justify-content:space-between; }
+              .tax-invoice-title { margin:0; font-size:16px; font-weight:600; text-transform:uppercase; }
+              .items-table { width:100%; border-collapse:collapse; margin-top:8px; }
+              .items-table th, .items-table td { border:1px solid #ddd; padding:4px; font-size:12px; }
+              .items-table thead { background:#eee; font-weight:600; }
+              .right { text-align:right; }
+              .center { text-align:center; }
+              .tax-invoice-totals { margin-top:6px; border-top:2px dotted #ddd !important; border-bottom:2px dotted #ddd !important; padding:4px 0; }
+              .paid-amount-deatils { margin-top:10px; text-align:center; }
+              .paid-amount-row { border-top:2px dotted #ddd !important; border-bottom:2px dotted #ddd !important; }
+              .thanks-details { margin-top:5px; text-align:center; }
+              .barcode-details { margin-top:10px; text-align:center; }
+              .discount-details { padding:5px 0px; border-top:2px dotted #ddd !important; border-bottom:2px dotted #ddd !important; }
+              .discount-details p { margin-bottom:0px; }
+              table { width:100%; border-collapse:collapse; }
+              thead { background:#eee; }
+              @media print {
+                table { page-break-inside:auto; }
+                tr, td, th { page-break-inside:avoid; }
+              }
             </style>
           </head>
           <body>${invoiceContent}</body>
@@ -746,7 +688,7 @@ export default defineComponent({
       if (
         item.tax_rate !== null &&
         item.tax_rate !== undefined &&
-        item.tax_rate !== ""
+        item.tax_rate !== ''
       ) {
         return Number(item.tax_rate);
       }
@@ -803,30 +745,29 @@ export default defineComponent({
           acc.net += row.net;
           return acc;
         },
-        { taxable: 0, taxAmount: 0, net: 0 }
+        { taxable: 0, taxAmount: 0, net: 0 },
       );
     });
 
-    // Helpers for custom fields / HSN from product_custom_fields
-    const getItemCustomFields = (item) => {
-      const xid = item.product?.xid;
-      if (!xid) return [];
-      return productCustomFields.value[xid] || [];
-    };
+    // GSTIN fallback (static if warehouse doesn't have it)
+    const displayGstNumber = computed(() => {
+      return (
+        selectedWarehouse.gst_number ||
+        '24BNGPQ6099R1ZD'
+      );
+    });
 
-    const getItemHsnCode = (item) => {
-      // Priority: direct item field -> product field -> custom field "HSN Code"
-      const direct = item.hsn_code || item.product?.hsn_code;
-      if (direct) return direct;
-
-      const fields = getItemCustomFields(item);
-      const hsnField = fields.find((f) => {
-        const name = (f.field_name || "").toLowerCase();
-        return name === "hsn code" || name === "hsn";
-      });
-
-      return hsnField?.field_value || "-";
-    };
+    // Bank details (warehouse values or static fallback)
+    const bankDetails = computed(() => {
+      const w = selectedWarehouse || {};
+      return {
+        name: w.bank_account_name || 'ROOPKALA FASHION',
+        account_no: w.bank_account_no || '1865020001691',
+        bank_name: w.bank_name || 'THE FEDERAL BANK',
+        branch: w.bank_branch || 'SURAT VARACHHA',
+        ifsc: w.ifsc_code || 'FDRL0001865',
+      };
+    });
 
     watch(
       () => props.visible,
@@ -834,7 +775,7 @@ export default defineComponent({
         if (v && props.autoOpen) {
           setTimeout(() => printInvoice(), 250);
         }
-      }
+      },
     );
 
     return {
@@ -853,10 +794,8 @@ export default defineComponent({
       getGrossAmount,
       gstSummary,
       gstSummaryTotals,
-      warehouseGstNumber,
+      displayGstNumber,
       bankDetails,
-      getItemCustomFields,
-      getItemHsnCode,
     };
   },
 });
@@ -1039,20 +978,32 @@ export default defineComponent({
   margin-bottom: 0px;
 }
 
-/* Bank + terms bottom row */
-.bottom-row {
-  display: flex;
-  justify-content: space-between;
+/* Bottom table box (BANK + TERMS + SIGN) */
+.bottom-table {
+  width: 100%;
+  border-collapse: collapse;
   margin-top: 8px;
   font-size: 12px;
 }
-
-/* Bank table */
-.bank-details {
-  width: 45%;
+.bottom-table .bottom-td {
+  border: 1px solid #000;
+  vertical-align: top;
+  padding: 6px 8px;
 }
-.bank-details h4 {
+.bank-td {
+  width: 50%;
+}
+.terms-td {
+  width: 50%;
+}
+
+/* Bank details inside left cell */
+.bank-details {
+  width: 100%;
+}
+.bank-title {
   margin: 0 0 4px 0;
+  font-weight: 600;
 }
 .bank-table {
   width: 100%;
@@ -1061,6 +1012,7 @@ export default defineComponent({
 }
 .bank-table td {
   padding: 2px 2px;
+  border: none;
 }
 .bank-label {
   width: 30%;
@@ -1073,30 +1025,41 @@ export default defineComponent({
   width: 65%;
 }
 
-/* Terms + sign block */
-.terms-sign {
-  width: 50%;
-  text-align: right;
+/* Terms + sign on the right side */
+.terms-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.terms-header {
+  padding-bottom: 2px;
 }
 .terms-title {
-  margin: 0 0 2px 0;
   font-weight: 600;
 }
+.terms-text-cell {
+  padding-bottom: 8px;
+}
 .terms-text {
-  margin: 0 0 6px 0;
+  margin: 0;
 }
-.sign-block {
-  margin-top: 8px;
-  display: inline-block;
+
+/* For: Store + signature box */
+.sign-cell {
+  text-align: right;
+  padding-top: 10px;
 }
-.sign-stamp-box {
+.for-store {
+  margin-bottom: 6px;
+}
+.sign-box {
   border: 1px solid #000;
-  padding: 12px 8px 32px;
-  min-height: 60px;
-  margin-top: 4px;
-  display: flex;
+  height: 70px;
+  min-width: 160px;
+  display: inline-flex;
   align-items: flex-end;
   justify-content: center;
+  padding: 4px 8px;
   font-size: 12px;
 }
 
