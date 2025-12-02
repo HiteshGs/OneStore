@@ -11,7 +11,7 @@ class ProductCustomField extends BaseModel
 
     public $timestamps = false;
 
-    protected $default = ['xid', 'field_name'];
+    protected $default = ['xid', 'field_name', 'field_value'];
 
     protected $guarded = ['id'];
 
