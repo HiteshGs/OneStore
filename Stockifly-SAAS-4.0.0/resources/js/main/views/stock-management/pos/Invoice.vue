@@ -532,6 +532,14 @@ const FALLBACK_BANK = {
   branch: "SURAT VARACHHA",
   ifsc: "FDRL0001865",
 };
+const authUser = JSON.parse(localStorage.getItem('auth_user')) || {};
+
+// Extract the role and display_name from authUser
+const role = authUser.role || {};
+const displayName = role.display_name || "Unknown User"; // Default to "Unknown User" if display_name is not found
+
+// Log the display_name in the console
+console.log("User Display Name:", displayName);
 
 export default defineComponent({
   props: {
