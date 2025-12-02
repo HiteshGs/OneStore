@@ -15,7 +15,7 @@ use App\Models\Unit;
 use Carbon\Carbon;
 use Examyou\RestAPI\ApiResponse;
 use Examyou\RestAPI\Exceptions\ApiException;
-
+use Illuminate\Support\Facades\Log;
 class PosController extends ApiBaseController
 {
     public function posProducts()
@@ -129,166 +129,143 @@ class PosController extends ApiBaseController
         return ApiResponse::make('Success');
     }
 
-    public function savePosPayments()
-    {
-        $request = request();
-        $loggedInUser = user();
-        $warehouse = warehouse();
-        $orderDetails = $request->details;
-        $oldOrderId = "";
-        $posDefaultStatus = $warehouse->default_pos_order_status;
+   public function savePosPayments()
+{
+    // Request data
+    $request = request();
+    
+    // Log the incoming request data
+    Log::debug('Request Payload:', $request->all());
+    
+    // Log specific data like all_payments and product_items to track their values
+    Log::debug('All Payments:', $request->input('all_payments'));
+    Log::debug('Product Items:', $request->input('product_items'));
 
-        $allPayments = $request->input('all_payments', []);
-        if (!is_array($allPayments)) {
-            $allPayments = [];
+    $loggedInUser = user();
+    $warehouse = warehouse();
+    $orderDetails = $request->details;
+    $oldOrderId = "";
+    $posDefaultStatus = $warehouse->default_pos_order_status;
+
+    // Check and log the payments details
+    $allPayments = $request->input('all_payments', []);
+    if (!is_array($allPayments)) {
+        $allPayments = [];
+    }
+
+    // If payments exist, log the sum and check for overpayment
+    if (count($allPayments) > 0) {
+        $total = collect($allPayments)->sum(function ($item) {
+            return $item['amount'];
+        });
+
+        Log::debug('Total Payment Sum:', $total);
+
+        if ($total > $orderDetails['subtotal']) {
+            throw new ApiException('Paid amount should be less than or equal to Grand Total');
         }
+    }
 
-        if ($request->has('all_payments') && count($request->all_payments) > 0) {
-            $allPayments = collect($request->all_payments);
+    // Create a new Order object and save the order
+    $order = new Order();
+    $order->order_type = "sales";
+    $order->invoice_type = "pos";
+    $order->unique_id = Common::generateOrderUniqueId();
+    $order->invoice_number = "";
+    $order->order_date = Carbon::now();
+    $order->warehouse_id = $warehouse->id;
+    $order->user_id = isset($orderDetails['user_id']) ? $orderDetails['user_id'] : null;
+    $order->tax_id = isset($orderDetails['tax_id']) ? $orderDetails['tax_id'] : null;
+    $order->tax_rate = $orderDetails['tax_rate'];
+    $order->tax_amount = $orderDetails['tax_amount'];
+    $order->discount = $orderDetails['discount'];
+    $order->shipping = $orderDetails['shipping'];
+    $order->subtotal = 0;
+    $order->total = $orderDetails['subtotal'];
+    $order->paid_amount = 0;
+    $order->due_amount = $order->total;
+    $order->order_status = $posDefaultStatus;
+    $order->staff_user_id = $loggedInUser->id;
+    $order->save();
 
-            $total = $allPayments->sum(function ($item) {
-                return $item['amount'];
-            });
+    Log::debug('Order Saved:', $order);
 
-            if ($total > $orderDetails['subtotal']) {
-                throw new ApiException('Paid amount should be less than or equal to Grand Total');
-            }
+    $order->invoice_number = Common::getTransactionNumber($order->order_type, $order->id);
+    $order->save();
+
+    Common::storeAndUpdateOrder($order, $oldOrderId);
+
+    // Update Warehouse History (log the history update)
+    Common::updateWarehouseHistory('order', $order, "add_edit");
+    Log::debug('Warehouse History Updated');
+
+    // Iterate over the payments and save each payment
+    foreach ($allPayments as $allPayment) {
+        // Log each payment's details
+        Log::debug('Processing Payment:', $allPayment);
+
+        // Save Order Payment
+        if ($allPayment['amount'] > 0 && $allPayment['payment_mode_id'] != '') {
+            $payment = new Payment();
+            $payment->warehouse_id = $warehouse->id;
+            $payment->payment_type = "in";
+            $payment->date = Carbon::now();
+            $payment->amount = $allPayment['amount'];
+            $payment->paid_amount = $allPayment['amount'];
+            $payment->payment_mode_id = $allPayment['payment_mode_id'];
+            $payment->notes = $allPayment['notes'];
+            $payment->user_id = $order->user_id;
+            $payment->save();
+
+            // Generate and save payment number
+            $paymentType = 'payment-' . $payment->payment_type;
+            $payment->payment_number = Common::getTransactionNumber($paymentType, $payment->id);
+            $payment->save();
+
+            $orderPayment = new OrderPayment();
+            $orderPayment->order_id = $order->id;
+            $orderPayment->payment_id = $payment->id;
+            $orderPayment->amount = $allPayment['amount'];
+            $orderPayment->save();
+
+            Log::debug('Payment Saved:', $payment);
         }
+    }
 
-        $order = new Order();
-        $order->order_type = "sales";
-        $order->invoice_type = "pos";
-        $order->unique_id = Common::generateOrderUniqueId();
-        $order->invoice_number = "";
-        $order->order_date = Carbon::now();
-        $order->warehouse_id = $warehouse->id;
-        $order->user_id = isset($orderDetails['user_id']) ? $orderDetails['user_id'] : null;
-        $order->tax_id = isset($orderDetails['tax_id']) ? $orderDetails['tax_id'] : null;
-        $order->tax_rate = $orderDetails['tax_rate'];
-        $order->tax_amount = $orderDetails['tax_amount'];
-        $order->discount = $orderDetails['discount'];
-        $order->shipping = $orderDetails['shipping'];
-        $order->subtotal = 0;
-        $order->total = $orderDetails['subtotal'];
-        $order->paid_amount = 0;
-        $order->due_amount = $order->total;
-        $order->order_status = $posDefaultStatus;
-        $order->staff_user_id = $loggedInUser->id;
-        $order->save();
+    // Update Order Amount
+    Common::updateOrderAmount($order->id);
+    Log::debug('Order Amount Updated');
 
-        $order->invoice_number = Common::getTransactionNumber($order->order_type, $order->id);
-        $order->save();
-
-        Common::storeAndUpdateOrder($order, $oldOrderId);
-
-        // Updating Warehouse History
-        Common::updateWarehouseHistory('order', $order, "add_edit");
-
-        $allPayments = $request->input('all_payments', []);
-        if (!is_array($allPayments)) {
-            $allPayments = [];
-        }
-
-        foreach ($allPayments as $allPayment) {
-            // Save Order Payment
-            if ($allPayment['amount'] > 0 && $allPayment['payment_mode_id'] != '') {
-                $payment = new Payment();
-                $payment->warehouse_id = $warehouse->id;
-                $payment->payment_type = "in";
-                $payment->date = Carbon::now();
-                $payment->amount = $allPayment['amount'];
-                $payment->paid_amount = $allPayment['amount'];
-                $payment->payment_mode_id = $allPayment['payment_mode_id'];
-                $payment->notes = $allPayment['notes'];
-                $payment->user_id = $order->user_id;
-                $payment->save();
-
-                // Generate and save payment number
-                $paymentType = 'payment-' . $payment->payment_type;
-                $payment->payment_number = Common::getTransactionNumber($paymentType, $payment->id);
-                $payment->save();
-
-                $orderPayment = new OrderPayment();
-                $orderPayment->order_id = $order->id;
-                $orderPayment->payment_id = $payment->id;
-                $orderPayment->amount = $allPayment['amount'];
-                $orderPayment->save();
-            }
-        }
-
-        Common::updateOrderAmount($order->id);
-
-        $savedOrder = Order::select(
-            'id',
-            'unique_id',
-            'invoice_number',
-            'user_id',
-            'staff_user_id',
-            'order_date',
-            'discount',
-            'shipping',
-            'tax_amount',
-            'subtotal',
-            'total',
-            'paid_amount',
-            'due_amount',
-            'total_items',
-            'total_quantity'
-        )
-        ->with([
-            'user:id,name,email',
-            'items:id,order_id,product_id,unit_id,unit_price,subtotal,quantity,mrp,total_tax,hsn_code',
-            'items.product:id,name',
-            'items.product.customFields', // Load custom fields for each item
-            'items.unit:id,name,short_name',
-            'orderPayments:id,order_id,payment_id,amount',
-            'orderPayments.payment:id,payment_mode_id',
-            'orderPayments.payment.paymentMode:id,name',
-            'staffMember:id,name',
-        ])
+    // Fetch the saved order and related details
+    $savedOrder = Order::select('id', 'unique_id', 'invoice_number', 'user_id', 'staff_user_id', 'order_date', 'discount', 'shipping', 'tax_amount', 'subtotal', 'total', 'paid_amount', 'due_amount', 'total_items', 'total_quantity')
+        ->with(['user:id,name,email', 'items:id,order_id,product_id,unit_id,unit_price,subtotal,quantity,mrp,total_tax', 'items.product:id,name', 'items.unit:id,name,short_name', 'orderPayments:id,order_id,payment_id,amount', 'orderPayments.payment:id,payment_mode_id', 'orderPayments.payment.paymentMode:id,name', 'staffMember:id,name'])
         ->find($order->id);
 
-        // Add custom fields to each item
-        foreach ($savedOrder->items as $item) {
-            $item->custom_fields = [];
+    // Log the saved order
+    Log::debug('Saved Order:', $savedOrder);
 
-            if ($item->product && $item->product->customFields) {
-                foreach ($item->product->customFields as $cf) {
-                    $item->custom_fields[] = [
-                        'id'    => $cf->xid,
-                        'name'  => $cf->field_name,
-                        'label' => $cf->field_name,
-                        'value' => $cf->field_value,
-                    ];
-
-                    // If item has no hsn_code, try to fill from "HSN Code"
-                    if (
-                        (empty($item->hsn_code) || $item->hsn_code === null) &&
-                        strcasecmp($cf->field_name, 'HSN Code') === 0
-                    ) {
-                        $item->hsn_code = $cf->field_value;
-                    }
-                }
-            }
-        }
-
-        // Calculate savings and other totals
-        $totalMrp = 0;
-        $totalTax = 0;
-        foreach ($savedOrder->items as $orderItem) {
-            $totalMrp += ($orderItem->quantity * $orderItem->mrp);
-            $totalTax += $orderItem->total_tax;
-        }
-
-        $savingOnMrp = $totalMrp - $savedOrder->total;
-        $saving_percentage = $totalMrp > 0 ? number_format((float)($savingOnMrp / $totalMrp * 100), 2, '.', '') : 0;
-
-        $savedOrder->saving_on_mrp = $savingOnMrp;
-        $savedOrder->saving_percentage = $saving_percentage;
-        $savedOrder->total_tax_on_items = $totalTax + $savedOrder->tax_amount;
-
-        return ApiResponse::make('POS Data Saved', [
-            'order' => $savedOrder,
-        ]);
+    // Calculate and log MRP and tax totals
+    $totalMrp = 0;
+    $totalTax = 0;
+    foreach ($savedOrder->items as $orderItem) {
+        $totalMrp += ($orderItem->quantity * $orderItem->mrp);
+        $totalTax += $orderItem->total_tax;
     }
+
+    Log::debug('Total MRP:', $totalMrp);
+    Log::debug('Total Tax:', $totalTax);
+
+    $savingOnMrp = $totalMrp - $savedOrder->total;
+    $saving_percentage = $totalMrp > 0 ? number_format((float)($savingOnMrp / $totalMrp * 100), 2, '.', '') : 0;
+
+    $savedOrder->saving_on_mrp = $savingOnMrp;
+    $savedOrder->saving_percentage = $saving_percentage;
+    $savedOrder->total_tax_on_items = $totalTax + $savedOrder->tax_amount;
+
+    // Return the response with saved order data
+    return ApiResponse::make('POS Data Saved', [
+        'order' => $savedOrder,
+    ]);
+}
+
 }
