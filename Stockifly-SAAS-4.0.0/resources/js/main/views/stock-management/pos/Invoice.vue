@@ -542,8 +542,7 @@ const FALLBACK_BANK = {
 const authUser = JSON.parse(localStorage.getItem('auth_user')) || {};
 
 // Extract the role and display_name from authUser
-const role = authUser.role || {};
-const displayName = role.display_name || "Unknown User"; // Default to "Unknown User" if display_name is not found
+const displayName = authUser.name || {};
 const currentTime = new Date().toLocaleString();
 
 // Log the display_name in the console
