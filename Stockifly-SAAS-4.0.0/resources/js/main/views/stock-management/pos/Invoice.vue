@@ -35,8 +35,9 @@
               <span v-if="selectedWarehouse.email">
                 &nbsp;|&nbsp;{{ $t("common.email") }}: {{ selectedWarehouse.email }}
               </span>
-              <span v-if="selectedWarehouse.gst_number" class="store-gst">
-                &nbsp;|&nbsp;GSTN: {{ selectedWarehouse.gst_number }}
+              <!-- GSTIN with static fallback -->
+              <span class="store-gst">
+                &nbsp;|&nbsp;GSTIN: {{ warehouseGstNumber }}
               </span>
             </p>
           </div>
@@ -139,28 +140,28 @@
                   {{ index + 1 }}
                 </td>
 
-                <!-- Item name + custom fields -->
+                <!-- Item name + custom fields from product_custom_fields -->
                 <td>
                   <div class="item-name">
                     {{ item.product?.name }}
                   </div>
                   <div
-                    v-if="item.custom_fields && item.custom_fields.length"
+                    v-if="getItemCustomFields(item).length"
                     class="item-custom-fields"
                   >
                     <span
-                      v-for="cf in item.custom_fields"
-                      :key="cf.id || cf.name || cf.label"
+                      v-for="cf in getItemCustomFields(item)"
+                      :key="cf.id || cf.field_name"
                       class="item-custom-field-line"
                     >
-                      {{ cf.label || cf.name }}: {{ cf.value }}
+                      {{ cf.field_name }}: {{ cf.field_value }}
                     </span>
                   </div>
                 </td>
 
-                <!-- HSN NO -->
+                <!-- HSN NO (from item/product/custom_fields) -->
                 <td class="center">
-                  {{ item.hsn_code || item.product?.hsn_code || "-" }}
+                  {{ getItemHsnCode(item) }}
                 </td>
 
                 <!-- UNIT -->
@@ -261,7 +262,7 @@
                   </div>
                 </td>
                 <td style="width: 50%">
-                  <!-- SIMPLE GST SLAB SUMMARY BOX (OPTIONAL) -->
+                  <!-- SIMPLE GST SLAB SUMMARY BOX -->
                   <div class="gst-summary-block">
                     <table>
                       <thead>
@@ -381,25 +382,41 @@
 
         <!-- BANK DETAIL + TERMS + SIGN (LIKE PDF BOTTOM) -->
         <div class="bottom-row">
-          <div class="bank-details" v-if="hasBankDetails">
-            <h4>BANK DETAIL :</h4>
-            <p v-if="selectedWarehouse.bank_account_name">
-              Name : {{ selectedWarehouse.bank_account_name }}
-            </p>
-            <p v-if="selectedWarehouse.bank_account_no">
-              Ac/No : {{ selectedWarehouse.bank_account_no }}
-            </p>
-            <p v-if="selectedWarehouse.bank_name">
-              Bank : {{ selectedWarehouse.bank_name }}
-            </p>
-            <p v-if="selectedWarehouse.bank_branch">
-              Branch : {{ selectedWarehouse.bank_branch }}
-            </p>
-            <p v-if="selectedWarehouse.ifsc_code">
-              IFSC : {{ selectedWarehouse.ifsc_code }}
-            </p>
+          <!-- BANK DETAILS TABLE (with fallback) -->
+          <div class="bank-details">
+            <h4>BANK DETAILS :</h4>
+            <table class="bank-table">
+              <tbody>
+                <tr>
+                  <td class="bank-label">Name</td>
+                  <td class="bank-sep">:</td>
+                  <td class="bank-value">{{ bankDetails.name }}</td>
+                </tr>
+                <tr>
+                  <td class="bank-label">A/c No</td>
+                  <td class="bank-sep">:</td>
+                  <td class="bank-value">{{ bankDetails.account_no }}</td>
+                </tr>
+                <tr>
+                  <td class="bank-label">Bank</td>
+                  <td class="bank-sep">:</td>
+                  <td class="bank-value">{{ bankDetails.bank_name }}</td>
+                </tr>
+                <tr>
+                  <td class="bank-label">Branch</td>
+                  <td class="bank-sep">:</td>
+                  <td class="bank-value">{{ bankDetails.branch }}</td>
+                </tr>
+                <tr>
+                  <td class="bank-label">IFSC</td>
+                  <td class="bank-sep">:</td>
+                  <td class="bank-value">{{ bankDetails.ifsc }}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
 
+          <!-- TERMS + AUTHORISED SIGNATORY BOX FOR STAMP -->
           <div class="terms-sign">
             <div class="terms">
               <p class="terms-title">Terms Of Sales :</p>
@@ -412,7 +429,9 @@
             </div>
             <div class="sign-block">
               <p>For : {{ selectedWarehouse.name }}</p>
-              <p>Authorised Signatory</p>
+              <div class="sign-stamp-box">
+                <span>Authorised Signatory</span>
+              </div>
             </div>
           </div>
         </div>
@@ -470,7 +489,18 @@ import QRcodeGenerator from "../../../../common/components/barcode/QRcodeGenerat
 import { notification } from "ant-design-vue";
 import { useI18n } from "vue-i18n";
 
+// axiosAdmin is assumed to be globally available as in your existing code
 const posInvoiceCssUrl = window.config.pos_invoice_css;
+
+// Default static fallbacks if warehouse does not have GST / Bank details
+const DEFAULT_GSTIN = "24BNGPG0699R1ZD"; // 🔁 Replace with your real default GSTIN
+const DEFAULT_BANK = {
+  name: "ROOPKALA FASHION",
+  account_no: "18650200016691",
+  bank_name: "THE FEDERAL BANK",
+  branch: "SURAT VARACHHA",
+  ifsc: "FDRL0001865",
+};
 
 export default defineComponent({
   props: {
@@ -498,13 +528,49 @@ export default defineComponent({
     const isSending = ref(false);
     const isVerified = ref("");
 
+    // Custom fields cache: { [product_xid]: [{ field_name, field_value }, ...] }
+    const productCustomFields = ref({});
+
     onMounted(() => {
       axiosAdmin.get("verified-email").then((response) => {
         isVerified.value = response.data?.verified;
       });
     });
 
-    // ✅ Console logs for debugging: full order + items
+    // ✅ Console logs + load custom fields whenever order changes
+    const fetchProductCustomFields = async (o) => {
+      try {
+        if (!o || !Array.isArray(o.items)) return;
+
+        const productXids = [
+          ...new Set(
+            o.items
+              .map((item) => item.product?.xid)
+              .filter((xid) => !!xid)
+          ),
+        ];
+
+        if (!productXids.length) return;
+
+        // 🔁 Adjust this API to match your backend implementation
+        const res = await axiosAdmin.get("product-custom-fields", {
+          params: {
+            product_ids: productXids.join(","), // e.g. "jrYAzpr5,darj1yW9"
+            warehouse_id: selectedWarehouse.xid, // hashed warehouse id
+          },
+        });
+
+        // Expecting: { [product_xid]: [{ field_name, field_value }, ...] }
+        productCustomFields.value = res.data || {};
+        console.log(
+          "Loaded product custom fields:",
+          JSON.parse(JSON.stringify(productCustomFields.value))
+        );
+      } catch (e) {
+        console.error("Failed to load product custom fields", e);
+      }
+    };
+
     watch(
       () => props.order,
       (o) => {
@@ -516,6 +582,7 @@ export default defineComponent({
               JSON.parse(JSON.stringify(o.items))
             );
           }
+          fetchProductCustomFields(o);
         }
       },
       { immediate: true }
@@ -551,13 +618,69 @@ export default defineComponent({
       return "a4-invoice";
     });
 
+    const warehouseGstNumber = computed(() => {
+      return selectedWarehouse.gst_number || DEFAULT_GSTIN;
+    });
+
+    const bankDetails = computed(() => {
+      const w = selectedWarehouse;
+      return {
+        name: w.bank_account_name || DEFAULT_BANK.name,
+        account_no: w.bank_account_no || DEFAULT_BANK.account_no,
+        bank_name: w.bank_name || DEFAULT_BANK.bank_name,
+        branch: w.bank_branch || DEFAULT_BANK.branch,
+        ifsc: w.ifsc_code || DEFAULT_BANK.ifsc,
+      };
+    });
+
     const buildPrintCss = () => {
       const s = (props.size || "A4").toUpperCase();
+      const base = `
+        .invoice-header { text-align:center; border-bottom:1px dotted #ddd !important; padding-bottom:4px; }
+        .invoice-logo { width:100px; margin-bottom:4px; }
+        .store-name { margin:0; font-size:18px; font-weight:700; text-transform:uppercase; }
+        .store-address { margin:0; white-space:break-spaces; }
+        .store-contact { margin:0; font-size:12px; }
+        .invoice-meta-row { margin-top:6px; border-bottom:1px dotted #ddd !important; padding-bottom:4px; display:flex; justify-content:space-between; }
+        .tax-invoice-title { margin:0; font-size:16px; font-weight:600; text-transform:uppercase; }
+        .items-table { width:100%; border-collapse:collapse; margin-top:8px; }
+        .items-table th, .items-table td { border:1px solid #ddd; padding:4px; font-size:12px; }
+        .items-table thead { background:#eee; font-weight:600; }
+        .right { text-align:right; }
+        .center { text-align:center; }
+        .tax-invoice-totals { margin-top:6px; border-top:2px dotted #ddd !important; border-bottom:2px dotted #ddd !important; padding:4px 0; }
+        .paid-amount-deatils { margin-top:10px; text-align:center; }
+        .paid-amount-row { border-top:2px dotted #ddd !important; border-bottom:2px dotted #ddd !important; }
+        .thanks-details { margin-top:5px; text-align:center; }
+        .barcode-details { margin-top:10px; text-align:center; }
+        .discount-details { padding:5px 0px; border-top:2px dotted #ddd !important; border-bottom:2px dotted #ddd !important; }
+        .discount-details p { margin-bottom:0px; }
+        .bottom-row { display:flex; justify-content:space-between; margin-top:8px; font-size:12px; }
+        .bank-details { width:45%; }
+        .bank-table { width:100%; border-collapse:collapse; font-size:12px; }
+        .bank-table td { padding:2px 2px; }
+        .bank-label { width:30%; font-weight:500; }
+        .bank-sep { width:5%; }
+        .bank-value { width:65%; }
+        .terms-sign { width:50%; text-align:right; }
+        .terms-title { margin:0 0 2px 0; font-weight:600; }
+        .terms-text { margin:0 0 6px 0; }
+        .sign-block { margin-top:8px; display:inline-block; }
+        .sign-stamp-box { border:1px solid #000; padding:12px 8px 32px; min-height:60px; margin-top:4px; display:flex; align-items:flex-end; justify-content:center; font-size:12px; }
+        table { width:100%; border-collapse:collapse; }
+        thead { background:#eee; }
+        @media print {
+          table { page-break-inside:auto; }
+          tr, td, th { page-break-inside:avoid; }
+        }
+      `;
+
       if (s === "A5") {
         return `
           @page { size: A5; margin: 10mm; }
           .invoice-root { max-width: 148mm; width: 148mm; }
           body, table { font-size: 12px; }
+          ${base}
         `;
       }
       if (s === "80MM") {
@@ -566,9 +689,7 @@ export default defineComponent({
           .invoice-root { max-width: 80mm; width: 80mm; }
           body, table { font-size: 11px; }
           .invoice-logo { width: 70px; }
-          .company-details h2 { font-size: 14px; }
-          .company-details, .tax-invoice-title { margin-top: 2px; }
-          table td { padding: 2px 0; }
+          ${base}
         `;
       }
       if (s === "58MM") {
@@ -577,15 +698,14 @@ export default defineComponent({
           .invoice-root { max-width: 58mm; width: 58mm; }
           body, table { font-size: 10px; }
           .invoice-logo { width: 60px; }
-          .company-details h2 { font-size: 12px; }
-          .tax-invoice-title { font-size: 12px; }
-          table td { padding: 2px 0; }
+          ${base}
         `;
       }
       return `
         @page { size: A4; margin: 12mm; }
         .invoice-root { max-width: 210mm; width: 210mm; }
         body, table { font-size: 13px; }
+        ${base}
       `;
     };
 
@@ -601,31 +721,6 @@ export default defineComponent({
             <link rel="stylesheet" href="${posInvoiceCssUrl}">
             <style>
               ${buildPrintCss()}
-              .invoice-header { text-align:center; border-bottom:1px dotted #ddd !important; padding-bottom:4px; }
-              .invoice-logo { width:100px; margin-bottom:4px; }
-              .store-name { margin:0; font-size:18px; font-weight:700; text-transform:uppercase; }
-              .store-address { margin:0; white-space:break-spaces; }
-              .store-contact { margin:0; font-size:12px; }
-              .invoice-meta-row { margin-top:6px; border-bottom:1px dotted #ddd !important; padding-bottom:4px; display:flex; justify-content:space-between; }
-              .tax-invoice-title { margin:0; font-size:16px; font-weight:600; text-transform:uppercase; }
-              .items-table { width:100%; border-collapse:collapse; margin-top:8px; }
-              .items-table th, .items-table td { border:1px solid #ddd; padding:4px; font-size:12px; }
-              .items-table thead { background:#eee; font-weight:600; }
-              .right { text-align:right; }
-              .center { text-align:center; }
-              .tax-invoice-totals { margin-top:6px; border-top:2px dotted #ddd !important; border-bottom:2px dotted #ddd !important; padding:4px 0; }
-              .paid-amount-deatils { margin-top:10px; text-align:center; }
-              .paid-amount-row { border-top:2px dotted #ddd !important; border-bottom:2px dotted #ddd !important; }
-              .thanks-details { margin-top:5px; text-align:center; }
-              .barcode-details { margin-top:10px; text-align:center; }
-              .discount-details { padding:5px 0px; border-top:2px dotted #ddd !important; border-bottom:2px dotted #ddd !important; }
-              .discount-details p { margin-bottom:0px; }
-              table { width:100%; border-collapse:collapse; }
-              thead { background:#eee; }
-              @media print {
-                table { page-break-inside:auto; }
-                tr, td, th { page-break-inside:avoid; }
-              }
             </style>
           </head>
           <body>${invoiceContent}</body>
@@ -668,7 +763,6 @@ export default defineComponent({
     };
 
     const getGrossAmount = (order) => {
-      // Try to compute similar to PDF: total - tax + discount - shipping (if needed)
       if (order.subtotal) return order.subtotal;
       const total = Number(order.total) || 0;
       const tax = Number(order.tax_amount) || 0;
@@ -677,7 +771,7 @@ export default defineComponent({
       return total - tax + discount - shipping;
     };
 
-    // Basic GST slab summary from items (group by tax_rate)
+    // GST slab summary from items (group by tax_rate)
     const gstSummary = computed(() => {
       const map = {};
       if (!props.order || !Array.isArray(props.order.items)) return [];
@@ -713,16 +807,26 @@ export default defineComponent({
       );
     });
 
-    const hasBankDetails = computed(() => {
-      const w = selectedWarehouse;
-      return (
-        w.bank_account_name ||
-        w.bank_account_no ||
-        w.bank_name ||
-        w.bank_branch ||
-        w.ifsc_code
-      );
-    });
+    // Helpers for custom fields / HSN from product_custom_fields
+    const getItemCustomFields = (item) => {
+      const xid = item.product?.xid;
+      if (!xid) return [];
+      return productCustomFields.value[xid] || [];
+    };
+
+    const getItemHsnCode = (item) => {
+      // Priority: direct item field -> product field -> custom field "HSN Code"
+      const direct = item.hsn_code || item.product?.hsn_code;
+      if (direct) return direct;
+
+      const fields = getItemCustomFields(item);
+      const hsnField = fields.find((f) => {
+        const name = (f.field_name || "").toLowerCase();
+        return name === "hsn code" || name === "hsn";
+      });
+
+      return hsnField?.field_value || "-";
+    };
 
     watch(
       () => props.visible,
@@ -749,7 +853,10 @@ export default defineComponent({
       getGrossAmount,
       gstSummary,
       gstSummaryTotals,
-      hasBankDetails,
+      warehouseGstNumber,
+      bankDetails,
+      getItemCustomFields,
+      getItemHsnCode,
     };
   },
 });
@@ -939,15 +1046,34 @@ export default defineComponent({
   margin-top: 8px;
   font-size: 12px;
 }
+
+/* Bank table */
 .bank-details {
   width: 45%;
 }
 .bank-details h4 {
   margin: 0 0 4px 0;
 }
-.bank-details p {
-  margin: 0;
+.bank-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
 }
+.bank-table td {
+  padding: 2px 2px;
+}
+.bank-label {
+  width: 30%;
+  font-weight: 500;
+}
+.bank-sep {
+  width: 5%;
+}
+.bank-value {
+  width: 65%;
+}
+
+/* Terms + sign block */
 .terms-sign {
   width: 50%;
   text-align: right;
@@ -959,8 +1085,19 @@ export default defineComponent({
 .terms-text {
   margin: 0 0 6px 0;
 }
-.sign-block p {
-  margin: 0;
+.sign-block {
+  margin-top: 8px;
+  display: inline-block;
+}
+.sign-stamp-box {
+  border: 1px solid #000;
+  padding: 12px 8px 32px;
+  min-height: 60px;
+  margin-top: 4px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  font-size: 12px;
 }
 
 /* size previews */
