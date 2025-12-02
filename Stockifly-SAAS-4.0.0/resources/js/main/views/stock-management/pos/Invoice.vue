@@ -404,12 +404,7 @@
                       <tr>
                         <td colspan="2" class="bank-header">BANK DETAILS :</td>
                       </tr>
-                      <tr>
-                        <td class="bank-label">Name</td>
-                        <td class="bank-value">
-                          : {{ bankDetailsToShow.name }}
-                        </td>
-                      </tr>
+                     
                       <tr>
                         <td class="bank-label">A/c No</td>
                         <td class="bank-value">
