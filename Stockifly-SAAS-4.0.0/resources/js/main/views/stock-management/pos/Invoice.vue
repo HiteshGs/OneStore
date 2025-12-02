@@ -531,7 +531,7 @@ const posInvoiceCssUrl = window.config.pos_invoice_css;
 // Static fallbacks (used when warehouse doesn't have data)
 const FALLBACK_GSTIN = "24BNGPG0699R1ZD";
 const FALLBACK_BANK = {
-  name: "ROOPKALA FASHION",
+ 
   accountNo: "18650200016691",
   bank: "THE FEDERAL BANK",
   branch: "SURAT VARACHHA",
@@ -791,9 +791,7 @@ export default defineComponent({
 
     const bankDetailsToShow = computed(() => {
       return {
-        name:
-          selectedWarehouse.bank_account_name ||
-          FALLBACK_BANK.name,
+        
         accountNo:
           selectedWarehouse.bank_account_no ||
           FALLBACK_BANK.accountNo,
