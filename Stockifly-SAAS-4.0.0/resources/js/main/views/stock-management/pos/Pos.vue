@@ -1038,18 +1038,28 @@ export default {
         // For mobile Design
         const showMobileCart = ref(false);
 const handleCustomerChange = (selectedCustomerId) => {
-    const selectedCustomer = customers.find(
-        (item) => item.xid === selectedCustomerId
-    );
+  // Find the selected customer based on the xid
+  const selectedCustomer = customers.find(
+    (customer) => customer.xid === selectedCustomerId
+  );
 
-    if (selectedCustomer) {
-        localStorage.setItem(
-            'selectedCustomer',
-            JSON.stringify(selectedCustomer)
-        );
+  if (selectedCustomer) {
+    // Save the entire selected customer object to localStorage
+    const customerData = {
+      name: selectedCustomer.name,
+      phone: selectedCustomer.phone,
+      profile_image: selectedCustomer.profile_image,
+      email: selectedCustomer.email,
+      address: selectedCustomer.address,
+      xid: selectedCustomer.xid,
+    };
 
-        formData.user_id = selectedCustomer.xid;
-    }
+    // Log the selected customer data to the console
+    console.log("Selected Customer Data:", customerData);
+
+    // Store the customer data in localStorage
+    localStorage.setItem('selectedCustomer', JSON.stringify(customerData));
+  }
 };
 
         // This will get customer data from localStorage when the page loads
