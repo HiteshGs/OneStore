@@ -1000,7 +1000,7 @@ export default {
             getPreFetchData,
             posDefaultCustomer,
         } = fields();
-        console.log("customers",customers.value); // This assumes 'customers' is a reactive reference
+        console.log("customers",customers); // This assumes 'customers' is a reactive reference
 
         const selectedProducts = ref([]);
         const selectedProductIds = ref([]);
