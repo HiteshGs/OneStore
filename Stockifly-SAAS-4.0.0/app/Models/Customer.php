@@ -1,4 +1,3 @@
-
 <?php
 
 namespace App\Models;
@@ -21,7 +20,7 @@ class Customer extends BaseModel implements AuthenticatableContract, JWTSubject
 
     protected  $table = 'users';
 
-    protected $default = ["xid", "name", "phone", "profile_image", "email","address"];
+    protected $default = ["xid", "name", "phone", "profile_image", "email", "address"];
 
     protected $guarded = ['id', 'warehouse_id', 'is_superadmin', 'opening_balance', 'opening_balance_type', 'credit_limit', 'credit_period', 'role_id', 'created_by', 'is_walkin_customer', 'created_at', 'updated_at', 'warehouses'];
 
@@ -29,7 +28,7 @@ class Customer extends BaseModel implements AuthenticatableContract, JWTSubject
 
     protected $appends = ['xid', 'profile_image_url', 'x_warehouse_id'];
 
-    protected $filterable = ['users.name', 'name', 'user_type', 'email', 'status', 'phone','address'];
+    protected $filterable = ['users.name', 'name', 'user_type', 'email', 'status', 'phone', 'address'];
 
     protected $hashableGetterFunctions = [
         'getXWarehouseIdAttribute' => 'warehouse_id',
