@@ -18,6 +18,7 @@
                                 style="width: 100%"
                                 optionFilterProp="title"
                                 show-search
+                                @change="handleCustomerChange"
                             >
                                 <a-select-option
                                     v-for="customer in customers"
@@ -1035,12 +1036,33 @@ export default {
 
         // For mobile Design
         const showMobileCart = ref(false);
+ const handleCustomerChange = (selectedCustomerId) => {
+            // Find the selected customer based on the xid
+            const selectedCustomer = customers.find(
+                (customer) => customer.xid === selectedCustomerId
+            );
 
+            if (selectedCustomer) {
+                // Save the entire selected customer object to localStorage
+                localStorage.setItem('selectedCustomer', JSON.stringify(selectedCustomer));
+            }
+        };
+
+        // This will get customer data from localStorage when the page loads
+        const getCustomerFromLocalStorage = () => {
+            const storedCustomer = localStorage.getItem('selectedCustomer');
+            if (storedCustomer) {
+                const customer = JSON.parse(storedCustomer);
+                formData.user_id = customer.xid; // Set the user ID
+                // Optionally set more fields if necessary
+            }
+        };
        onMounted(async () => {
     await getPreFetchData();
 
-    // 🔥 Make sure all existing lines are recalculated as EXCLUSIVE by default
     normalizeExistingLinesToExclusive();
+            // Retrieve customer data from localStorage on page load
+            getCustomerFromLocalStorage();
 });
 
 
@@ -1453,7 +1475,7 @@ const getRowTaxAmount = (record) => {
             taxChanged,
             quantityChanged,
             recalculateFinalTotal,
-
+handleCustomerChange,
             // Pay Now
             payNow,
             payNowVisible,
