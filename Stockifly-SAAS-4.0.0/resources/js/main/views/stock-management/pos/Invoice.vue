@@ -250,82 +250,84 @@
 
         <!-- TOTALS (GROSS / SGST / CGST / IGST / NET) -->
         <div class="tax-invoice-totals">
-  <table style="width: 100%">
-    <tbody>
-      <tr>
-        <td style="width: 50%">
-          <div class="amount-summary-block">
-            <p>
-              <strong>GROSS AMT :</strong>
-              {{ formatAmountCurrency(getGrossAmount(order)) || '-' }}
-            </p>
-            <p>
-              <strong>SGST :</strong>
-              {{ formatAmountCurrency(order.sgst_amount || 0) ? formatAmountCurrency(order.sgst_amount) : '-' }}
-            </p>
-            <p>
-              <strong>CGST :</strong>
-              {{ formatAmountCurrency(order.cgst_amount || 0) ? formatAmountCurrency(order.cgst_amount) : '-' }}
-            </p>
-            <p>
-              <strong>IGST :</strong>
-              {{ formatAmountCurrency(order.igst_amount || 0) ? formatAmountCurrency(order.igst_amount) : '-' }}
-            </p>
-            <p>
-              <strong>NET AMOUNT :</strong>
-              {{ formatAmountCurrency(order.total) || '-' }}
-            </p>
-            <p v-if="order.amount_in_words" class="amount-words">
-              Rupees (in words) :- {{ order.amount_in_words || '-' }}
-            </p>
-          </div>
-        </td>
-        <td style="width: 50%">
-          <!-- GST SLAB SUMMARY -->
-          <div class="gst-summary-block">
-            <table>
-              <thead>
-                <tr>
-                  <th>GST(%)</th>
-                  <th class="right">Taxable</th>
-                  <th class="right">GST</th>
-                  <th class="right">Net</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="row in gstSummary" :key="row.rate">
-                  <td class="center">{{ row.rate || '-' }}%</td>
-                  <td class="right">
-                    {{ formatAmountCurrency(row.taxable) || '-' }}
-                  </td>
-                  <td class="right">
-                    {{ formatAmountCurrency(row.taxAmount) || '-' }}
-                  </td>
-                  <td class="right">
-                    {{ formatAmountCurrency(row.net) || '-' }}
-                  </td>
-                </tr>
-                <tr class="gst-summary-total">
-                  <td class="center">{{ $t('common.total') }}</td>
-                  <td class="right">
-                    {{ formatAmountCurrency(gstSummaryTotals.taxable) || '-' }}
-                  </td>
-                  <td class="right">
-                    {{ formatAmountCurrency(gstSummaryTotals.taxAmount) || '-' }}
-                  </td>
-                  <td class="right">
-                    {{ formatAmountCurrency(gstSummaryTotals.net) || '-' }}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </td>
-      </tr>
-    </tbody>
-  </table>
-</div>
-
+          <table style="width: 100%">
+            <tbody>
+              <tr>
+                <td style="width: 50%">
+                  <div class="amount-summary-block">
+                    <p>
+                      <strong>GROSS AMT :</strong>
+                      {{ formatAmountCurrency(getGrossAmount(order)) }}
+                    </p>
+                    <p>
+                      <strong>SGST :</strong>
+                      {{ formatAmountCurrency(order.sgst_amount || 0) }}
+                    </p>
+                    <p>
+                      <strong>CGST :</strong>
+                      {{ formatAmountCurrency(order.cgst_amount || 0) }}
+                    </p>
+                    <p>
+                      <strong>IGST :</strong>
+                      {{ formatAmountCurrency(order.igst_amount || 0) }}
+                    </p>
+                    <p>
+                      <strong>NET AMOUNT :</strong>
+                      {{ formatAmountCurrency(order.total) }}
+                    </p>
+                    <p v-if="order.amount_in_words" class="amount-words">
+                      Rupees (in words) :- {{ order.amount_in_words }}
+                    </p>
+                  </div>
+                </td>
+                <td style="width: 50%">
+                  <!-- GST SLAB SUMMARY -->
+                  <div class="gst-summary-block">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>GST(%)</th>
+                          <th class="right">Taxable</th>
+                          <th class="right">GST</th>
+                          <th class="right">Net</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr
+                          v-for="row in gstSummary"
+                          :key="row.rate"
+                        >
+                          <td class="center">{{ row.rate }}%</td>
+                          <td class="right">
+                            {{ formatAmountCurrency(row.taxable) }}
+                          </td>
+                          <td class="right">
+                            {{ formatAmountCurrency(row.taxAmount) }}
+                          </td>
+                          <td class="right">
+                            {{ formatAmountCurrency(row.net) }}
+                          </td>
+                        </tr>
+                        <tr class="gst-summary-total">
+                          <td class="center">{{ $t('common.total') }}</td>
+                          <td class="right">
+                            {{ formatAmountCurrency(gstSummaryTotals.taxable) }}
+                          </td>
+                          <td class="right">
+                            {{ formatAmountCurrency(gstSummaryTotals.taxAmount) }}
+                          </td>
+                          <td class="right">
+                            {{ formatAmountCurrency(gstSummaryTotals.net) }}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
         <!-- PAID / DUE -->
         <div class="paid-amount-deatils">
@@ -620,9 +622,6 @@ export default defineComponent({
         isSending.value = false;
       }
     };
-const isGujaratCustomer = computed(() => {
-  return order.user?.state === "Gujarat";  // You can customize this check based on the actual state name or abbreviation
-});
 
     const sizeClass = computed(() => {
       const s = (props.size || "A4").toUpperCase();
@@ -735,14 +734,24 @@ const isGujaratCustomer = computed(() => {
     };
 
     const getTaxRate = (item) => {
-  if (isGujaratCustomer.value && item.tax_amount > 250) {
-    return (item.tax_amount / 2);  // Divide tax equally for Gujarat
-  }
-  if (item.tax_rate !== null && item.tax_rate !== undefined) {
-    return item.tax_rate;
-  }
-  return 0;  // Default tax rate for other cases
-};
+      if (
+        item.tax_rate !== null &&
+        item.tax_rate !== undefined &&
+        item.tax_rate !== ""
+      ) {
+        return Number(item.tax_rate);
+      }
+      const subtotal = Number(item.subtotal) || 0;
+      const tax =
+        Number(item.tax_amount) ||
+        Number(item.total_tax) ||
+        0;
+      const taxable = subtotal - tax;
+      if (taxable > 0 && tax > 0) {
+        return Number(((tax / taxable) * 100).toFixed(2));
+      }
+      return 0;
+    };
 
     const getGrossAmount = (order) => {
       if (order.subtotal) return order.subtotal;
