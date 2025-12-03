@@ -1036,27 +1036,45 @@ export default {
 
         // For mobile Design
         const showMobileCart = ref(false);
- const handleCustomerChange = (selectedCustomerId) => {
-            // Find the selected customer based on the xid
-            const selectedCustomer = customers.find(
-                (customer) => customer.xid === selectedCustomerId
-            );
+const handleCustomerChange = (selectedCustomerId) => {
+    // Find the selected customer based on the xid
+    const selectedCustomer = customers.find(
+        (customer) => customer.xid === selectedCustomerId
+    );
 
-            if (selectedCustomer) {
-                // Save the entire selected customer object to localStorage
-                localStorage.setItem('selectedCustomer', JSON.stringify(selectedCustomer));
-            }
+    if (selectedCustomer) {
+        // Save the entire selected customer object to localStorage
+        const customerData = {
+            name: selectedCustomer.name,
+            phone: selectedCustomer.phone,
+            profile_image: selectedCustomer.profile_image,
+            email: selectedCustomer.email,
+            address: selectedCustomer.address,
+            xid: selectedCustomer.xid,
         };
+
+        localStorage.setItem('selectedCustomer', JSON.stringify(customerData));
+    }
+};
 
         // This will get customer data from localStorage when the page loads
         const getCustomerFromLocalStorage = () => {
-            const storedCustomer = localStorage.getItem('selectedCustomer');
-            if (storedCustomer) {
-                const customer = JSON.parse(storedCustomer);
-                formData.user_id = customer.xid; // Set the user ID
-                // Optionally set more fields if necessary
-            }
-        };
+    const storedCustomer = localStorage.getItem('selectedCustomer');
+    if (storedCustomer) {
+        const customer = JSON.parse(storedCustomer);
+        formData.user_id = customer.xid; // Set the user ID
+        // Optionally set more fields if necessary
+        // For example:
+        // formData.name = customer.name;
+        // formData.phone = customer.phone;
+    }
+};
+
+onMounted(() => {
+    // Retrieve customer data from localStorage on page load
+    getCustomerFromLocalStorage();
+});
+
        onMounted(async () => {
     await getPreFetchData();
 
