@@ -422,6 +422,320 @@
                     </div>
                 </div>
             </a-col>
+            <a-col class="right-pos-sidebar" :xs="24" :sm="24" :md="24" :lg="14" :xl="14">
+                <perfect-scrollbar
+                    :options="{
+                        wheelSpeed: 1,
+                        swipeEasing: true,
+                        suppressScrollX: true,
+                    }"
+                >
+                    <PosLayout1
+                        v-if="postLayout == 1"
+                        :brands="brands"
+                        :categories="categories"
+                        :formData="formData"
+                        @changed="reFetchProducts"
+                    />
+
+                    <PosLayout2
+                        v-else
+                        :brands="brands"
+                        :categories="categories"
+                        :formData="formData"
+                        @changed="reFetchProducts"
+                    />
+
+                    <a-row v-if="productLists.length > 0" :gutter="30">
+                        <a-col
+                            v-for="item in productLists"
+                            :key="item.xid"
+                            :xxl="6"
+                            :lg="6"
+                            :md="12"
+                            :xs="24"
+                            @click="selectSaleProduct(item)"
+                        >
+                            <ProductCardNew :product="item" />
+                        </a-col>
+                    </a-row>
+                    <a-row v-else>
+                        <a-col :span="24">
+                            <a-result
+                                :title="$t('stock.no_product_found')"
+                                :style="{ marginTop: '20%' }"
+                            />
+                        </a-col>
+                    </a-row>
+                </perfect-scrollbar>
+            </a-col>
+        </a-row>
+
+        <a-row v-else :gutter="[8, 8]" class="mt-5" style="margin: 10px 16px 0">
+            <a-col :span="24">
+                <span style="display: flex">
+                    <a-select
+                        :value="null"
+                        :searchValue="orderSearchTerm"
+                        show-search
+                        :filter-option="false"
+                        :placeholder="$t('product.search_scan_product')"
+                        style="width: 90%"
+                        :not-found-content="productFetching ? undefined : null"
+                        @search="
+                            (searchedValue) => {
+                                orderSearchTerm = searchedValue;
+                                fetchProducts(searchedValue);
+                            }
+                        "
+                        option-label-prop="label"
+                        @focus="products = []"
+                        @select="searchValueSelected"
+                        @inputKeyDown="inputValueChanged"
+                    >
+                        <template #suffixIcon>
+                            <SearchOutlined />
+                        </template>
+                        <template v-if="productFetching" #notFoundContent>
+                            <a-spin size="small" />
+                        </template>
+                        <a-select-option
+                            v-for="product in products"
+                            :key="product.xid"
+                            :value="product.xid"
+                            :label="product.name"
+                            :product="product"
+                        >
+                            => {{ product.name }}
+                        </a-select-option>
+                    </a-select>
+                    <a-button
+                        v-if="showMobileCart"
+                        class="ml-5"
+                        style="width: 100%"
+                        @click="() => (showMobileCart = false)"
+                        type="primary"
+                    >
+                        <template #icon>
+                            <ShoppingCartOutlined />
+                        </template>
+                    </a-button>
+                    <a-button
+                        v-else
+                        class="ml-5"
+                        style="width: 100%"
+                        @click="() => (showMobileCart = true)"
+                        type="primary"
+                    >
+                        <template #icon>
+                            <UnorderedListOutlined />
+                        </template>
+                    </a-button>
+                </span>
+            </a-col>
+
+            <a-col :span="24">
+                <div class="pos1-left-wrapper">
+                    <div v-if="!showMobileCart" class="pos-left-header">
+                        <PosLayout1
+                            v-if="postLayout == 1"
+                            :brands="brands"
+                            :categories="categories"
+                            :formData="formData"
+                            @changed="reFetchProducts"
+                        />
+                        <PosLayout2
+                            v-else
+                            :brands="brands"
+                            :categories="categories"
+                            :formData="formData"
+                            @changed="reFetchProducts"
+                        />
+                    </div>
+                    <div v-if="!showMobileCart" class="pos-left-content">
+                        <a-row
+                            v-if="productLists.length > 0"
+                            :gutter="30"
+                            class="pos1-products-lists"
+                        >
+                            <a-col
+                                v-for="item in productLists"
+                                :key="item.xid"
+                                :xxl="8"
+                                :lg="8"
+                                :md="8"
+                                :sm="12"
+                                :xs="12"
+                                @click="selectSaleProduct(item)"
+                            >
+                                <ProductCardNew :product="item" />
+                            </a-col>
+                        </a-row>
+                    </div>
+                    <div v-if="showMobileCart">
+                        <a-row class="mt-5 mb-5">
+                            <a-col :xs="24" :sm="24" :md="24" :lg="24">
+                                <a-table
+                                    :row-key="(record) => record.xid"
+                                    :dataSource="selectedProducts"
+                                    :columns="orderItemColumns"
+                                    :pagination="false"
+                                    size="middle"
+                                >
+                                    <template #bodyCell="{ column, record }">
+                                        <template v-if="column.dataIndex === 'name'">
+                                            {{ record.name }} <br />
+                                            <small
+                                                v-if="record.product_type != 'service'"
+                                            >
+                                                <a-typography-text code>
+                                                    {{ $t("product.avl_qty") }}
+                                                    {{
+                                                        `${record.stock_quantity}${record.unit_short_name}`
+                                                    }}
+                                                </a-typography-text>
+                                            </small>
+                                        </template>
+                                        <template
+                                            v-if="column.dataIndex === 'unit_quantity'"
+                                        >
+                                            <a-input-number
+                                                id="inputNumber"
+                                                v-model:value="record.quantity"
+                                                :min="0"
+                                                @change="quantityChanged(record)"
+                                            />
+                                        </template>
+                               <template v-if="column.dataIndex === 'subtotal'">
+    <div class="subtotal-cell">
+        <div class="subtotal-main">
+            {{ formatAmountCurrency(record.subtotal) }}
+        </div>
+
+        <div
+            v-if="record.tax_rate !== null && record.tax_rate !== undefined && Number(record.tax_rate) > 0"
+            class="subtotal-meta"
+        >
+          <a-tag color="gold" class="subtotal-tag">
+    GST {{ record.tax_rate }}%
+</a-tag>
+
+
+        </div>
+    </div>
+</template>
+
+                                        <template v-if="column.dataIndex === 'action'">
+                                            <a-button
+                                                type="primary"
+                                                @click="editItem(record)"
+                                                style="margin-left: 4px; margin-top: 4px"
+                                            >
+                                                <template #icon
+                                                    ><EditOutlined
+                                                /></template>
+                                            </a-button>
+                                            <a-button
+                                                type="primary"
+                                                @click="showDeleteConfirm(record)"
+                                                style="margin-left: 4px; margin-top: 4px"
+                                            >
+                                                <template #icon
+                                                    ><DeleteOutlined
+                                                /></template>
+                                            </a-button>
+                                        </template>
+                                    </template>
+                                </a-table>
+                            </a-col>
+                        </a-row>
+                    </div>
+                    <div v-if="showMobileCart" class="pos-left-footer">
+                        <a-card>
+                            <div class="bill-footer" :style="{ paddingBotton: '30px' }">
+                                <a-row :gutter="[16]">
+                                    <a-col :xs="24" :sm="24" :md="8" :lg="8">
+                                        <a-form-item :label="$t('stock.order_tax')">
+                                            <a-select
+                                                v-model:value="formData.tax_id"
+                                                :placeholder="
+                                                    $t('common.select_default_text', [
+                                                        $t('stock.order_tax'),
+                                                    ])
+                                                "
+                                                :allowClear="true"
+                                                style="width: 100%"
+                                                @change="taxChanged"
+                                            >
+                                                <a-select-option
+                                                    v-for="tax in taxes"
+                                                    :key="tax.xid"
+                                                    :value="tax.xid"
+                                                    :tax="tax"
+                                                >
+                                                    {{ tax.name }} ({{ tax.rate }}%)
+                                                </a-select-option>
+                                            </a-select>
+                                        </a-form-item>
+                                    </a-col>
+                                    <a-col :xs="24" :sm="24" :md="8" :lg="8">
+                                        <a-form-item :label="$t('stock.discount')">
+                                            <a-input-group compact>
+                                                <a-select
+                                                    v-model:value="formData.discount_type"
+                                                    @change="recalculateFinalTotal"
+                                                    style="width: 30%"
+                                                >
+                                                    <a-select-option value="percentage">
+                                                        %
+                                                    </a-select-option>
+                                                    <a-select-option value="fixed">
+                                                        {{ appSetting.currency.symbol }}
+                                                    </a-select-option>
+                                                </a-select>
+                                                <a-input-number
+                                                    v-model:value="
+                                                        formData.discount_value
+                                                    "
+                                                    :placeholder="
+                                                        $t(
+                                                            'common.placeholder_default_text',
+                                                            [$t('stock.discount')]
+                                                        )
+                                                    "
+                                                    @change="recalculateFinalTotal"
+                                                    min="0"
+                                                    style="width: 70%"
+                                                />
+                                            </a-input-group>
+                                        </a-form-item>
+                                    </a-col>
+                                    <a-col :xs="24" :sm="24" :md="8" :lg="8">
+                                        <a-form-item :label="$t('stock.shipping')">
+                                            <a-input-number
+                                                v-model:value="formData.shipping"
+                                                :placeholder="
+                                                    $t(
+                                                        'common.placeholder_default_text',
+                                                        [$t('stock.shipping')]
+                                                    )
+                                                "
+                                                @change="recalculateFinalTotal"
+                                                min="0"
+                                                style="width: 100%"
+                                            >
+                                                <template #addonBefore>
+                                                    {{ appSetting.currency.symbol }}
+                                                </template>
+                                            </a-input-number>
+                                        </a-form-item>
+                                    </a-col>
+                                </a-row>
+                            </div>
+                        </a-card>
+                    </div>
+                </div>
+            </a-col>
         </a-row>
     </a-form>
 
@@ -584,7 +898,6 @@
                             "
                             :allowClear="true"
                         >
-                            <a-select
                             <a-select-option
                                 v-for="taxType in taxTypes"
                                 :key="taxType.key"
@@ -688,18 +1001,29 @@ export default {
             getPreFetchData,
             posDefaultCustomer,
         } = fields();
-        
+        console.log("customers",customers); // This assumes 'customers' is a reactive reference
+
         const selectedProducts = ref([]);
         const selectedProductIds = ref([]);
         const removedOrderItemsIds = ref([]);
         const postLayout = ref(1);
-        
+        const customers = ref([]); // Customers data will be stored here
+
+        // Logging customers data whenever the component mounts
+        onMounted(() => {
+            console.log("Customers on mounted:", customers.value); // Log customers data
+        });
+
+        // Log whenever the customers data changes
+        watch(customers, (newCustomers) => {
+            console.log("Customers updated:", newCustomers); // Log updated customers data
+        });
+
         const state = reactive({
             orderSearchTerm: undefined,
             productFetching: false,
             products: [],
         });
-        
         const {
             formatAmount,
             formatAmountCurrency,
@@ -707,8 +1031,8 @@ export default {
             taxTypes,
             permsArray,
         } = common();
-
         const { t } = useI18n();
+
 
         // AddEdit
         const addEditVisible = ref(false);
@@ -724,44 +1048,48 @@ export default {
 
         // For mobile Design
         const showMobileCart = ref(false);
+const handleCustomerChange = (selectedCustomerId) => {
+  const selectedCustomer = customers.find(
+    (customer) => customer.xid === selectedCustomerId
+  );
 
-        const handleCustomerChange = (selectedCustomerId) => {
-            const selectedCustomer = customers.find(
-                (customer) => customer.xid === selectedCustomerId
-            );
+  if (selectedCustomer) {
+    console.log("Selected customer:", selectedCustomer); // Log selected customer
+    const customerData = {
+      name: selectedCustomer.name,
+      phone: selectedCustomer.phone,
+      profile_image: selectedCustomer.profile_image,
+      email: selectedCustomer.email,
+      address: selectedCustomer.address,
+      xid: selectedCustomer.xid,
+    };
 
-            if (selectedCustomer) {
-                console.log("Selected customer:", selectedCustomer);
-                const customerData = {
-                    name: selectedCustomer.name,
-                    phone: selectedCustomer.phone,
-                    profile_image: selectedCustomer.profile_image,
-                    email: selectedCustomer.email,
-                    address: selectedCustomer.address,
-                    xid: selectedCustomer.xid,
-                };
-
-                console.log("Selected Customer Data:", customerData);
-                localStorage.setItem('selectedCustomer', JSON.stringify(customerData));
-            }
-        };
-
+    console.log("Selected Customer Data:", customerData); // Log the customer data you want to store
+    localStorage.setItem('selectedCustomer', JSON.stringify(customerData));
+  }
+};
+        // This will get customer data from localStorage when the page loads
         const getCustomerFromLocalStorage = () => {
-            const storedCustomer = localStorage.getItem('selectedCustomer');
-            if (storedCustomer) {
-                const customer = JSON.parse(storedCustomer);
-                formData.user_id = customer.xid;
-            }
-        };
+    const storedCustomer = localStorage.getItem('selectedCustomer');
+    if (storedCustomer) {
+        const customer = JSON.parse(storedCustomer);
+        formData.user_id = customer.xid; // Set the user ID
+        // Optionally set more fields if necessary
+        // For example:
+        // formData.name = customer.name;
+        // formData.phone = customer.phone;
+    }
+};
 
-        onMounted(async () => {
-            await getPreFetchData(); // Fetch customer data first
-            const data = localStorage.getItem('selectedCustomer');
-            if (data) {
-                const saved = JSON.parse(data);
-                formData.user_id = saved.xid;
-            }
-        });
+onMounted(async () => {
+    await getPreFetchData(); // important: customer list loads first
+
+    const data = localStorage.getItem('selectedCustomer');
+    if (data) {
+        const saved = JSON.parse(data);
+        formData.user_id = saved.xid;
+    }
+});
 
         const reFetchProducts = () => {
             axiosAdmin
@@ -781,7 +1109,7 @@ export default {
         const fetchAllSearchedProduct = (value) => {
             state.products = [];
 
-            if (value !== "") {
+            if (value != "") {
                 state.productFetching = true;
                 let url = `search-product`;
 
@@ -789,13 +1117,15 @@ export default {
                     .post(url, {
                         order_type: "sales",
                         search_term: value,
+                        // products: selectedProductIds.value,
                     })
                     .then((response) => {
-                        if (response.data.length === 1) {
+                        if (response.data.length == 1) {
                             searchValueSelected("", { product: response.data[0] });
                         } else {
                             state.products = response.data;
                         }
+
                         state.productFetching = false;
                     });
             }
@@ -803,7 +1133,7 @@ export default {
 
         const inputValueChanged = (keydownEvent) => {
             nextTick(() => {
-                if (keydownEvent.keyCode === 13) {
+                if (keydownEvent.keyCode == 13) {
                     fetchAllSearchedProduct(keydownEvent.target.value);
                 }
             });
@@ -815,158 +1145,176 @@ export default {
         };
 
         const selectSaleProduct = (newProduct) => {
-            console.log("Selected product:", {
-                xid: newProduct.xid,
-                name: newProduct.name,
-                subtotal: newProduct.subtotal,
-                tax_rate: newProduct.tax_rate,
+    console.log("Selected product:", {
+        xid: newProduct.xid,
+        name: newProduct.name,
+        subtotal: newProduct.subtotal,
+        tax_rate: newProduct.tax_rate,
+    });
+
+    if (!includes(selectedProductIds.value, newProduct.xid)) {
+        selectedProductIds.value.push(newProduct.xid);
+
+        // 🔹 Build base line item
+        const baseLine = {
+            ...newProduct,
+            sn: selectedProducts.value.length + 1,
+            // make sure we have a quantity
+            quantity: newProduct.quantity || 1,
+            discount_rate: newProduct.discount_rate || 0,
+            unit_price: formatAmount(newProduct.unit_price),
+            tax_rate: newProduct.tax_rate || 0,
+
+            // force exclusive logic from day one
+            tax_type: "exclusive",
+        };
+
+        // 🔹 Recalculate subtotal / tax as EXCLUSIVE
+        const calculatedLine = recalculateValues(baseLine);
+
+        selectedProducts.value.push(calculatedLine);
+
+        state.orderSearchTerm = undefined;
+        state.products = [];
+        recalculateFinalTotal();
+    } else {
+        // existing logic (increment quantity)
+        const newProductSelection = find(selectedProducts.value, [
+            "xid",
+            newProduct.xid,
+        ]);
+
+        if (
+            newProductSelection &&
+            (newProductSelection.quantity < newProductSelection.stock_quantity ||
+                newProductSelection.product_type == "service")
+        ) {
+            const newResults = [];
+            let foundRecord = {};
+
+            selectedProducts.value.map((selectedProduct) => {
+                let newQuantity = selectedProduct.quantity;
+
+                if (selectedProduct.xid == newProduct.xid) {
+                    newQuantity += 1;
+                    selectedProduct.quantity = newQuantity;
+                    foundRecord = selectedProduct;
+                }
+
+                newResults.push(selectedProduct);
             });
 
-            if (!includes(selectedProductIds.value, newProduct.xid)) {
-                selectedProductIds.value.push(newProduct.xid);
+            selectedProducts.value = newResults;
 
-                // Build base line item
-                const baseLine = {
-                    ...newProduct,
-                    sn: selectedProducts.value.length + 1,
-                    quantity: newProduct.quantity || 1,
-                    discount_rate: newProduct.discount_rate || 0,
-                    unit_price: formatAmount(newProduct.unit_price),
-                    tax_rate: newProduct.tax_rate || 0,
-                    tax_type: "exclusive",
-                };
+            state.orderSearchTerm = undefined;
+            state.products = [];
 
-                // Recalculate subtotal/tax as EXCLUSIVE
-                const calculatedLine = recalculateValues(baseLine);
-                selectedProducts.value.push(calculatedLine);
+            quantityChanged(foundRecord);
+        } else {
+            state.orderSearchTerm = undefined;
+            state.products = [];
 
-                state.orderSearchTerm = undefined;
-                state.products = [];
-                recalculateFinalTotal();
-            } else {
-                const newProductSelection = find(selectedProducts.value, [
-                    "xid",
-                    newProduct.xid,
-                ]);
+            message.error(t("common.out_of_stock"));
+        }
+    }
+};
 
-                if (
-                    newProductSelection &&
-                    (newProductSelection.quantity < newProductSelection.stock_quantity ||
-                        newProductSelection.product_type === "service")
-                ) {
-                    const newResults = [];
-                    let foundRecord = {};
 
-                    selectedProducts.value.map((selectedProduct) => {
-                        let newQuantity = selectedProduct.quantity;
+    const recalculateValues = (product) => {
+    let quantityValue = parseFloat(product.quantity);
+    const maxQuantity = parseFloat(product.stock_quantity);
+    const unitPrice = parseFloat(product.unit_price);
 
-                        if (selectedProduct.xid === newProduct.xid) {
-                            newQuantity += 1;
-                            selectedProduct.quantity = newQuantity;
-                            foundRecord = selectedProduct;
-                        }
+    // Clamp quantity to available stock (for non-service)
+    if (product.product_type != "service") {
+        quantityValue = quantityValue > maxQuantity ? maxQuantity : quantityValue;
+    }
 
-                        newResults.push(selectedProduct);
-                    });
+    // Discount
+    const discountRate = product.discount_rate || 0;
+    const totalDiscount = discountRate > 0 ? (discountRate / 100) * unitPrice : 0;
+    const totalPriceAfterDiscount = unitPrice - totalDiscount;
 
-                    selectedProducts.value = newResults;
-                    state.orderSearchTerm = undefined;
-                    state.products = [];
-                    quantityChanged(foundRecord);
-                } else {
-                    state.orderSearchTerm = undefined;
-                    state.products = [];
-                    message.error(t("common.out_of_stock"));
-                }
-            }
-        };
+    // Tax (always EXCLUSIVE)
+    let taxAmount = 0;
+    let subtotal = totalPriceAfterDiscount;
+    let singleUnitPrice = unitPrice;
 
-        const recalculateValues = (product) => {
-            let quantityValue = parseFloat(product.quantity);
-            const maxQuantity = parseFloat(product.stock_quantity);
-            const unitPrice = parseFloat(product.unit_price);
+    if (product.tax_rate > 0) {
+        taxAmount = totalPriceAfterDiscount * (product.tax_rate / 100);
+        subtotal = totalPriceAfterDiscount + taxAmount;
+        singleUnitPrice = totalPriceAfterDiscount;
+    }
 
-            if (product.product_type !== "service") {
-                quantityValue = Math.min(quantityValue, maxQuantity);
-            }
+    const newObject = {
+        ...product,
+        total_discount: totalDiscount * quantityValue,
+        subtotal: subtotal * quantityValue,
+        quantity: quantityValue,
+        total_tax: taxAmount * quantityValue,
+        max_quantity: maxQuantity,
+        single_unit_price: singleUnitPrice,
 
-            const discountRate = product.discount_rate || 0;
-            const totalDiscount = discountRate > 0 ? (discountRate / 100) * unitPrice : 0;
-            const totalPriceAfterDiscount = unitPrice - totalDiscount;
+        // normalize every recalculated line as EXCLUSIVE
+        tax_type: "exclusive",
+    };
 
-            let taxAmount = 0;
-            let subtotal = totalPriceAfterDiscount;
-            let singleUnitPrice = unitPrice;
+    return newObject;
+};
+const normalizeExistingLinesToExclusive = () => {
+    if (!selectedProducts.value.length) return;
 
-            if (product.tax_rate > 0) {
-                taxAmount = totalPriceAfterDiscount * (product.tax_rate / 100);
-                subtotal = totalPriceAfterDiscount + taxAmount;
-                singleUnitPrice = totalPriceAfterDiscount;
-            }
+    selectedProducts.value = selectedProducts.value.map((p) =>
+        recalculateValues({
+            ...p,
+            quantity: p.quantity || 1,
+            discount_rate: p.discount_rate || 0,
+            tax_type: "exclusive",
+        })
+    );
 
-            return {
-                ...product,
-                total_discount: totalDiscount * quantityValue,
-                subtotal: subtotal * quantityValue,
-                quantity: quantityValue,
-                total_tax: taxAmount * quantityValue,
-                max_quantity: maxQuantity,
-                single_unit_price: singleUnitPrice,
-                tax_type: "exclusive",
-            };
-        };
+    recalculateFinalTotal();
+};
 
-        const normalizeExistingLinesToExclusive = () => {
-            if (!selectedProducts.value.length) return;
 
-            selectedProducts.value = selectedProducts.value.map((p) =>
-                recalculateValues({
-                    ...p,
-                    quantity: p.quantity || 1,
-                    discount_rate: p.discount_rate || 0,
-                    tax_type: "exclusive",
-                })
-            );
-
-            recalculateFinalTotal();
-        };
 
         const quantityChanged = (record) => {
             const newResults = [];
 
             selectedProducts.value.map((selectedProduct) => {
-                if (selectedProduct.xid === record.xid) {
+                if (selectedProduct.xid == record.xid) {
                     const newValueCalculated = recalculateValues(record);
                     newResults.push(newValueCalculated);
                 } else {
                     newResults.push(selectedProduct);
                 }
             });
-
             selectedProducts.value = newResults;
+
             recalculateFinalTotal();
         };
 
         const recalculateFinalTotal = () => {
             let total = 0;
-            selectedProducts.value.forEach((selectedProduct) => {
+            selectedProducts.value.map((selectedProduct) => {
                 total += selectedProduct.subtotal;
             });
 
-            let discountAmount = 0;
-            if (formData.value.discount_type === "percentage") {
+            var discountAmount = 0;
+            if (formData.value.discount_type == "percentage") {
                 discountAmount =
-                    formData.value.discount_value !== ""
+                    formData.value.discount_value != ""
                         ? (parseFloat(formData.value.discount_value) * total) / 100
                         : 0;
-            } else if (formData.value.discount_type === "fixed") {
+            } else if (formData.value.discount_type == "fixed") {
                 discountAmount =
-                    formData.value.discount_value !== ""
+                    formData.value.discount_value != ""
                         ? parseFloat(formData.value.discount_value)
                         : 0;
             }
 
-            const taxRate = formData.value.tax_rate !== "" ? parseFloat(formData.value.tax_rate) : 0;
+            const taxRate =
+                formData.value.tax_rate != "" ? parseFloat(formData.value.tax_rate) : 0;
 
             total = total - discountAmount;
 
@@ -978,19 +1326,36 @@ export default {
             formData.value.tax_amount = formatAmount(tax);
             formData.value.discount = discountAmount;
         };
+const getRowSubtotalWithTax = (record) => {
+    const base = Number(record.subtotal) || 0;
+    const rate = Number(record.tax_rate) || 0;
+    if (!rate) return base;
+
+    return base + (base * rate) / 100;
+};
+
+const getRowTaxAmount = (record) => {
+    const base = Number(record.subtotal) || 0;
+    const rate = Number(record.tax_rate) || 0;
+    if (!rate) return 0;
+
+    return (base * rate) / 100;
+};
+
 
         const showDeleteConfirm = (product) => {
+            // Delete selected product and rearrange SN
             const newResults = [];
             let counter = 1;
-            selectedProducts.value.forEach((selectedProduct) => {
-                if (selectedProduct.item_id !== null) {
+            selectedProducts.value.map((selectedProduct) => {
+                if (selectedProduct.item_id != null) {
                     removedOrderItemsIds.value = [
                         ...removedOrderItemsIds.value,
                         selectedProduct.item_id,
                     ];
                 }
 
-                if (selectedProduct.xid !== product.xid) {
+                if (selectedProduct.xid != product.xid) {
                     newResults.push({
                         ...selectedProduct,
                         sn: counter,
@@ -1000,32 +1365,33 @@ export default {
                         tax_amount: formatAmount(selectedProduct.tax_amount),
                         subtotal: formatAmount(selectedProduct.subtotal),
                     });
+
                     counter++;
                 }
             });
-
             selectedProducts.value = newResults;
 
-            const filterProductIdArray = selectedProductIds.value.filter(
-                (newId) => newId !== product.xid
-            );
+            // Remove deleted product id from lists
+            const filterProductIdArray = selectedProductIds.value.filter((newId) => {
+                return newId != product.xid;
+            });
             selectedProductIds.value = filterProductIdArray;
-
             recalculateFinalTotal();
         };
 
         const taxChanged = (value, option) => {
-            formData.value.tax_rate = value === undefined ? 0 : option.tax.rate;
+            formData.value.tax_rate = value == undefined ? 0 : option.tax.rate;
             recalculateFinalTotal();
         };
 
+        // Edit a selected product
         const editItem = (product) => {
             addEditFormData.value = {
                 id: product.xid,
                 discount_rate: product.discount_rate,
                 unit_price: product.unit_price,
                 tax_id: product.x_tax_id,
-                tax_type: product.tax_type === null ? undefined : product.tax_type,
+                tax_type: product.tax_type == null ? undefined : product.tax_type,
             };
             addEditVisible.value = true;
             addEditPageTitle.value = product.name;
@@ -1042,11 +1408,13 @@ export default {
         const resetPos = () => {
             selectedProducts.value = [];
             selectedProductIds.value = [];
+
             formData.value = {
                 ...formData.value,
                 tax_id: undefined,
                 category_id: undefined,
                 brand_id: undefined,
+                tax_id: undefined,
                 tax_rate: 0,
                 tax_amount: 0,
                 discount_value: 0,
@@ -1054,31 +1422,35 @@ export default {
                 shipping: 0,
                 subtotal: 0,
             };
+
             recalculateFinalTotal();
         };
 
+        // For Add Edit
         const onAddEditSubmit = () => {
             const record = selectedProducts.value.filter(
-                (selectedProduct) => selectedProduct.xid === addEditFormData.value.id
+                (selectedProduct) => selectedProduct.xid == addEditFormData.value.id
             );
 
             const selecteTax = taxes.value.filter(
-                (tax) => tax.xid === addEditFormData.value.tax_id
+                (tax) => tax.xid == addEditFormData.value.tax_id
             );
 
             const taxType =
-                addEditFormData.value.tax_type !== undefined
+                addEditFormData.value.tax_type != undefined
                     ? addEditFormData.value.tax_type
                     : "exclusive";
 
             const newData = {
-                ...record[0],
-                discount_rate: parseFloat(addEditFormData.value.discount_rate),
-                unit_price: parseFloat(addEditFormData.value.unit_price),
-                tax_id: addEditFormData.value.tax_id,
-                tax_rate: selecteTax[0] ? selecteTax[0].rate : 0,
-                tax_type: "exclusive",
-            };
+    ...record[0],
+    discount_rate: parseFloat(addEditFormData.value.discount_rate),
+    unit_price: parseFloat(addEditFormData.value.unit_price),
+    tax_id: addEditFormData.value.tax_id,
+    tax_rate: selecteTax[0] ? selecteTax[0].rate : 0,
+
+    // 🔥 force exclusive on save too
+    tax_type: "exclusive",
+};
 
             quantityChanged(newData);
             onAddEditClose();
@@ -1089,9 +1461,11 @@ export default {
             addEditVisible.value = false;
         };
 
+        // Customer
         const customerAdded = () => {
             axiosAdmin.get(customerUrl).then((response) => {
                 customers.value = response.data;
+                console.log("Updated customers data after adding:", customers.value); // Log updated customers data
             });
         };
 
@@ -1123,14 +1497,17 @@ export default {
             formData,
             reFetchProducts,
             selectSaleProduct,
+
             taxChanged,
             quantityChanged,
             recalculateFinalTotal,
-            handleCustomerChange,
+handleCustomerChange,
+            // Pay Now
             payNow,
             payNowVisible,
             payNowClosed,
             resetPos,
+
             appSetting,
             permsArray,
             ...toRefs(state),
@@ -1140,7 +1517,16 @@ export default {
             orderItemColumns,
             formatAmount,
             formatAmountCurrency,
+
+            containerStyle: {
+                height: window.innerHeight - 110 + "px",
+                overflow: "scroll",
+                "overflow-y": "scroll",
+            },
+
             customerAdded,
+
+            // Add Edit
             editItem,
             addEditVisible,
             addEditFormData,
@@ -1151,16 +1537,20 @@ export default {
             onAddEditClose,
             taxTypes,
             showDeleteConfirm,
+
             payNowSuccess,
+
             printInvoiceModalVisible,
             printInvoiceOrder,
+
             postLayout,
             innerWidth: window.innerWidth,
+
             inputValueChanged,
+
             showMobileCart,
-            getRowSubtotalWithTax,
-            getRowTaxAmount,
-        };
+getRowSubtotalWithTax,
+    getRowTaxAmount,        };
     },
 };
 </script>
@@ -1213,6 +1603,7 @@ export default {
 
 .pos-left-content {
     flex: 1;
+    // overflow: auto;
 }
 
 .pos-left-footer {
@@ -1242,11 +1633,49 @@ export default {
     }
 }
 
+.pos-grand-total {
+    font-size: 18px;
+    font-weight: bold;
+}
+
 .pos1-products-lists {
     height: calc(100vh - 245px);
     overflow-y: overlay;
+
+    img {
+        height: 100px;
+    }
+
+    .product-pos {
+        margin-top: 5px;
+    }
 }
 
+.left-pos1-middle-table {
+    height: calc(100vh - 500px);
+    overflow-y: overlay;
+
+    .ant-card-body {
+        padding-bottom: 0px;
+        padding-top: 0px;
+    }
+}
+
+.pos1-bill-filters {
+    .ant-card-body {
+        padding: 10px 3px;
+    }
+}
+
+.pos-mobile-footer {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    background-color: white;
+    text-align: center;
+    border-top: 1px solid #e8e8e8;
+}
 .subtotal-cell {
     display: flex;
     flex-direction: column;
@@ -1271,13 +1700,4 @@ export default {
     padding: 0 6px;
 }
 
-.pos-mobile-footer {
-    position: fixed;
-    left: 0;
-    bottom: 0;
-    width: 100%;
-    background-color: white;
-    text-align: center;
-    border-top: 1px solid #e8e8e8;
-}
 </style>
