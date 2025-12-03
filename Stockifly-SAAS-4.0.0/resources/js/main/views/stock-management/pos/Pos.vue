@@ -1007,17 +1007,6 @@ export default {
         const selectedProductIds = ref([]);
         const removedOrderItemsIds = ref([]);
         const postLayout = ref(1);
-        const customers = ref([]); // Customers data will be stored here
-
-        // Logging customers data whenever the component mounts
-        onMounted(() => {
-            console.log("Customers on mounted:", customers.value); // Log customers data
-        });
-
-        // Log whenever the customers data changes
-        watch(customers, (newCustomers) => {
-            console.log("Customers updated:", newCustomers); // Log updated customers data
-        });
 
         const state = reactive({
             orderSearchTerm: undefined,
@@ -1049,12 +1038,13 @@ export default {
         // For mobile Design
         const showMobileCart = ref(false);
 const handleCustomerChange = (selectedCustomerId) => {
+  // Find the selected customer based on the xid
   const selectedCustomer = customers.find(
     (customer) => customer.xid === selectedCustomerId
   );
 
   if (selectedCustomer) {
-    console.log("Selected customer:", selectedCustomer); // Log selected customer
+    // Save the entire selected customer object to localStorage
     const customerData = {
       name: selectedCustomer.name,
       phone: selectedCustomer.phone,
@@ -1064,10 +1054,14 @@ const handleCustomerChange = (selectedCustomerId) => {
       xid: selectedCustomer.xid,
     };
 
-    console.log("Selected Customer Data:", customerData); // Log the customer data you want to store
+    // Log the selected customer data to the console
+    console.log("Selected Customer Data:", customerData);
+
+    // Store the customer data in localStorage
     localStorage.setItem('selectedCustomer', JSON.stringify(customerData));
   }
 };
+
         // This will get customer data from localStorage when the page loads
         const getCustomerFromLocalStorage = () => {
     const storedCustomer = localStorage.getItem('selectedCustomer');
