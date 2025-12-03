@@ -1038,23 +1038,17 @@ export default {
         // For mobile Design
         const showMobileCart = ref(false);
 const handleCustomerChange = (selectedCustomerId) => {
-    // Find the selected customer based on the xid
     const selectedCustomer = customers.find(
-        (customer) => customer.xid === selectedCustomerId
+        (item) => item.xid === selectedCustomerId
     );
 
     if (selectedCustomer) {
-        // Save the entire selected customer object to localStorage
-        const customerData = {
-            name: selectedCustomer.name,
-            phone: selectedCustomer.phone,
-            profile_image: selectedCustomer.profile_image,
-            email: selectedCustomer.email,
-            address: selectedCustomer.address,
-            xid: selectedCustomer.xid,
-        };
+        localStorage.setItem(
+            'selectedCustomer',
+            JSON.stringify(selectedCustomer)
+        );
 
-        localStorage.setItem('selectedCustomer', JSON.stringify(customerData));
+        formData.user_id = selectedCustomer.xid;
     }
 };
 
@@ -1071,19 +1065,15 @@ const handleCustomerChange = (selectedCustomerId) => {
     }
 };
 
-onMounted(() => {
-    // Retrieve customer data from localStorage on page load
-    getCustomerFromLocalStorage();
+onMounted(async () => {
+    await getPreFetchData(); // important: customer list loads first
+
+    const data = localStorage.getItem('selectedCustomer');
+    if (data) {
+        const saved = JSON.parse(data);
+        formData.user_id = saved.xid;
+    }
 });
-
-       onMounted(async () => {
-    await getPreFetchData();
-
-    normalizeExistingLinesToExclusive();
-            // Retrieve customer data from localStorage on page load
-            getCustomerFromLocalStorage();
-});
-
 
         const reFetchProducts = () => {
             axiosAdmin
