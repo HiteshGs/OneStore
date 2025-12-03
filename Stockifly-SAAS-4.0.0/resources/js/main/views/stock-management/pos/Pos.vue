@@ -1007,7 +1007,6 @@ export default {
         const selectedProductIds = ref([]);
         const removedOrderItemsIds = ref([]);
         const postLayout = ref(1);
-        const customers = ref([]); // Customers data will be stored here
 
         // Logging customers data whenever the component mounts
         onMounted(() => {
