@@ -397,11 +397,17 @@
 <div class="bottom-section">
   <!-- 1. BANK DETAILS – ONE CLEAN HORIZONTAL BOX (LIKE YOUR IMAGE) -->
   <div class="bank-details-box">
-    <div class="bank-detail-item"><strong>A/c No :</strong> {{ bankDetailsToShow.accountNo }}</div>
-    <div class="bank-detail-item"><strong>Bank :</strong> {{ bankDetailsToShow.bank }}</div>
-    <div class="bank-detail-item"><strong>Branch :</strong> {{ bankDetailsToShow.branch }}</div>
-    <div class="bank-detail-item"><strong>IFSC :</strong> {{ bankDetailsToShow.ifsc }}</div>
+  <strong class="bank-title">BANK DETAIL :</strong>
+  <div class="bank-items">
+    <span>A/c No : {{ bankDetailsToShow.accountNo }}</span>
+    <span class="separator">|</span>
+    <span>Bank : {{ bankDetailsToShow.bank }}</span>
+    <span class="separator">|</span>
+    <span>Branch : {{ bankDetailsToShow.branch }}</span>
+    <span class="separator">|</span>
+    <span>IFSC : {{ bankDetailsToShow.ifsc }}</span>
   </div>
+</div>
 
   <!-- 2. TWO BOXES BELOW – TERMS + SIGNATURE -->
   <div class="bottom-boxes-row">
@@ -1110,26 +1116,45 @@ console.log("Total Tax Amount:", totalTaxAmount);
 /* 1. BANK DETAILS – ONE CLEAN BOX */
 .bank-details-box {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: center;
+  gap: 20px;
   border: 2px solid #000;
-  padding: 10px 20px;
-  background: #f9f9f9;
+  padding: 12px 20px;
+  background: #fff;
+  margin: 25px 0 20px 0;
+  font-size: 13.5px;
   font-weight: 500;
-  margin-bottom: 20px;
-  border-radius: 4px;
+  flex-wrap: wrap;
 }
 
-.bank-detail-item {
+.bank-title {
+  font-weight: 900 !important;
+  font-size: 15px;
+  color: #000;
+  min-width: 120px;
+  text-align: left;
+}
+
+.bank-items {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  justify-content: center;
   flex: 1;
-  text-align: center;
 }
 
-.bank-detail-item strong {
-  margin-right: 8px;
-  font-weight: 600;
+.bank-items span {
+  white-space: nowrap;
+  font-weight: 500;
 }
 
+.separator {
+  font-weight: bold;
+  color: #000;
+  font-size: 16px;
+}
 /* 2. TWO BOXES BELOW */
 .bottom-boxes-row {
   display: flex;
@@ -1223,7 +1248,7 @@ console.log("Total Tax Amount:", totalTaxAmount);
 }
 .terms-header {
   font-weight: 600;
-  text-align: right;
+  text-align: left;
 }
 .terms-text-cell {
   text-align: right;
