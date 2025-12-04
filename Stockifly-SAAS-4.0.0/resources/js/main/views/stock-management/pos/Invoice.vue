@@ -261,15 +261,15 @@
                     </p>
                     <p>
                       <strong>SGST :</strong>
-                      {{ formatAmountCurrency(order.sgst_amount || 0) }}
+                     {{ formatAmountCurrency(computedSGST) }}
                     </p>
                     <p>
                       <strong>CGST :</strong>
-                      {{ formatAmountCurrency(order.cgst_amount || 0) }}
+                      {{ formatAmountCurrency(computedCGST) }}
                     </p>
                     <p>
                       <strong>IGST :</strong>
-                      {{ formatAmountCurrency(order.igst_amount || 0) }}
+                      {{ formatAmountCurrency(computedIGST) }}
                     </p>
                     <p>
                       <strong>NET AMOUNT :</strong>
@@ -602,7 +602,28 @@ export default defineComponent({
     );
 
     const onClose = () => emit("closed");
+const customerState = computed(() => {
+  const address = (props.order?.user?.address || "").toLowerCase();
+  const city = (props.order?.user?.city || "").toLowerCase();
+  const state = (props.order?.user?.state || "").toLowerCase();
+  const fullText = `${address} ${city} ${state}`;
 
+  // List of Gujarat keywords
+  const gujaratKeywords = ["gujarat", "gujrat", "gj", "surat", "ahmedabad", "vadodara", "rajkot", "bhavnagar", "jamnagar", "anand", "gandhinagar", "bharuch", "valsad", "navsari"];
+
+  return gujaratKeywords.some(keyword => fullText.includes(keyword)) 
+    ? "Gujarat" 
+    : "Other State";
+});
+
+const isIntraState = computed(() => customerState.value === "Gujarat");
+
+// Smart SGST / CGST / IGST Calculation
+const totalTaxAmount = computed(() => Number(props.order?.tax_amount) || 0);
+
+const computedSGST = computed(() => isIntraState.value ? totalTaxAmount.value / 2 : 0);
+const computedCGST = computed(() => isIntraState.value ? totalTaxAmount.value / 2 : 0);
+const computedIGST = computed(() => isIntraState.value ? 0 : totalTaxAmount.value);
     const sendInvoiceMail = async (xid, lang) => {
       isSending.value = true;
       try {
@@ -850,6 +871,10 @@ export default defineComponent({
       gstSummaryTotals,
       displayGSTIN,
       bankDetailsToShow,
+      customerState,
+  computedSGST,
+  computedCGST,
+  computedIGST,
     };
   },
 });
