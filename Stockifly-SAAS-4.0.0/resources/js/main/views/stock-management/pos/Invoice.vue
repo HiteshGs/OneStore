@@ -624,6 +624,34 @@ const totalTaxAmount = computed(() => Number(props.order?.tax_amount) || 0);
 const computedSGST = computed(() => isIntraState.value ? totalTaxAmount.value / 2 : 0);
 const computedCGST = computed(() => isIntraState.value ? totalTaxAmount.value / 2 : 0);
 const computedIGST = computed(() => isIntraState.value ? 0 : totalTaxAmount.value);
+
+watch(
+  () => props.order,
+  (newOrder) => {
+    if (!newOrder || !newOrder.xid) return;
+
+    const tax = Number(newOrder.tax_amount) || 0;
+    const detectedState = customerState.value;
+    const isGujarat = detectedState === "Gujarat";
+
+    console.log("════════════════════════════════");
+    console.log("GST SPLIT DEBUG (Invoice: %s)", newOrder.invoice_number);
+    console.log("Customer Address →", newOrder.user?.address || "N/A");
+    console.log("Customer City    →", newOrder.user?.city || "N/A");
+    console.log("Detected State   →", detectedState);
+    console.log("Is Gujarat?      →", isGujarat ? "YES → SGST + CGST" : "NO → IGST");
+    console.log("Total Tax Amount →", tax.toFixed(2));
+    console.log("→ SGST           →", computedSGST.value.toFixed(2));
+    console.log("→ CGST           →", computedCGST.value.toFixed(2));
+    console.log("→ IGST           →", computedIGST.value.toFixed(2));
+    console.log("Check Sum        →", (computedSGST.value + computedCGST.value + computedIGST.value).toFixed(2), 
+                "==", tax.toFixed(2), 
+                (computedSGST.value + computedCGST.value + computedIGST.value) === tax ? "PERFECT" : "ERROR");
+    console.log("════════════════════════════════\n");
+  },
+  { immediate: true }
+);
+
     const sendInvoiceMail = async (xid, lang) => {
       isSending.value = true;
       try {
