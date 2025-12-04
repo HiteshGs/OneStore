@@ -78,7 +78,7 @@
         <!-- BILL TO (LIKE "BILL TO PARTY" BLOCK) -->
        <div class="bill-party-row">
   <div class="bill-party-left">
-    <h3 class="bill-title">Bill To Party</h3>
+    <h4 class="bill-title">Bill To Party</h4>
 
     <p class="party-line party-name">
       {{ order.user?.name || posSelectedCustomer?.name || 'Walk-in Customer' }}
@@ -912,7 +912,7 @@ const printInvoice = async () => {
 
 .generated-info {
   background: #f8f9fa;
-  padding: 8px 12px;
+  padding: 10px 25px;
   border-radius: 6px;
   border: 1px solid #e0e0e0;
   display: inline-block;
@@ -1064,7 +1064,7 @@ const printInvoice = async () => {
     justify-content: center;
     gap: 0px;
     border: 2px solid #000;
-    padding: 12px 20px;
+    padding: 8px 12px;
     background: #fff;
     margin: 25px 0 20px;
     font-size: 11.5px;
