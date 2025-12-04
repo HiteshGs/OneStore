@@ -841,7 +841,7 @@ const printInvoice = async () => {
   margin-bottom: 4px;
 }
 .invoice-header-text {
-  margin-top: -110px;
+  margin-top: 0px;
 }
 .store-name {
   margin: 0;
@@ -1155,7 +1155,7 @@ const printInvoice = async () => {
 }
 
 .company-name-bottom {
-  margin-top: -12px;
+  margin-top: 2px;
   font-weight: bold;
   font-size: 14px;
 }
