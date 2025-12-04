@@ -46,7 +46,7 @@
 
   <!-- GSTIN: New line, bold, slightly indented, centered -->
   <p class="store-gstin-line">
-    <strong>GSTIN:</strong> {{ displayGSTIN }}
+    <strong>GSTIN: {{ displayGSTIN }}</strong> 
   </p>
 </div>
         </div>
