@@ -46,7 +46,7 @@
 
   <!-- GSTIN: New line, bold, slightly indented, centered -->
   <p class="store-gstin-line">
-    <strong>GSTIN: {{ displayGSTIN }}</strong> 
+    <strong>GSTIN:{{ displayGSTIN }} </strong> 
   </p>
 </div>
         </div>
@@ -214,8 +214,7 @@
         <td class="label-strong">IGST :</td>
         <td class="value-right">{{ formatAmountCurrency(computedIGST) }}</td>
         <td class="label-strong net-amount-label">NET AMOUNT :</td>
-<td class="value-right big-total net-amount-value" colspan="3">
-  {{ formatAmountCurrency(order.total) }}
+<td class="value-right net-amount-value" colspan="3">  {{ formatAmountCurrency(order.total) }}
 </td>
       </tr>
 
@@ -1582,21 +1581,27 @@ const printInvoice = async () => {
 }
 .net-amount-label {
   font-weight: 900 !important;
-  font-size: 17px !important;
+  font-size: 18px !important;
   color: #000 !important;
-  background: #ffff00 !important;     /* Yellow background jaise Vyapar */
+  background: #ffff00 !important;
   text-align: center !important;
-  letter-spacing: 1px;
+  letter-spacing: 1.2px !important;
+  padding: 10px 0 !important;
+  border: 2px solid #000 !important;
 }
 
 .net-amount-value {
   font-weight: 900 !important;
-  font-size: 20px !important;
-  color: #000000 !important;
-  background: #fff0f0 !important;
+  font-size: 23px !important;
+  color: #000 !important;
+  background: #ffff00 !important;
   text-align: right !important;
-  padding-right: 20px !important;
+  padding-right: 30px !important;
+  border: 2px solid #000 !important;
+  border-left: none !important;
 }
+
+/* Print aur PDF ke liye force color */
 @media print {
   .net-amount-label,
   .net-amount-value {
@@ -1605,5 +1610,12 @@ const printInvoice = async () => {
     color: #000 !important;
     background: #ffff00 !important;
   }
+}
+
+/* Extra safety – koi aur class override na kare */
+.net-amount-value,
+.big-total.net-amount-value {
+  color: #000 !important;
+}
 }
 </style>
