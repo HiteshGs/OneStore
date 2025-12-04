@@ -721,79 +721,8 @@ console.log("Total Tax Amount:", totalTaxAmount);
               .discount-details { padding:5px 0px; border-top:2px dotted #ddd !important; border-bottom:2px dotted #ddd !important; }
               .discount-details p { margin-bottom:0px; }
 
-.bottom-section {
-  margin-top: 20px;
-  font-size: 12px;
-}
-
-/* 1. HORIZONTAL BANK DETAILS */
-.bank-details-horizontal {
-  padding: 8px 0;
-  border-top: 1px solid #000;
-  border-bottom: 1px solid #000;
-  text-align: center;
-  background: #f9f9f9;
-  font-weight: 500;
-}
-.bank-details-horizontal span {
-  margin: 0 12px;
-}
-
-/* 2. TWO BOXES BELOW */
-.bottom-boxes-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 10px;
-  table-layout: fixed;
-}
-.bottom-boxes-table td {
-  border: 2px solid #000;
-  padding: 12px;
-  vertical-align: top;
-  width: 50%;
-  height: 140px; /* Enough space for stamp */
-}
-
-/* LEFT: TERMS */
-.terms-box {
-  text-align: left;
-}
-.terms-header {
-  font-weight: bold;
-  margin-bottom: 8px;
-  font-size: 13px;
-}
-.terms-content {
-  line-height: 1.5;
-  margin-bottom: 20px;
-  min-height: 50px;
-}
-.for-company {
-  margin-top: 20px;
-  font-weight: bold;
-  font-size: 13px;
-}
-
-/* RIGHT: SIGNATURE BOX */
-.signature-box-outer {
-  text-align: center;
-  position: relative;
-}
-.signature-title {
-  font-weight: bold;
-  margin-bottom: 10px;
-  font-size: 13px;
-}
-.signature-space {
-  height: 80px;
-  border-bottom: 1px solid #000;
-  margin: 10px 20px;
-}
-.company-name-bottom {
-  margin-top: 10px;
-  font-weight: bold;
-  font-size: 13px;
-}              .bottom-table { width:100%; border-collapse:collapse; font-size:12px; }
+              .bottom-section { margin-top:8px; }
+              .bottom-table { width:100%; border-collapse:collapse; font-size:12px; }
               .bottom-table td { border:1px solid #000; padding:4px 6px; vertical-align:top; }
               .inner-bank-table, .inner-terms-table { width:100%; border-collapse:collapse; }
               .inner-bank-table td, .inner-terms-table td { border:none; padding:2px 0; }
@@ -1177,8 +1106,86 @@ console.log("Total Tax Amount:", totalTaxAmount);
 }
 
 /* BANK + TERMS bottom boxed table */
+/* =============== FINAL BOTTOM SECTION – EXACTLY LIKE YOUR IMAGE =============== */
 .bottom-section {
-  margin-top: 8px;
+  margin-top: 20px;
+  font-size: 12.5px;
+  page-break-inside: avoid;
+}
+
+/* 1. HORIZONTAL BANK DETAILS LINE */
+.bank-details-horizontal {
+  padding: 10px 0;
+  border-top: 2px solid #000;
+  border-bottom: 2px solid #000;
+  text-align: center;
+  background: #f8f8f8;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+.bank-details-horizontal span {
+  margin: 0 15px;
+  font-weight: normal;
+}
+
+/* 2. TWO BOXES BELOW */
+.bottom-boxes-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+  table-layout: fixed;
+}
+.bottom-boxes-table td {
+  border: 2px solid #000;
+  padding: 15px;
+  vertical-align: top;
+  width: 50%;
+  height: 150px;
+  position: relative;
+}
+
+/* LEFT: TERMS OF SALES */
+.terms-box {
+  text-align: left;
+}
+.terms-header {
+  font-weight: bold;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+.terms-content {
+  line-height: 1.6;
+  margin-bottom: 25px;
+  min-height: 60px;
+}
+.for-company {
+  position: absolute;
+  bottom: 15px;
+  left: 15px;
+  font-weight: bold;
+  font-size: 13.5px;
+}
+
+/* RIGHT: AUTHORISED SIGNATORY */
+.signature-box-outer {
+  text-align: center;
+}
+.signature-title {
+  font-weight: bold;
+  font-size: 14px;
+  margin-bottom: 15px;
+}
+.signature-space {
+  height: 90px;
+  border-bottom: 2px solid #000;
+  margin: 0 30px;
+}
+.company-name-bottom {
+  {
+  margin-top: 15px;
+  font-weight: bold;
+  font-size: 13.5px;
+}
 }
 .bottom-table {
   width: 100%;
