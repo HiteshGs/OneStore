@@ -15,49 +15,33 @@
         style="margin: 0 auto"
       >
         <!-- TOP HEADER (STORE INFO) -->
-      <div class="perfect-header">
-  <div class="header-top-row">
-    <!-- Left: Logo -->
-    <div class="logo-section">
-      <img :src="selectedWarehouse.logo_url" alt="Logo" class="header-logo" />
-    </div>
-
-    <!-- Center: Company Name (Gujarati + English) + Address + Contact -->
-    <div class="company-center-section">
-      <!-- Gujarati Name (Big & Bold) -->
-      <h1 class="gujarati-name">{{ selectedWarehouse.name_gujarati || selectedWarehouse.name || 'લક્ષ્મણ નગર' }}</h1>
-      
-      <!-- English Name (Optional – if you have it) -->
-      <h2 v-if="selectedWarehouse.name_english" class="english-name">
-        {{ selectedWarehouse.name_english }}
-      </h2>
-
-      <!-- Address -->
-      <p class="company-address">
-        {{ selectedWarehouse.address || 'Address not available' }}
-      </p>
-
-      <!-- Phone + Email + GSTIN in one line -->
-      <p class="company-contact-line">
-        <span v-if="selectedWarehouse.phone">Phone: {{ selectedWarehouse.phone }}</span>
-        <span v-if="selectedWarehouse.email"> | Email: {{ selectedWarehouse.email }}</span>
-        <span> | GSTIN: {{ displayGSTIN }}</span>
-      </p>
-    </div>
-
-    <!-- Right: Mobile Numbers (You can add multiple) -->
-    <div class="mobile-right-section">
-      <p v-for="(mobile, index) in mobileNumbers" :key="index" class="mobile-line">
-        Mo: {{ mobile }}
-      </p>
-    </div>
-  </div>
-
-  <!-- TAX INVOICE Title Below Header -->
-  <div class="tax-invoice-title-center">
-    <h2>TAX INVOICE</h2>
-  </div>
-</div>
+        <div class="invoice-header">
+          <img
+            class="invoice-logo"
+            :src="selectedWarehouse.logo_url"
+            :alt="selectedWarehouse.name"
+          />
+          <div class="invoice-header-text">
+            <h1 class="store-name">
+              {{ selectedWarehouse.name }}
+            </h1>
+            <p class="store-address">
+              {{ selectedWarehouse.address }}
+            </p>
+            <p class="store-contact">
+              <span v-if="selectedWarehouse.phone">
+                {{ $t('common.phone') }}: {{ selectedWarehouse.phone }}
+              </span>
+              <span v-if="selectedWarehouse.email">
+                &nbsp;|&nbsp;{{ $t('common.email') }}: {{ selectedWarehouse.email }}
+              </span>
+              <!-- GSTN – always show with fallback -->
+              <span class="store-gst">
+                &nbsp;|&nbsp;GSTIN: {{ displayGSTIN }}
+              </span>
+            </p>
+          </div>
+        </div>
 
         <!-- TAX INVOICE + META (LIKE PDF TOP BOX) -->
         <div class="invoice-meta-row">
@@ -737,13 +721,7 @@ console.log("Total Tax Amount:", totalTaxAmount);
       }
       return 0;
     };
-const mobileNumbers = computed(() => {
-  const phones = [];
-  if (selectedWarehouse.phone) phones.push(selectedWarehouse.phone);
-  if (selectedWarehouse.phone2) phones.push(selectedWarehouse.phone2);
-  if (selectedWarehouse.phone3) phones.push(selectedWarehouse.phone3);
-  return phones.length > 0 ? phones : ['9998434309']; // fallback
-});
+
     const getGrossAmount = (order) => {
       if (order.subtotal) return order.subtotal;
       const total = Number(order.total) || 0;
@@ -1355,106 +1333,5 @@ const mobileNumbers = computed(() => {
 .thermal-80,
 .thermal-58 {
   font-size: 12px;
-}
-
-.perfect-header {
-  border: 2px solid #000;
-  padding: 18px 20px;
-  margin-bottom: 18px;
-  background: white;
-  page-break-inside: avoid;
-}
-
-.header-top-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 15px;
-}
-
-.logo-section {
-  flex: 0 0 130px;
-}
-
-.header-logo {
-  width: 130px;
-  height: auto;
-  max-height: 100px;
-}
-
-.company-center-section {
-  flex: 1;
-  text-align: center;
-  min-width: 300px;
-}
-
-.gujarati-name {
-  margin: 0 0 6px 0;
-  font-size: 28px;
-  font-weight: 900;
-  color: #000;
-  font-family: 'Noto Sans Gujarati', Arial, sans-serif;
-  letter-spacing: 1px;
-}
-
-.english-name {
-  margin: 0 0 8px 0;
-  font-size: 18px;
-  font-weight: bold;
-  color: #c00;
-  letter-spacing: 0.5px;
-}
-
-.company-address {
-  margin: 8px 0;
-  font-size: 13.5px;
-  line-height: 1.6;
-  color: #000;
-  white-space: pre-line;
-}
-
-.company-contact-line {
-  margin: 6px 0 0 0;
-  font-size: 12.5px;
-  color: #000;
-  font-weight: 500;
-}
-
-.mobile-right-section {
-  flex: 0 0 160px;
-  text-align: right;
-  font-size: 13.5px;
-  font-weight: 600;
-  line-height: 1.5;
-}
-
-.mobile-line {
-  margin: 4px 0;
-}
-
-.tax-invoice-title-center {
-  text-align: center;
-  margin: 12px 0 8px 0;
-  padding-top: 8px;
-  border-top: 1px solid #000;
-}
-
-.tax-invoice-title-center h2 {
-  margin: 0;
-  font-size: 22px;
-  font-weight: bold;
-  color: #000;
-}
-
-/* PRINT FIX – 100% GUARANTEED */
-@media print {
-  .perfect-header {
-    border: 2px solid #000 !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-  .gujarati-name { font-size: 26px !important; }
-  .header-logo { width: 120px !important; }
 }
 </style>
