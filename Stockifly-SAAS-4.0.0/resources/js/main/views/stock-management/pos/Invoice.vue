@@ -1187,7 +1187,7 @@ console.log("Total Tax Amount:", totalTaxAmount);
 }
 
 .company-name-bottom {
-  margin-top: 12px;
+  margin-top: -12px;
   font-weight: bold;
   font-size: 14px;
 }
