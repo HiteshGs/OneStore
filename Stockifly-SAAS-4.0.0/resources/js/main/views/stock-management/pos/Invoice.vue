@@ -1,4 +1,3 @@
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@700;900&display=swap" rel="stylesheet">
 <template>
   <a-modal
     :open="visible"
@@ -1395,7 +1394,7 @@ const mobileNumbers = computed(() => {
   font-size: 28px;
   font-weight: 900;
   color: #000;
-  font-family: 'Noto Sans Gujarati', 'Arial Unicode MS', Arial, sans-serif !important;
+  font-family: 'Noto Sans Gujarati', Arial, sans-serif;
   letter-spacing: 1px;
 }
 
