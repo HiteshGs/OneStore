@@ -638,6 +638,7 @@ const totalTaxAmount = computed(() => {
     0
   );
 });
+console.log("Total Tax Amount:", totalTaxAmount.value);
     const computedSGST = computed(() => isIntraState.value ? totalTaxAmount.value / 2 : 0);
     const computedCGST = computed(() => isIntraState.value ? totalTaxAmount.value / 2 : 0);
     const computedIGST = computed(() => isIntraState.value ? 0 : totalTaxAmount.value);
