@@ -148,18 +148,7 @@
                   <div class="item-name">
                     {{ item.product?.name }}
                   </div>
-                  <div
-                    v-if="item.custom_fields && item.custom_fields.length"
-                    class="item-custom-fields"
-                  >
-                    <span
-                      v-for="cf in item.custom_fields"
-                      :key="cf.id || cf.name || cf.label"
-                      class="item-custom-field-line"
-                    >
-                      {{ cf.label || cf.name }}: {{ cf.value }}
-                    </span>
-                  </div>
+                 
                 </td>
 
                 <!-- HSN NO -->
@@ -216,72 +205,68 @@
 
         <!-- TOTALS (GROSS / SGST / CGST / IGST / NET) -->
         <!-- FINAL SINGLE BOX: TOTALS + GST SUMMARY + PAID/DUE -->
+<!-- FINAL TOTALS BOX - NOW LOOKS LIKE ITEMS TABLE (BEAUTIFUL & PROFESSIONAL) -->
 <div class="final-totals-box">
-  <table class="final-totals-table">
+  <table class="items-table" style="margin-top: 20px; border: 2px solid #000;">
     <tbody>
-      <!-- ROW 1: GROSS, SGST, CGST, IGST, NET -->
+      <!-- ROW 1: GROSS + SGST + CGST + IGST + NET -->
       <tr class="summary-row">
-        <td class="label">GROSS AMT :</td>
-        <td class="value">{{ formatAmountCurrency(getGrossAmount(order)) }}</td>
-
-        <td class="label">SGST :</td>
-        <td class="value">{{ formatAmountCurrency(computedSGST) }}</td>
-
-        <td class="label">NET AMOUNT :</td>
-        <td class="value big-total">{{ formatAmountCurrency(order.total) }}</td>
+        <td class="label-strong">GROSS AMT :</td>
+        <td class="value-right">{{ formatAmountCurrency(getGrossAmount(order)) }}</td>
+        <td class="label-strong">SGST :</td>
+        <td class="value-right">{{ formatAmountCurrency(computedSGST) }}</td>
+        <td class="label-strong">CGST :</td>
+        <td class="value-right">{{ formatAmountCurrency(computedCGST) }}</td>
+      </tr>
+      <tr class="summary-row">
+        <td class="label-strong">IGST :</td>
+        <td class="value-right">{{ formatAmountCurrency(computedIGST) }}</td>
+        <td class="label-strong">NET AMOUNT :</td>
+        <td class="value-right big-total" colspan="3">{{ formatAmountCurrency(order.total) }}</td>
       </tr>
 
-      <tr class="summary-row">
-        <td class="label">CGST :</td>
-        <td class="value">{{ formatAmountCurrency(computedCGST) }}</td>
-
-        <td class="label">IGST :</td>
-        <td class="value">{{ formatAmountCurrency(computedIGST) }}</td>
-
-        <td class="label strong">PAID AMOUNT :</td>
-        <td class="value strong paid">{{ formatAmountCurrency(order.paid_amount) }}</td>
-      </tr>
-
-      <!-- ROW 2: GST SLAB SUMMARY (Small Table Inside) -->
+      <!-- GST SLAB SUMMARY TABLE (Inside as a clean mini table) -->
       <tr>
-        <td colspan="6" style="padding: 12px 0;">
-          <div class="gst-slab-inside">
-            <table class="gst-mini-table">
-              <thead>
-                <tr>
-                  <th>GST(%)</th>
-                  <th>Taxable</th>
-                  <th>GST Amt</th>
-                  <th>Net Amt</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="row in gstSummary" :key="row.rate">
-                  <td class="center">{{ row.rate }}%</td>
-                  <td>{{ formatAmountCurrency(row.taxable) }}</td>
-                  <td>{{ formatAmountCurrency(row.taxAmount) }}</td>
-                  <td>{{ formatAmountCurrency(row.net) }}</td>
-                </tr>
-                <tr class="total-row">
-                  <td class="center"><strong>Total</strong></td>
-                  <td><strong>{{ formatAmountCurrency(gstSummaryTotals.taxable) }}</strong></td>
-                  <td><strong>{{ formatAmountCurrency(gstSummaryTotals.taxAmount) }}</strong></td>
-                  <td><strong>{{ formatAmountCurrency(gstSummaryTotals.net) }}</strong></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+        <td colspan="6" style="padding: 12px 8px; background: #f9f9f9;">
+          <table class="gst-mini-table items-table">
+            <thead>
+              <tr style="background: #333; color: white;">
+                <th>GST(%)</th>
+                <th>Taxable</th>
+                <th>GST Amt</th>
+                <th>Net Amt</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="row in gstSummary" :key="row.rate">
+                <td class="center">{{ row.rate }}%</td>
+                <td class="right">{{ formatAmountCurrency(row.taxable) }}</td>
+                <td class="right">{{ formatAmountCurrency(row.taxAmount) }}</td>
+                <td class="right">{{ formatAmountCurrency(row.net) }}</td>
+              </tr>
+              <tr class="total-row" style="background: #eee; font-weight: bold;">
+                <td class="center"><strong>Total</strong></td>
+                <td class="right"><strong>{{ formatAmountCurrency(gstSummaryTotals.taxable) }}</strong></td>
+                <td class="right"><strong>{{ formatAmountCurrency(gstSummaryTotals.taxAmount) }}</strong></td>
+                <td class="right"><strong>{{ formatAmountCurrency(gstSummaryTotals.net) }}</strong></td>
+              </tr>
+            </tbody>
+          </table>
         </td>
       </tr>
 
-      <!-- ROW 3: DUE AMOUNT + WORDS -->
-      <tr class="final-row">
-        <td colspan="4" class="due-label">
-          <strong>DUE AMOUNT :</strong>
-          <span class="due-amount">{{ formatAmountCurrency(order.due_amount) }}</span>
-        </td>
-        <td colspan="2" class="words" v-if="order.amount_in_words">
-          Rupees in Words: {{ order.amount_in_words }}
+      <!-- PAID & DUE AMOUNT -->
+      <tr style="background: #fff8e1; font-size: 14.5px;">
+        <td class="label-strong">PAID AMOUNT :</td>
+        <td class="value-right paid-strong">{{ formatAmountCurrency(order.paid_amount) }}</td>
+        <td class="label-strong">DUE AMOUNT :</td>
+        <td class="value-right due-strong" colspan="3">{{ formatAmountCurrency(order.due_amount) }}</td>
+      </tr>
+
+      <!-- RUPEES IN WORDS -->
+      <tr v-if="order.amount_in_words">
+        <td colspan="6" style="padding: 10px 12px; font-style: italic; color: #555; background: #f5f5f5; font-size: 13px;">
+          <strong>Rupees in Words:</strong> {{ order.amount_in_words }}
         </td>
       </tr>
     </tbody>
@@ -927,13 +912,6 @@ const printInvoice = async () => {
   line-height: 1.4;
 }
 
-.generated-info {
-  background: #f8f9fa;
-  padding: 8px 12px;
-  border-radius: 4px;
-  display: inline-block;
-  border: 1px solid #e0e0e0;
-}
 
 .text-right {
   text-align: right !important;
@@ -1161,14 +1139,66 @@ const printInvoice = async () => {
 }
 /* FINAL SINGLE BEAUTIFUL TOTALS BOX */
 .final-totals-box {
-  margin: 20px 0;
-  border: 3px double #000;
-  border-radius: 8px;
-  overflow: hidden;
-  background: #fdfdfd;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  margin: 20px 0 25px 0;
+  border: 2px solid #000;   /* ← Matches items table exactly */
+  background: #fff;
+}
+.final-totals-box .items-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
 }
 
+.final-totals-box .items-table td {
+  border: 1px solid #333;
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.final-totals-box .label-strong {
+  font-weight: 700;
+  background: #f0f0f0;
+  width: 18%;
+  color: #333;
+}
+
+.final-totals-box .value-right {
+  text-align: right;
+  font-weight: 600;
+  background: #fafafa;
+}
+
+.final-totals-box .big-total {
+  font-size: 16px !important;
+  font-weight: 900 !important;
+  color: #d00;
+  background: #fff0f0 !important;
+}
+
+.final-totals-box .paid-strong {
+  font-size: 15px;
+  color: #0d8321;
+  font-weight: 800;
+}
+
+.final-totals-box .due-strong {
+  font-size: 18px;
+  color: #c62828;
+  font-weight: 900;
+}
+
+/* Mini GST table inside */
+.final-totals-box .gst-mini-table th {
+  background: #333 !important;
+  color: white;
+  padding: 7px 5px;
+  font-size: 11.5px;
+}
+
+.final-totals-box .gst-mini-table td {
+  padding: 6px 5px;
+  font-size: 11.8px;
+}
 .final-totals-table {
   width: 100%;
   border-collapse: collapse;
