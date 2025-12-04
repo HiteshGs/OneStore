@@ -645,7 +645,7 @@ console.log("Total Tax Amount:", totalTaxAmount);
             <style>
               ${buildPrintCss()}
               .invoice-header { text-align:center; border-bottom:1px dotted #ddd !important; padding-bottom:4px; }
-              .invoice-logo { width:100px; margin-bottom:4px; }
+              .invoice-logo { width:100px; margin-bottom:4px; display:table; }
               .store-name { margin:0; font-size:18px; font-weight:700; text-transform:uppercase; }
               .store-address { margin:0; white-space:break-spaces; }
               .store-contact { margin:0; font-size:12px; }
