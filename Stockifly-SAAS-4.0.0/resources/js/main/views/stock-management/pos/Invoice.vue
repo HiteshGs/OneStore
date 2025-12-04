@@ -206,7 +206,7 @@
                 <!-- GST % -->
                 <td class="center">
                   <span v-if="getTaxRate(item)">
-                    {{ getTaxRate(item) }}%
+                    {{ getTaxRate(item) }}
                   </span>
                   <span v-else>-</span>
                 </td>
