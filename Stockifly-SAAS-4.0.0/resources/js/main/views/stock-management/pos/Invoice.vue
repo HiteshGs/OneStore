@@ -26,26 +26,27 @@
             :src="selectedWarehouse.logo_url"
             :alt="selectedWarehouse.name"
           />
-          <div class="invoice-header-text">
+         <div class="invoice-header-text">
   <h1 class="store-name">
     {{ selectedWarehouse.name }}
   </h1>
   <p class="store-address">
     {{ selectedWarehouse.address }}
   </p>
-  <p class="store-contact">
-    <span v-if="selectedWarehouse.phone" class="contact-item">
+
+  <!-- PHONE + EMAIL on one line -->
+  <p class="store-contact-line">
+    <span v-if="selectedWarehouse.phone">
       {{ $t('common.phone') }}: {{ selectedWarehouse.phone }}
     </span>
-
-    <span v-if="selectedWarehouse.email" class="contact-item">
-      | {{ $t('common.email') }}: {{ selectedWarehouse.email }}
+    <span v-if="selectedWarehouse.email">
+      &nbsp;&nbsp;|&nbsp;&nbsp;{{ $t('common.email') }}: {{ selectedWarehouse.email }}
     </span>
+  </p>
 
-    <!-- GSTIN: Now BOLD, SAME LINE, PERFECT SPACING -->
-    <span class="contact-item gstin-bold">
-      | <strong>GSTIN:</strong> {{ displayGSTIN }}
-    </span>
+  <!-- GSTIN: New line, bold, slightly indented, centered -->
+  <p class="store-gstin-line">
+    <strong>GSTIN:</strong> {{ displayGSTIN }}
   </p>
 </div>
         </div>
@@ -819,7 +820,31 @@ const printInvoice = async () => {
   margin-bottom: 4px;
 }
 .invoice-header-text {
-  margin-top: -85px;
+  text-align: center;
+  margin-top: -10px;
+}
+
+.store-contact-line {
+  margin: 6px 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: #333;
+}
+
+.store-gstin-line {
+  margin: 4px 0 0 0;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #000;
+  letter-spacing: 0.8px;
+  text-align: center;
+  padding-left: 20px;        /* This creates the beautiful indent */
+  text-indent: -20px;        /* Pulls "GSTIN:" back a bit */
+}
+
+.store-gstin-line strong {
+  font-weight: 900;
+  color: #000;
 }
 .store-name {
   margin: 0;
