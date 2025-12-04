@@ -1,5 +1,5 @@
 .invoice-header {
-    text-align: center;
+    text-align: end;
     border-bottom: 1px dotted #ddd !important;
 }
 .a4-invoice {
@@ -9,6 +9,7 @@
   
 .invoice-logo {
     width: 100px;
+    display:table;
 }
 
 .company-details {
