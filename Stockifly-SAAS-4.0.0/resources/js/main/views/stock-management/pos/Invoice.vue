@@ -628,7 +628,16 @@ const posSelectedCustomer = computed(() => {
 
     const isIntraState = computed(() => customerState.value === "Gujarat");
 
-    const totalTaxAmount = computed(() => Number(props.order?.tax_amount) || 0);
+const totalTaxAmount = computed(() => {
+  // Try multiple possible field names used in different POS systems
+  return Number(
+    props.order?.total_tax ||
+    props.order?.tax ||
+    props.order?.tax_amount ||
+    props.order?.order_tax ||
+    0
+  );
+});
     const computedSGST = computed(() => isIntraState.value ? totalTaxAmount.value / 2 : 0);
     const computedCGST = computed(() => isIntraState.value ? totalTaxAmount.value / 2 : 0);
     const computedIGST = computed(() => isIntraState.value ? 0 : totalTaxAmount.value);
