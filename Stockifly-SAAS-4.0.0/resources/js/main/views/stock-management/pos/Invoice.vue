@@ -217,40 +217,30 @@
         <td class="value-right big-total" colspan="3">{{ formatAmountCurrency(order.total) }}</td>
       </tr>
 
-      <!-- GST SLAB SUMMARY TABLE (Inside as a clean mini table) -->
-    <!-- PAID + MODE + DUE – ALL IN ONE CLEAN LINE (EXACTLY LIKE YOUR EXAMPLE) -->
-<tr class="final-paid-due-row">
-  <td colspan="8" style="padding: 12px 10px; background: #fff8e1; border-top: 3px double #000;">
-    <div class="paid-due-with-mode">
-      <span class="paid-part">
-        <strong>PAID AMOUNT :</strong> 
-        {{ formatAmountCurrency(order.paid_amount) }}
-        <span v-if="order.paid_amount > 0 && order.order_payments && order.order_payments.length" class="payment-modes">
-          ({{
-            order.order_payments
-              .map(p => p.payment?.payment_mode?.name || 'Cash')
-              .filter(Boolean)
-              .join(' + ')
-          }})
-        </span>
-      </span>
 
-      <span class="due-part">
-        <strong>DUE AMOUNT :</strong> 
-        <span class="due-amount">{{ formatAmountCurrency(order.due_amount) }}</span>
-      </span>
-    </div>
-  </td>
-</tr>
 
       <!-- PAID & DUE AMOUNT -->
-      <tr style="background: #fff8e1; font-size: 14.5px;">
-        <td class="label-strong">PAID AMOUNT :</td>
-        <td class="value-right paid-strong">{{ formatAmountCurrency(order.paid_amount) }}</td>
-        <td class="label-strong">DUE AMOUNT :</td>
-        <td class="value-right due-strong" colspan="3">{{ formatAmountCurrency(order.due_amount) }}</td>
-      </tr>
+      <tr style="background: #fff8e1; font-size: 15.5px; height: 50px; border-top: 3px double #000;">
+  <td class="label-strong" style="width: 18%;">PAID AMOUNT :</td>
+  <td class="value-right paid-strong" style="width: 25%; color: #0d8321; font-weight: 900;">
+    {{ formatAmountCurrency(order.paid_amount) }}
+    <span v-if="order.paid_amount > 0 && order.order_payments?.length" 
+          style="margin-left: 8px; color: #006400; font-weight: 800;">
+      ({{
+        order.order_payments
+          .map(p => p.payment?.payment_mode?.name || 'Cash')
+          .filter(Boolean)
+          .join(' + ')
+      }})
+    </span>
+  </td>
 
+  <td class="label-strong" style="width: 18%;">DUE AMOUNT :</td>
+  <td class="value-right due-strong" colspan="3" 
+      style="color: #c62828; font-weight: 900; font-size: 18px;">
+    {{ formatAmountCurrency(order.due_amount) }}
+  </td>
+</tr>
       <!-- RUPEES IN WORDS -->
       <tr v-if="order.amount_in_words">
         <td colspan="6" style="padding: 10px 12px; font-style: italic; color: #555; background: #f5f5f5; font-size: 13px;">
