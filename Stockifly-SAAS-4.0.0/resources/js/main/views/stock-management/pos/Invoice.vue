@@ -821,7 +821,7 @@ const printInvoice = async () => {
 }
 .invoice-header-text {
   text-align: center;
-  margin-top: -10px;
+  margin-top: -80px;
 }
 
 .store-contact-line {
