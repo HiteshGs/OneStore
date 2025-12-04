@@ -218,34 +218,30 @@
       </tr>
 
       <!-- GST SLAB SUMMARY TABLE (Inside as a clean mini table) -->
-      <tr>
-        <td colspan="6" style="padding: 12px 8px; background: #f9f9f9;">
-          <table class="gst-mini-table items-table">
-            <thead>
-              <tr style="background: #333; color: white;">
-                <th>GST(%)</th>
-                <th>Taxable</th>
-                <th>GST Amt</th>
-                <th>Net Amt</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="row in gstSummary" :key="row.rate">
-                <td class="center">{{ row.rate }}%</td>
-                <td class="right">{{ formatAmountCurrency(row.taxable) }}</td>
-                <td class="right">{{ formatAmountCurrency(row.taxAmount) }}</td>
-                <td class="right">{{ formatAmountCurrency(row.net) }}</td>
-              </tr>
-              <tr class="total-row" style="background: #eee; font-weight: bold;">
-                <td class="center"><strong>Total</strong></td>
-                <td class="right"><strong>{{ formatAmountCurrency(gstSummaryTotals.taxable) }}</strong></td>
-                <td class="right"><strong>{{ formatAmountCurrency(gstSummaryTotals.taxAmount) }}</strong></td>
-                <td class="right"><strong>{{ formatAmountCurrency(gstSummaryTotals.net) }}</strong></td>
-              </tr>
-            </tbody>
-          </table>
-        </td>
-      </tr>
+    <!-- PAID + MODE + DUE – ALL IN ONE CLEAN LINE (EXACTLY LIKE YOUR EXAMPLE) -->
+<tr class="final-paid-due-row">
+  <td colspan="8" style="padding: 12px 10px; background: #fff8e1; border-top: 3px double #000;">
+    <div class="paid-due-with-mode">
+      <span class="paid-part">
+        <strong>PAID AMOUNT :</strong> 
+        {{ formatAmountCurrency(order.paid_amount) }}
+        <span v-if="order.paid_amount > 0 && order.order_payments && order.order_payments.length" class="payment-modes">
+          ({{
+            order.order_payments
+              .map(p => p.payment?.payment_mode?.name || 'Cash')
+              .filter(Boolean)
+              .join(' + ')
+          }})
+        </span>
+      </span>
+
+      <span class="due-part">
+        <strong>DUE AMOUNT :</strong> 
+        <span class="due-amount">{{ formatAmountCurrency(order.due_amount) }}</span>
+      </span>
+    </div>
+  </td>
+</tr>
 
       <!-- PAID & DUE AMOUNT -->
       <tr style="background: #fff8e1; font-size: 14.5px;">
@@ -266,33 +262,7 @@
 </div>
 
         <!-- PAYMENT MODE -->
-        <div>
-          <table style="width: 100%">
-            <tbody>
-              <tr style="text-align: center">
-                <td style="width: 100%">
-                  <h4 style="margin-bottom: 0px" v-if="order.order_payments">
-                    {{ $t('invoice.payment_mode') }}:
-                    <span
-                      v-for="p in order.order_payments"
-                      :key="p.xid"
-                      style="margin-right: 5px"
-                    >
-                      {{ formatAmountCurrency(p.amount) }}
-                      (<span v-if="p.payment?.payment_mode?.name">
-                        {{ p.payment.payment_mode.name }}
-                      </span>
-                      )
-                    </span>
-                  </h4>
-                  <h3 style="margin-bottom: 0px" v-else>
-                    {{ $t('invoice.payment_mode') }}: -
-                  </h3>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        
 
         <!-- DISCOUNT / TAX SUMMARY (OPTIONAL) -->
         
@@ -1574,6 +1544,49 @@ const printInvoice = async () => {
   font-weight: 900;
   color: #000;
   letter-spacing: 0.5px;
+}
+.final-paid-due-row {
+  font-size: 16px !important;
+  background: #fff8e1 !important;
+}
+
+.paid-due-with-mode {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 700;
+  width: 100%;
+}
+
+.paid-part {
+  color: #0d8321;
+}
+
+.paid-part strong {
+  color: #000;
+  font-weight: 900;
+}
+
+.payment-modes {
+  color: #006400;
+  font-weight: 800;
+  font-size: 15px;
+  margin-left: 6px;
+}
+
+.due-part {
+  color: #c62828;
+}
+
+.due-part strong {
+  color: #000;
+  font-weight: 900;
+}
+
+.due-amount {
+  font-size: 18px;
+  font-weight: 900;
+  color: #c62828;
 }
 }
 </style>
