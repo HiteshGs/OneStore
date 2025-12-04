@@ -392,80 +392,46 @@
         </div>
 
         <!-- BANK DETAIL + TERMS + SIGN – BOX TABLE LIKE PDF -->
-        <div class="bottom-section">
-          <table class="bottom-table">
-            <tbody>
-              <tr>
-                <!-- LEFT: BANK DETAILS -->
-                <td class="bottom-bank-cell">
-                  <table class="inner-bank-table">
-                    <tbody>
-                      <tr>
-                        <td colspan="2" class="bank-header">BANK DETAILS :</td>
-                      </tr>
-                     
-                      <tr>
-                        <td class="bank-label">A/c No</td>
-                        <td class="bank-value">
-                          : {{ bankDetailsToShow.accountNo }}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td class="bank-label">Bank</td>
-                        <td class="bank-value">
-                          : {{ bankDetailsToShow.bank }}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td class="bank-label">Branch</td>
-                        <td class="bank-value">
-                          : {{ bankDetailsToShow.branch }}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td class="bank-label">IFSC</td>
-                        <td class="bank-value">
-                          : {{ bankDetailsToShow.ifsc }}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </td>
+        <!-- BOTTOM SECTION – EXACTLY LIKE YOUR IMAGE -->
+<div class="bottom-section">
+  <!-- 1. BANK DETAILS – HORIZONTAL LINE (LIKE YOUR IMAGE) -->
+  <div class="bank-details-horizontal">
+    <strong>BANK DETAIL :</strong>
+    <span>A/c No : {{ bankDetailsToShow.accountNo }}</span> |
+    <span>Bank : {{ bankDetailsToShow.bank }}</span> |
+    <span>Branch : {{ bankDetailsToShow.branch }}</span> |
+    <span>IFSC : {{ bankDetailsToShow.ifsc }}</span>
+  </div>
 
-                <!-- RIGHT: TERMS + AUTHORISED SIGNATORY BOX -->
-                <td class="bottom-terms-cell">
-                  <table class="inner-terms-table">
-                    <tbody>
-                      <tr>
-                        <td class="terms-header" colspan="2">
-                          Terms Of Sales :
-                        </td>
-                      </tr>
-                      <tr>
-                        <td class="terms-text-cell" colspan="2">
-                          {{
-                            selectedWarehouse.invoice_terms ||
-                            'Goods once sold will be taken back or exchanged within 10 Days.'
-                          }}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td class="terms-for-cell" colspan="2">
-                          For : {{ selectedWarehouse.name || 'ONE STORE' }}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td class="signature-box" colspan="2">
-                          Authorised Signatory
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+  <!-- 2. TWO BOXES BELOW – TERMS + SIGNATURE -->
+  <table class="bottom-boxes-table">
+    <tbody>
+      <tr>
+        <!-- LEFT BOX: TERMS OF SALES -->
+        <td class="terms-box">
+          <div class="terms-header">Terms Of Sales :</div>
+          <div class="terms-content">
+            {{ selectedWarehouse.invoice_terms || 'Goods once sold will be taken back or exchanged within 10 Days.' }}
+          </div>
+          <div class="for-company">
+            For : {{ selectedWarehouse.name || 'ONE STORE' }}
+          </div>
+        </td>
+
+        <!-- RIGHT BOX: AUTHORISED SIGNATORY (FOR STAMP) -->
+        <td class="signature-box-outer">
+          <div class="signature-title">Authorised Signatory</div>
+          <div class="signature-space">
+            <!-- Empty space for stamp + signature -->
+          </div>
+          <div class="company-name-bottom">
+            {{ selectedWarehouse.name || 'SHAYONA HANDLOOM & HANDICRAFT' }}
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
 
         <!-- BARCODE / QR + THANKS -->
         <div
@@ -755,8 +721,79 @@ console.log("Total Tax Amount:", totalTaxAmount);
               .discount-details { padding:5px 0px; border-top:2px dotted #ddd !important; border-bottom:2px dotted #ddd !important; }
               .discount-details p { margin-bottom:0px; }
 
-              .bottom-section { margin-top:8px; }
-              .bottom-table { width:100%; border-collapse:collapse; font-size:12px; }
+.bottom-section {
+  margin-top: 20px;
+  font-size: 12px;
+}
+
+/* 1. HORIZONTAL BANK DETAILS */
+.bank-details-horizontal {
+  padding: 8px 0;
+  border-top: 1px solid #000;
+  border-bottom: 1px solid #000;
+  text-align: center;
+  background: #f9f9f9;
+  font-weight: 500;
+}
+.bank-details-horizontal span {
+  margin: 0 12px;
+}
+
+/* 2. TWO BOXES BELOW */
+.bottom-boxes-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  table-layout: fixed;
+}
+.bottom-boxes-table td {
+  border: 2px solid #000;
+  padding: 12px;
+  vertical-align: top;
+  width: 50%;
+  height: 140px; /* Enough space for stamp */
+}
+
+/* LEFT: TERMS */
+.terms-box {
+  text-align: left;
+}
+.terms-header {
+  font-weight: bold;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+.terms-content {
+  line-height: 1.5;
+  margin-bottom: 20px;
+  min-height: 50px;
+}
+.for-company {
+  margin-top: 20px;
+  font-weight: bold;
+  font-size: 13px;
+}
+
+/* RIGHT: SIGNATURE BOX */
+.signature-box-outer {
+  text-align: center;
+  position: relative;
+}
+.signature-title {
+  font-weight: bold;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+.signature-space {
+  height: 80px;
+  border-bottom: 1px solid #000;
+  margin: 10px 20px;
+}
+.company-name-bottom {
+  margin-top: 10px;
+  font-weight: bold;
+  font-size: 13px;
+}              .bottom-table { width:100%; border-collapse:collapse; font-size:12px; }
               .bottom-table td { border:1px solid #000; padding:4px 6px; vertical-align:top; }
               .inner-bank-table, .inner-terms-table { width:100%; border-collapse:collapse; }
               .inner-bank-table td, .inner-terms-table td { border:none; padding:2px 0; }
