@@ -216,60 +216,77 @@
 
         <!-- TOTALS (GROSS / SGST / CGST / IGST / NET) -->
         <!-- FINAL SINGLE BOX: TOTALS + GST SUMMARY + PAID/DUE -->
-<!-- FINAL TOTALS – EXACTLY LIKE YOUR PHYSICAL INVOICE -->
-<div class="simple-totals-section">
-  <!-- LEFT: GROSS + SGST + CGST + IGST + NET -->
-  <div class="left-amounts">
-    <div class="amt-line">GROSS AMT : <strong>{{ formatAmountCurrency(getGrossAmount(order)) }}</strong></div>
-    <div class="amt-line">SGST      : <strong>{{ formatAmountCurrency(computedSGST) }}</strong></div>
-    <div class="amt-line">CGST      : <strong>{{ formatAmountCurrency(computedCGST) }}</strong></div>
-    <div class="amt-line">IGST      : <strong>{{ formatAmountCurrency(computedIGST) }}</strong></div>
-    <div class="amt-line net-amt-line">
-      NET AMOUNT : <strong class="big-net">{{ formatAmountCurrency(order.total) }}</strong>
-    </div>
-  </div>
+<div class="final-totals-box">
+  <table class="final-totals-table">
+    <tbody>
+      <!-- ROW 1: GROSS, SGST, CGST, IGST, NET -->
+      <tr class="summary-row">
+        <td class="label">GROSS AMT :</td>
+        <td class="value">{{ formatAmountCurrency(getGrossAmount(order)) }}</td>
 
-  <!-- RIGHT: GST BREAKUP TABLE (EXACTLY LIKE YOUR PRINT) -->
-  <div class="gst-summary-box">
-    <table class="gst-summary-table">
-      <thead>
-        <tr>
-          <th>GST(%)</th>
-          <th>Taxable</th>
-          <th>GST</th>
-          <th>Net</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="row in gstSummary" :key="row.rate">
-          <td class="rate-cell">{{ row.rate }}%</td>
-          <td>{{ formatAmountCurrency(row.taxable) }}</td>
-          <td>{{ formatAmountCurrency(row.taxAmount) }}</td>
-          <td>{{ formatAmountCurrency(row.net) }}</td>
-        </tr>
-        <tr class="total-gst-row">
-          <td>Total</td>
-          <td><strong>{{ formatAmountCurrency(gstSummaryTotals.taxable) }}</strong></td>
-          <td><strong>{{ formatAmountCurrency(gstSummaryTotals.taxAmount) }}</strong></td>
-          <td><strong>{{ formatAmountCurrency(gstSummaryTotals.net) }}</strong></td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+        <td class="label">SGST :</td>
+        <td class="value">{{ formatAmountCurrency(computedSGST) }}</td>
+
+        <td class="label">NET AMOUNT :</td>
+        <td class="value big-total">{{ formatAmountCurrency(order.total) }}</td>
+      </tr>
+
+      <tr class="summary-row">
+        <td class="label">CGST :</td>
+        <td class="value">{{ formatAmountCurrency(computedCGST) }}</td>
+
+        <td class="label">IGST :</td>
+        <td class="value">{{ formatAmountCurrency(computedIGST) }}</td>
+
+        <td class="label strong">PAID AMOUNT :</td>
+        <td class="value strong paid">{{ formatAmountCurrency(order.paid_amount) }}</td>
+      </tr>
+
+      <!-- ROW 2: GST SLAB SUMMARY (Small Table Inside) -->
+      <tr>
+        <td colspan="6" style="padding: 12px 0;">
+          <div class="gst-slab-inside">
+            <table class="gst-mini-table">
+              <thead>
+                <tr>
+                  <th>GST(%)</th>
+                  <th>Taxable</th>
+                  <th>GST Amt</th>
+                  <th>Net Amt</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="row in gstSummary" :key="row.rate">
+                  <td class="center">{{ row.rate }}%</td>
+                  <td>{{ formatAmountCurrency(row.taxable) }}</td>
+                  <td>{{ formatAmountCurrency(row.taxAmount) }}</td>
+                  <td>{{ formatAmountCurrency(row.net) }}</td>
+                </tr>
+                <tr class="total-row">
+                  <td class="center"><strong>Total</strong></td>
+                  <td><strong>{{ formatAmountCurrency(gstSummaryTotals.taxable) }}</strong></td>
+                  <td><strong>{{ formatAmountCurrency(gstSummaryTotals.taxAmount) }}</strong></td>
+                  <td><strong>{{ formatAmountCurrency(gstSummaryTotals.net) }}</strong></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </td>
+      </tr>
+
+      <!-- ROW 3: DUE AMOUNT + WORDS -->
+      <tr class="final-row">
+        <td colspan="4" class="due-label">
+          <strong>DUE AMOUNT :</strong>
+          <span class="due-amount">{{ formatAmountCurrency(order.due_amount) }}</span>
+        </td>
+        <td colspan="2" class="words" v-if="order.amount_in_words">
+          Rupees in Words: {{ order.amount_in_words }}
+        </td>
+      </tr>
+    </tbody>
+  </table>
 </div>
-
-<!-- PAID & DUE – SIMPLE & CLEAN -->
-<div class="paid-due-simple">
-  <div class="paid-section">
-    <div class="paid-label">Paid Amount</div>
-    <div class="paid-amt">{{ formatAmountCurrency(order.paid_amount) }}</div>
-  </div>
-  <div class="due-section">
-    <div class="due-label">Due Amount</div>
-    <div class="due-amt">{{ formatAmountCurrency(order.due_amount) }}</div>
-  </div>
-</div>
-
 
         <!-- PAYMENT MODE -->
         <div>
