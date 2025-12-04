@@ -325,16 +325,23 @@
       </div>
     </div>
 
-   <template #footer>
-  <div class="footer-button" style="text-align: center;">
-    <a-button type="default" size="large" @click="downloadPdf" style="margin: 0 12px;">
+    <template #footer>
+  <div class="footer-button">
+    <a-button v-if="order?.user?.email && isVerified" type="primary" @click="sendInvoiceMail(order.xid, selectedLang)" :loading="isSending">
+      <template #icon><SendOutlined /></template>
+      {{ $t('common.send_invoice') }}
+    </a-button>
+
+    <!-- New: Download PDF Button -->
+    <a-button type="default" @click="downloadPdf" style="margin-right: 8px;">
       <template #icon><DownloadOutlined /></template>
       Download PDF
     </a-button>
 
-    <a-button type="primary" size="large" @click="printInvoice" style="margin: 0 12px; background: #089408; border-color: #089408;">
+    <!-- Old Print Button (still works) -->
+    <a-button type="primary" @click="printInvoice">
       <template #icon><PrinterOutlined /></template>
-      <strong>Print Now</strong>
+      {{ $t('common.print_invoice') }}
     </a-button>
   </div>
 </template>
@@ -421,40 +428,9 @@ export default defineComponent({
       },
       { immediate: true }
     );
-const downloadPdf = async () => {
-  await nextTick();
-  const element = document.getElementById('pos-invoice-inner');
-  if (!element) return;
-
-  const svgs = element.querySelectorAll('svg');
-  svgs.forEach(svg => {
-    svg.setAttribute('width', '100%');
-    svg.setAttribute('height', '60');
-  });
-
-  let format = 'a4';
-  let margin = [8, 8, 8, 8];
-  if (props.size === 'A5') format = 'a5';
-  else if (props.size === '80MM') { format = [80, 'auto']; margin = [3, 3, 3, 3]; }
-  else if (props.size === '58MM') { format = [58, 'auto']; margin = [2, 2, 2, 2]; }
-
-  const opt = {
-    margin,
-    filename: `Invoice_${props.order?.invoice_number || 'POS'}.pdf`,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true, letterRendering: true, backgroundColor: '#ffffff' },
-    jsPDF: { unit: 'mm', format, orientation: 'portrait' },
-  };
-
-  html2pdf().set(opt).from(element).save();
-
-  notification.success({
-    message: 'Downloaded!',
-    description: 'Invoice PDF saved successfully',
-  });
+const downloadPdf = () => {
+  printInvoice(); // Reuse same function
 };
-
-
     const onClose = () => emit("closed");
 const posSelectedCustomer = computed(() => {
       try {
@@ -597,47 +573,43 @@ const getAllComponentStyles = () => {
   return styles.join('\n');
 };
 const printInvoice = async () => {
-  await nextTick();
+  await nextTick(); // ← Now works!
+
   const element = document.getElementById('pos-invoice-inner');
   if (!element) return;
 
-  // Force SVG barcode/QR to render
+  // Force barcode/QR to render perfectly
   const svgs = element.querySelectorAll('svg');
   svgs.forEach(svg => {
     svg.setAttribute('width', '100%');
     svg.setAttribute('height', '60');
   });
 
-  // CLONE THE ELEMENT FOR PRINT (so modal doesn't interfere)
-  const printContent = element.cloneNode(true);
-  
-  // Create a new window for clean print
-  const printWindow = window.open('', '', 'height=800,width=1000');
-  printWindow.document.write('<html><head><title>Invoice ' + (props.order?.invoice_number || '') + '</title>');
-  printWindow.document.write('<style>');
-  printWindow.document.write(`
-    body { margin: 10mm; font-family: Arial, sans-serif; }
-    @page { size: A4; margin: 10mm; }
-    .invoice-root { max-width: 210mm; margin: 0 auto; background: white; padding: 10px; }
-    table { border-collapse: collapse; width: 100%; }
-    .no-print { display: none !important; }
-    ${document.querySelector('style').innerText}
-  `);
-  printWindow.document.write('</style></head><body>');
-  printWindow.document.write(printContent.outerHTML);
-  printWindow.document.write('</body></html>');
-  printWindow.document.close();
+  let format = 'a4';
+  let margin = [8, 8, 8, 8];
 
-  printWindow.onload = () => {
-    printWindow.focus();
-    printWindow.print();
-    // Optional: close window after print
-    // printWindow.close();
+  if (props.size === 'A5') format = 'a5';
+  else if (props.size === '80MM') { format = [80, 'auto']; margin = [3, 3, 3, 3]; }
+  else if (props.size === '58MM') { format = [58, 'auto']; margin = [2, 2, 2, 2]; }
+
+  const opt = {
+    margin,
+    filename: `Invoice_${props.order?.invoice_number || 'POS'}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: {
+      scale: 2,
+      useCORS: true,
+      letterRendering: true,
+      backgroundColor: '#ffffff',
+    },
+    jsPDF: { unit: 'mm', format, orientation: 'portrait' },
   };
 
+  html2pdf().set(opt).from(element).save();
+
   notification.success({
-    message: 'Print Ready!',
-    description: 'Print preview opened successfully',
+    message: 'Success',
+    description: 'Invoice PDF downloaded!',
   });
 };
     // Helpers for item-level taxable and tax rate
