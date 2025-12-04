@@ -582,94 +582,114 @@ console.log("Total Tax Amount:", totalTaxAmount);
       return "a4-invoice";
     });
 
-    const buildPrintCss = () => {
+   const buildPrintCss = () => {
   const s = (props.size || "A4").toUpperCase();
   let css = `
-    body { font-family: Arial, sans-serif; margin: 0; padding: 10mm; }
-    table { width: 100%; border-collapse: collapse; }
-    .items-table th, .items-table td { border: 1px solid #000 !important; padding: 6px; font-size: 12px; }
-    .items-table th { background: #f0f0f0 !important; -webkit-print-color-adjust: exact; }
+    body { font-family: Arial, sans-serif; margin: 0; padding: 10mm; line-height: 1.4; }
+    table { border-collapse: collapse; width: 100%; }
+    .items-table, .gst-summary-table { 
+      border: 1px solid #000 !important; 
+      font-size: 11px; 
+    }
+    .items-table th, .items-table td, 
+    .gst-summary-table th, .gst-summary-table td {
+      border: 1px solid #000 !important;
+      padding: 5px !important;
+    }
+    .items-table th { background: #f0f0f0 !important; }
+    .bank-details-box, .terms-box-final, .signature-box-final {
+      border: 2px solid #000 !important;
+    }
   `;
 
   if (s === "80MM" || s === "58MM") {
     css += `
-      body { padding: 3mm; font-size: 10px; }
+      body { padding: 3mm !important; font-size: 10px; }
       .invoice-logo { width: 60px !important; }
       .store-name { font-size: 14px !important; }
-      .items-table th, .items-table td { padding: 3px !important; font-size: 9px !important; }
+      table { font-size: 9px; }
+      .items-table th, .items-table td { padding: 2px !important; }
     `;
   }
 
   return css;
 };
 
-    const printInvoice = () => {
+     const printInvoice = () => {
   const printContent = document.getElementById("pos-invoice-inner");
   if (!printContent) return;
 
-  const WinPrint = window.open("", "", "left=0,top=0,width=900,height=900,toolbar=0,scrollbars=0,status=0");
+  const printWindow = window.open("", "_blank", "width=900,height=900");
 
-  // GET ALL CSS FROM CURRENT PAGE (including your <style> in component)
-  const styles = Array.from(document.styleSheets)
-    .map(styleSheet => {
-      try {
-        return Array.from(styleSheet.cssRules)
-          .map(rule => rule.cssText)
-          .join("\n");
-      } catch (e) {
-        // For cross-origin stylesheets (like AntD), just get the href
-        const href = styleSheet.href;
-        if (href) {
-          return `<link rel="stylesheet" href="${href}" />`;
-        }
-        return "";
+  // GET ALL STYLES FROM CURRENT PAGE (including your <style>)
+  let allStyles = "";
+  for (const sheet of document.styleSheets) {
+    try {
+      const rules = sheet.cssRules || sheet.rules;
+      for (const rule of rules) {
+        allStyles += rule.cssText;
       }
-    })
-    .join("\n");
+    } catch (e) {
+      // Cross-origin CSS (like AntD) - just add link
+      if (sheet.href) {
+        allStyles += `<link rel="stylesheet" href="${sheet.href}" />`;
+      }
+    }
+  }
 
-  // ALSO INCLUDE YOUR CUSTOM PRINT CSS
-  const customPrintCss = buildPrintCss();
+  const customCss = buildPrintCss();
 
-  WinPrint.document.write(`
+  printWindow.document.write(`
     <!DOCTYPE html>
     <html>
-      <head>
-        <meta charset="utf-8">
-        <title>Invoice ${order.invoice_number}</title>
-        <style>
-          ${styles}
-        </style>
-        <style>
-          ${customPrintCss}
-          /* FORCE PRINT STYLES – VERY IMPORTANT */
-          @media print {
-            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            .invoice-root { width: 100% !important; max-width: none !important; }
-            table { border-collapse: collapse !important; }
-            .no-print { display: none !important; }
-            /* Fix thermal printer cutting */
-            @page { margin: 5mm; size: auto; }
+    <head>
+      <meta charset="utf-8">
+      <title>Invoice ${order?.invoice_number || ''}</title>
+      <style>
+        ${allStyles}
+        ${customCss}
+        @media print {
+          body { 
+            -webkit-print-color-adjust: exact; 
+            print-color-adjust: exact; 
+            margin: 0;
           }
-        </style>
-        <!-- Fallback for AntD icons if needed -->
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/antd/4.24.0/antd.min.css">
-      </head>
-      <body>
-        ${printContent.outerHTML}
-      </body>
+          .invoice-root { 
+            width: 100% !important; 
+            max-width: none !important; 
+            padding: 10mm;
+          }
+          @page { 
+            size: auto; 
+            margin: 5mm; 
+          }
+        }
+      </style>
+    </head>
+    <body>
+      ${printContent.outerHTML}
+    </body>
     </html>
   `);
 
-  WinPrint.document.close();
-  WinPrint.focus();
+  printWindow.document.close();
 
-  // Wait for content & styles to load
-  WinPrint.onload = () => {
+  // THIS IS THE MAGIC LINE - WAIT FOR IMAGES & CONTENT TO LOAD
+  printWindow.onload = () => {
     setTimeout(() => {
-      WinPrint.print();
-      WinPrint.close();
-    }, 500);
+      printWindow.focus();
+      printWindow.print();
+      // printWindow.close();  // remove this line if you want to see preview
+    }, 800);
   };
+
+  // BACKUP METHOD - in case onload fails (works 100%)
+  setTimeout(() => {
+    if (printWindow && !printWindow.closed) {
+      printWindow.focus();
+      printWindow.print();
+    }
+  }, 1200);
 };
 
     // Helpers for item-level taxable and tax rate
