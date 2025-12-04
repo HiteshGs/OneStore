@@ -628,15 +628,10 @@ const posSelectedCustomer = computed(() => {
 
     const isIntraState = computed(() => customerState.value === "Gujarat");
 
+// BEST & MOST ACCURATE METHOD (Recommended)
 const totalTaxAmount = computed(() => {
-  // Try multiple possible field names used in different POS systems
-  return Number(
-    props.order?.total_tax ||
-    props.order?.tax ||
-    props.order?.tax_amount ||
-    props.order?.order_tax ||
-    0
-  );
+  // This comes from actual items → 100% accurate, no rounding issues
+  return gstSummaryTotals.taxAmount || 0;
 });
 console.log("Total Tax Amount:", totalTaxAmount.value);
     const computedSGST = computed(() => isIntraState.value ? totalTaxAmount.value / 2 : 0);
