@@ -16,6 +16,11 @@
       >
         <!-- TOP HEADER (STORE INFO) -->
         <div class="invoice-header">
+         <div class="invoice-meta-center">
+            <h2 class="tax-invoice-title">
+              {{ $t('sales.tax_invoice') }}
+            </h2>
+          </div>
           <img
             class="invoice-logo"
             :src="selectedWarehouse.logo_url"
@@ -45,11 +50,7 @@
 
         <!-- TAX INVOICE + META (LIKE PDF TOP BOX) -->
         <div class="invoice-meta-row">
-          <div class="invoice-meta-left">
-            <h2 class="tax-invoice-title">
-              {{ $t('sales.tax_invoice') }}
-            </h2>
-          </div>
+         
           <div class="invoice-meta-right">
             <table class="invoice-meta-table">
               <tbody>
