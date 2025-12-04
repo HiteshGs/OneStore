@@ -1155,7 +1155,7 @@ const printInvoice = async () => {
 }
 
 .company-name-bottom {
-  margin-top: 2px;
+  margin-top: -12px;
   font-weight: bold;
   font-size: 14px;
 }
