@@ -214,6 +214,9 @@
           </table>
         </div>
 
+        <!-- TOTALS (GROSS / SGST / CGST / IGST / NET) -->
+        <!-- FINAL SINGLE BOX: TOTALS + GST SUMMARY + PAID/DUE -->
+<!-- FINAL TOTALS – EXACTLY LIKE YOUR PHYSICAL INVOICE -->
 <div class="simple-totals-section">
   <!-- LEFT: GROSS + SGST + CGST + IGST + NET -->
   <div class="left-amounts">
@@ -266,7 +269,6 @@
     <div class="due-amt">{{ formatAmountCurrency(order.due_amount) }}</div>
   </div>
 </div>
-
 
 
         <!-- PAYMENT MODE -->
@@ -582,115 +584,96 @@ console.log("Total Tax Amount:", totalTaxAmount);
       return "a4-invoice";
     });
 
-   const buildPrintCss = () => {
-  const s = (props.size || "A4").toUpperCase();
-  let css = `
-    body { font-family: Arial, sans-serif; margin: 0; padding: 10mm; line-height: 1.4; }
-    table { border-collapse: collapse; width: 100%; }
-    .items-table, .gst-summary-table { 
-      border: 1px solid #000 !important; 
-      font-size: 11px; 
-    }
-    .items-table th, .items-table td, 
-    .gst-summary-table th, .gst-summary-table td {
-      border: 1px solid #000 !important;
-      padding: 5px !important;
-    }
-    .items-table th { background: #f0f0f0 !important; }
-    .bank-details-box, .terms-box-final, .signature-box-final {
-      border: 2px solid #000 !important;
-    }
-  `;
-
-  if (s === "80MM" || s === "58MM") {
-    css += `
-      body { padding: 3mm !important; font-size: 10px; }
-      .invoice-logo { width: 60px !important; }
-      .store-name { font-size: 14px !important; }
-      table { font-size: 9px; }
-      .items-table th, .items-table td { padding: 2px !important; }
-    `;
-  }
-
-  return css;
-};
-
-     const printInvoice = () => {
-  const printContent = document.getElementById("pos-invoice-inner");
-  if (!printContent) return;
-
-  const printWindow = window.open("", "_blank", "width=900,height=900");
-
-  // GET ALL STYLES FROM CURRENT PAGE (including your <style>)
-  let allStyles = "";
-  for (const sheet of document.styleSheets) {
-    try {
-      const rules = sheet.cssRules || sheet.rules;
-      for (const rule of rules) {
-        allStyles += rule.cssText;
+    const buildPrintCss = () => {
+      const s = (props.size || "A4").toUpperCase();
+      if (s === "A5") {
+        return `
+          @page { size: A5; margin: 10mm; }
+          .invoice-root { max-width: 148mm; width: 148mm; }
+          body, table { font-size: 12px; }
+        `;
       }
-    } catch (e) {
-      // Cross-origin CSS (like AntD) - just add link
-      if (sheet.href) {
-        allStyles += `<link rel="stylesheet" href="${sheet.href}" />`;
+      if (s === "80MM") {
+        return `
+          @page { size: 80mm auto; margin: 5mm; }
+          .invoice-root { max-width: 80mm; width: 80mm; }
+          body, table { font-size: 11px; }
+          .invoice-logo { width: 70px; }
+        `;
       }
-    }
-  }
+      if (s === "58MM") {
+        return `
+          @page { size: 58mm auto; margin: 4mm; }
+          .invoice-root { max-width: 58mm; width: 58mm; }
+          body, table { font-size: 10px; }
+          .invoice-logo { width: 60px; }
+        `;
+      }
+      return `
+        @page { size: A4; margin: 12mm; }
+        .invoice-root { max-width: 210mm; width: 210mm; }
+        body, table { font-size: 13px; }
+      `;
+    };
 
-  const customCss = buildPrintCss();
+    const printInvoice = () => {
+      const wrapper = document.getElementById("pos-invoice-inner");
+      if (!wrapper) return;
+      const invoiceContent = wrapper.outerHTML;
+      const newWindow = window.open("", "", "height=800,width=800");
+      newWindow.document.write(`
+        <html>
+          <head>
+            <meta charset="utf-8" />
+            <link rel="stylesheet" href="${posInvoiceCssUrl}">
+            <style>
+              ${buildPrintCss()}
+              .invoice-header { text-align:center; border-bottom:1px dotted #ddd !important; padding-bottom:4px; }
+              .invoice-logo { width:100px; margin-bottom:4px; display:table; }
+              .store-name { margin:0; font-size:18px; font-weight:700; text-transform:uppercase; }
+              .store-address { margin:0; white-space:break-spaces; }
+              .store-contact { margin:0; font-size:12px; }
+              .invoice-meta-row { margin-top:6px; border-bottom:1px dotted #ddd !important; padding-bottom:4px; display:flex; justify-content:space-between; }
+              .tax-invoice-title { margin:0; font-size:16px; font-weight:600; text-transform:uppercase; }
+              .items-table { width:100%; border-collapse:collapse; margin-top:8px; }
+              .items-table th, .items-table td { border:1px solid #ddd; padding:4px; font-size:12px; }
+              .items-table thead { background:#eee; font-weight:600; }
+              .right { text-align:right; }
+              .center { text-align:center; }
+              .tax-invoice-totals { margin-top:6px; border-top:2px dotted #ddd !important; border-bottom:2px dotted #ddd !important; padding:4px 0; }
+              .paid-amount-deatils { margin-top:10px; text-align:center; }
+              .paid-amount-row { border-top:2px dotted #ddd !important; border-bottom:2px dotted #ddd !important; }
+              .thanks-details { margin-top:5px; text-align:center; }
+              .barcode-details { margin-top:10px; text-align:center; }
+              .discount-details { padding:5px 0px; border-top:2px dotted #ddd !important; border-bottom:2px dotted #ddd !important; }
+              .discount-details p { margin-bottom:0px; }
 
-  printWindow.document.write(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <title>Invoice ${order?.invoice_number || ''}</title>
-      <style>
-        ${allStyles}
-        ${customCss}
-        @media print {
-          body { 
-            -webkit-print-color-adjust: exact; 
-            print-color-adjust: exact; 
-            margin: 0;
-          }
-          .invoice-root { 
-            width: 100% !important; 
-            max-width: none !important; 
-            padding: 10mm;
-          }
-          @page { 
-            size: auto; 
-            margin: 5mm; 
-          }
-        }
-      </style>
-    </head>
-    <body>
-      ${printContent.outerHTML}
-    </body>
-    </html>
-  `);
+              .bottom-section { margin-top:8px; }
+              .bottom-table { width:100%; border-collapse:collapse; font-size:12px; }
+              .bottom-table td { border:1px solid #000; padding:4px 6px; vertical-align:top; }
+              .inner-bank-table, .inner-terms-table { width:100%; border-collapse:collapse; }
+              .inner-bank-table td, .inner-terms-table td { border:none; padding:2px 0; }
+              .bank-header { font-weight:600; }
+              .terms-header { font-weight:600; text-align:right; }
+              .terms-text-cell { text-align:right; }
+              .terms-for-cell { padding-top:24px; text-align:right; }
+              .signature-box { padding-top:30px; text-align:center; }
 
-  printWindow.document.close();
-
-  // THIS IS THE MAGIC LINE - WAIT FOR IMAGES & CONTENT TO LOAD
-  printWindow.onload = () => {
-    setTimeout(() => {
-      printWindow.focus();
-      printWindow.print();
-      // printWindow.close();  // remove this line if you want to see preview
-    }, 800);
-  };
-
-  // BACKUP METHOD - in case onload fails (works 100%)
-  setTimeout(() => {
-    if (printWindow && !printWindow.closed) {
-      printWindow.focus();
-      printWindow.print();
-    }
-  }, 1200);
-};
+              table { width:100%; border-collapse:collapse; }
+              thead { background:#eee; }
+              @media print {
+                table { page-break-inside:auto; }
+                tr, td, th { page-break-inside:avoid; }
+              }
+            </style>
+          </head>
+          <body>${invoiceContent}</body>
+        </html>
+      `);
+      newWindow.document.close();
+      newWindow.focus();
+      newWindow.print();
+    };
 
     // Helpers for item-level taxable and tax rate
     const getTaxableAmount = (item) => {
