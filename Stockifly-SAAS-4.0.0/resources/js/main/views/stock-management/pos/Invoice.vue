@@ -1115,19 +1115,18 @@ console.log("Total Tax Amount:", totalTaxAmount);
 
 /* 1. BANK DETAILS – ONE CLEAN BOX */
 .bank-details-box {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 20px;
-  border: 2px solid #000;
-  padding: 12px 20px;
-  background: #fff;
-  margin: 25px 0 20px 0;
-  font-size: 13.5px;
-  font-weight: 500;
-  flex-wrap: wrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0px;
+    border: 2px solid #000;
+    padding: 12px 20px;
+    background: #fff;
+    margin: 25px 0 20px;
+    font-size: 11.5px;
+    font-weight: 500;
+    flex-wrap: wrap;
 }
-
 .bank-title {
   font-weight: 900 !important;
   font-size: 15px;
@@ -1139,7 +1138,7 @@ console.log("Total Tax Amount:", totalTaxAmount);
 .bank-items {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 3px;
   flex-wrap: wrap;
   justify-content: center;
   flex: 1;
