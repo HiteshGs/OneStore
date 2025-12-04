@@ -602,32 +602,40 @@ export default defineComponent({
     );
 
     const onClose = () => emit("closed");
-const customerState = computed(() => {
-  const address = (props.order?.user?.address || "").toLowerCase();
-  const city = (props.order?.user?.city || "").toLowerCase();
-  const state = (props.order?.user?.state || "").toLowerCase();
-  const fullText = `${address} ${city} ${state}`;
+const posSelectedCustomer = computed(() => {
+      try {
+        const raw = localStorage.getItem('pos_selected_customer');
+        return raw ? JSON.parse(raw) : null;
+      } catch (e) {
+        return null;
+      }
+    });
 
-  // List of Gujarat keywords
-  const gujaratKeywords = ["gujarat", "gujrat", "gj", "surat", "ahmedabad", "vadodara", "rajkot", "bhavnagar", "jamnagar", "anand", "gandhinagar", "bharuch", "valsad", "navsari"];
+    // Final customer address to use for GST logic
+    const finalCustomerAddress = computed(() => {
+      return (props.order?.user?.address || posSelectedCustomer.value?.address || "").trim();
+    });
 
-  return gujaratKeywords.some(keyword => fullText.includes(keyword)) 
-    ? "Gujarat" 
-    : "Other State";
-});
+    // Smart Gujarat Detection – Works with "Surat,Gujarat", "Surat Gujarat", "GJ", etc.
+    const customerState = computed(() => {
+      const addr = finalCustomerAddress.value.toLowerCase();
+      const gujaratKeywords = [
+        "gujarat", "gujrat", "gj", "surat", "ahmedabad", "vadodara", "rajkot",
+        "bhavnagar", "jamnagar", "anand", "gandhinagar", "bharuch", "valsad", "navsari"
+      ];
+      return gujaratKeywords.some(kw => addr.includes(kw)) ? "Gujarat" : "Other State";
+    });
 
-const isIntraState = computed(() => customerState.value === "Gujarat");
+    const isIntraState = computed(() => customerState.value === "Gujarat");
 
-// Smart SGST / CGST / IGST Calculation
-const totalTaxAmount = computed(() => Number(props.order?.tax_amount) || 0);
-
-const computedSGST = computed(() => isIntraState.value ? totalTaxAmount.value / 2 : 0);
-const computedCGST = computed(() => isIntraState.value ? totalTaxAmount.value / 2 : 0);
-const computedIGST = computed(() => isIntraState.value ? 0 : totalTaxAmount.value);
-
-watch(
-  () => props.order,
-  (newOrder) => {
+    const totalTaxAmount = computed(() => Number(props.order?.tax_amount) || 0);
+    const computedSGST = computed(() => isIntraState.value ? totalTaxAmount.value / 2 : 0);
+    const computedCGST = computed(() => isIntraState.value ? totalTaxAmount.value / 2 : 0);
+    const computedIGST = computed(() => isIntraState.value ? 0 : totalTaxAmount.value);
+    
+    watch(
+      () => props.order,
+      (newOrder) => {
     if (!newOrder || !newOrder.xid) return;
 
     const tax = Number(newOrder.tax_amount) || 0;
