@@ -632,65 +632,62 @@ console.log("Total Tax Amount:", totalTaxAmount);
         body, table { font-size: 13px; }
       `;
     };
+const getAllComponentStyles = () => {
+  const styles = [];
+  // Get all <style> tags in current document that belong to this component
+  document.querySelectorAll('style').forEach(styleTag => {
+    if (styleTag.textContent.includes('.invoice-root') || 
+        styleTag.textContent.includes('.final-totals-box') ||
+        styleTag.textContent.includes('.bank-details-box')) {
+      styles.push(styleTag.textContent);
+    }
+  });
+  return styles.join('\n');
+};
+   const printInvoice = async () => {
+  await nextTick();
+  const wrapper = document.getElementById("pos-invoice-inner");
+  if (!wrapper) return;
 
-    const printInvoice = () => {
-      const wrapper = document.getElementById("pos-invoice-inner");
-      if (!wrapper) return;
-      const invoiceContent = wrapper.outerHTML;
-      const newWindow = window.open("", "", "height=800,width=800");
-      newWindow.document.write(`
-        <html>
-          <head>
-            <meta charset="utf-8" />
-            <link rel="stylesheet" href="${posInvoiceCssUrl}">
-            <style>
-              ${buildPrintCss()}
-              .invoice-header { text-align:center; border-bottom:1px dotted #ddd !important; padding-bottom:4px; }
-              .invoice-logo { width:100px; margin-bottom:4px; display:table; }
-              .store-name { margin:0; font-size:18px; font-weight:700; text-transform:uppercase; }
-              .store-address { margin:0; white-space:break-spaces; }
-              .store-contact { margin:0; font-size:12px; }
-              .invoice-meta-row { margin-top:6px; border-bottom:1px dotted #ddd !important; padding-bottom:4px; display:flex; justify-content:space-between; }
-              .tax-invoice-title { margin:0; font-size:16px; font-weight:600; text-transform:uppercase; }
-              .items-table { width:100%; border-collapse:collapse; margin-top:8px; }
-              .items-table th, .items-table td { border:1px solid #ddd; padding:4px; font-size:12px; }
-              .items-table thead { background:#eee; font-weight:600; }
-              .right { text-align:right; }
-              .center { text-align:center; }
-              .tax-invoice-totals { margin-top:6px; border-top:2px dotted #ddd !important; border-bottom:2px dotted #ddd !important; padding:4px 0; }
-              .paid-amount-deatils { margin-top:10px; text-align:center; }
-              .paid-amount-row { border-top:2px dotted #ddd !important; border-bottom:2px dotted #ddd !important; }
-              .thanks-details { margin-top:5px; text-align:center; }
-              .barcode-details { margin-top:10px; text-align:center; }
-              .discount-details { padding:5px 0px; border-top:2px dotted #ddd !important; border-bottom:2px dotted #ddd !important; }
-              .discount-details p { margin-bottom:0px; }
+  // Clone and clean content
+  const content = wrapper.cloneNode(true);
 
-              .bottom-section { margin-top:8px; }
-              .bottom-table { width:100%; border-collapse:collapse; font-size:12px; }
-              .bottom-table td { border:1px solid #000; padding:4px 6px; vertical-align:top; }
-              .inner-bank-table, .inner-terms-table { width:100%; border-collapse:collapse; }
-              .inner-bank-table td, .inner-terms-table td { border:none; padding:2px 0; }
-              .bank-header { font-weight:600; }
-              .terms-header { font-weight:600; text-align:right; }
-              .terms-text-cell { text-align:right; }
-              .terms-for-cell { padding-top:24px; text-align:right; }
-              .signature-box { padding-top:30px; text-align:center; }
+  // Inline barcode as SVG (critical!)
+  const barcodeSvg = content.querySelector('svg');
+  if (barcodeSvg) {
+    barcodeSvg.setAttribute('width', '100%');
+    barcodeSvg.setAttribute('height', '50');
+  }
 
-              table { width:100%; border-collapse:collapse; }
-              thead { background:#eee; }
-              @media print {
-                table { page-break-inside:auto; }
-                tr, td, th { page-break-inside:avoid; }
-              }
-            </style>
-          </head>
-          <body>${invoiceContent}</body>
-        </html>
-      `);
-      newWindow.document.close();
-      newWindow.focus();
-      newWindow.print();
-    };
+  const printCss = buildPrintCss();
+
+  const printWindow = window.open("", "", "width=900,height=900");
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Invoice ${props.order?.invoice_number}</title>
+        <style>
+          ${getAllComponentStyles()}
+          ${printCss}
+          @media print {
+            @page { margin: 0; size: ${props.size === '80mm' ? '80mm auto' : props.size === '58mm' ? '58mm auto' : 'A4' }; }
+            body { margin: 0 !important; padding: 5mm !important; font-family: Arial, sans-serif; }
+            * { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; }
+            .bottom-boxes-row { display: flex !important; gap: 20px; }
+            .final-totals-box, .bottom-section, .bank-details-box { page-break-inside: avoid; }
+            .gst-mini-table th { background: #333 !important; color: white !important; }
+          }
+        </style>
+      </head>
+      <body onload="window.print(); setTimeout(() => window.close(), 500)">
+        ${content.outerHTML}
+      </body>
+    </html>
+  `);
+  printWindow.document.close();
+};
 
     // Helpers for item-level taxable and tax rate
     const getTaxableAmount = (item) => {
@@ -1334,5 +1331,40 @@ console.log("Total Tax Amount:", totalTaxAmount);
 .thermal-80,
 .thermal-58 {
   font-size: 12px;
+}
+@media print {
+  @page {
+    margin: 0.5cm;
+    size: A4; /* or your size */
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    -webkit-print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* Force background colors (for headers, boxes) */
+  .final-totals-box,
+  .summary-row,
+  .gst-mini-table th,
+  .generated-info {
+    -webkit-print-color-adjust: exact !important;
+    background-color: inherit !important;
+  }
+
+  /* Prevent page breaks inside important sections */
+  .final-totals-box,
+  .bottom-section,
+  .bank-details-box,
+  .bottom-boxes-row {
+    page-break-inside: avoid;
+  }
+
+  /* Fix flexbox in print */
+  .bottom-boxes-row {
+    display: flex !important;
+  }
 }
 </style>
