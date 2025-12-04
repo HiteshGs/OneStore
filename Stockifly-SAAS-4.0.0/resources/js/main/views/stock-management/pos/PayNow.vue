@@ -201,11 +201,11 @@
 
       <div class="mt-20">
         <a-switch v-model:checked="autoOpenPrint" />
-        <span class="ml-10">{{ $t('payments.open_print_preview') }}</span>
+        <span class="ml-10">Print Preview</span>
       </div>
 
       <small class="block mt-10" style="color:#7c8db5">
-        {{ $t('payments.you_can_change_later') }}
+        You can change later
       </small>
     </a-modal>
   </a-drawer>
