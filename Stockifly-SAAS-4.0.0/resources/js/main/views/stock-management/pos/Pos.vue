@@ -62,6 +62,7 @@
                                                 style="width: 100%"
                                                 optionFilterProp="title"
                                                 show-search
+                                                @change="handleCustomerChange"
                                             >
                                                 <a-select-option
                                                     v-for="customer in customers"
@@ -1083,15 +1084,21 @@ const handleCustomerChange = (selectedCustomerId) => {
 };
 
 onMounted(async () => {
-    await getPreFetchData(); // important: customer list loads first
+    await getPreFetchData();
 
-    const data = localStorage.getItem('selectedCustomer');
-    if (data) {
-        const saved = JSON.parse(data);
-        formData.user_id = saved.xid;
+    // Load the customer we actually saved
+    const savedData = localStorage.getItem('pos_selected_customer');
+    if (savedData) {
+        try {
+            const savedCustomer = JSON.parse(savedData);
+            formData.value.user_id = savedCustomer.xid;
+            console.log('Customer loaded from storage:', savedCustomer);
+        } catch (e) {
+            console.error('Failed to parse saved customer');
+            localStorage.removeItem('pos_selected_customer');
+        }
     }
 });
-
         const reFetchProducts = () => {
             axiosAdmin
                 .post("pos/products", {
