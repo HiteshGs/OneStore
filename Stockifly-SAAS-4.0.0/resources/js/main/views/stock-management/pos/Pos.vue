@@ -1038,30 +1038,37 @@ export default {
         // For mobile Design
         const showMobileCart = ref(false);
 const handleCustomerChange = (selectedCustomerId) => {
-  // Find the selected customer based on the xid
-  const selectedCustomer = customers.find(
-    (customer) => customer.xid === selectedCustomerId
-  );
+    // If no customer selected (cleared), remove from storage
+    if (!selectedCustomerId) {
+        localStorage.removeItem('pos_selected_customer');
+        formData.value.user_id = null;
+        return;
+    }
 
-  if (selectedCustomer) {
-    // Save the entire selected customer object to localStorage
-    const customerData = {
-      name: selectedCustomer.name,
-      phone: selectedCustomer.phone,
-      profile_image: selectedCustomer.profile_image,
-      email: selectedCustomer.email,
-      address: selectedCustomer.address,
-      xid: selectedCustomer.xid,
-    };
+    // Find the selected customer
+    const selectedCustomer = customers.value.find(
+        customer => customer.xid === selectedCustomerId
+    );
 
-    // Log the selected customer data to the console
-    console.log("Selected Customer Data:", customerData);
+    if (selectedCustomer) {
+        // Save only what you need
+        const customerToSave = {
+            xid: selectedCustomer.xid,
+            name: selectedCustomer.name,
+            phone: selectedCustomer.phone || '',
+            email: selectedCustomer.email || '',
+            address: selectedCustomer.address || ''
+        };
 
-    // Store the customer data in localStorage
-    localStorage.setItem('selectedCustomer', JSON.stringify(customerData));
-  }
+        // Save to localStorage
+        localStorage.setItem('pos_selected_customer', JSON.stringify(customerToSave));
+
+        console.log('Customer saved:', customerToSave); // Optional: for debugging
+    }
+
+    // Always update the form
+    formData.value.user_id = selectedCustomerId;
 };
-
         // This will get customer data from localStorage when the page loads
         const getCustomerFromLocalStorage = () => {
     const storedCustomer = localStorage.getItem('selectedCustomer');
