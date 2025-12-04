@@ -209,33 +209,6 @@
                 </td>
               </tr>
 
-              <!-- ORDER TAX / DISCOUNT / SHIPPING -->
-              <tr class="item-row-other">
-                <td colspan="7" class="right">
-                  {{ $t('stock.order_tax') }}
-                </td>
-                <td colspan="2" class="right">
-                  {{ formatAmountCurrency(order.tax_amount) }}
-                </td>
-              </tr>
-
-              <tr class="item-row-other">
-                <td colspan="7" class="right">
-                  {{ $t('stock.discount') }}
-                </td>
-                <td colspan="2" class="right">
-                  {{ formatAmountCurrency(order.discount) }}
-                </td>
-              </tr>
-
-              <tr class="item-row-other">
-                <td colspan="7" class="right">
-                  {{ $t('stock.shipping') }}
-                </td>
-                <td colspan="2" class="right">
-                  {{ formatAmountCurrency(order.shipping) }}
-                </td>
-              </tr>
             </tbody>
           </table>
         </div>
