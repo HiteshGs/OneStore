@@ -27,25 +27,27 @@
             :alt="selectedWarehouse.name"
           />
           <div class="invoice-header-text">
-            <h1 class="store-name">
-              {{ selectedWarehouse.name }}
-            </h1>
-            <p class="store-address">
-              {{ selectedWarehouse.address }}
-            </p>
-            <p class="store-contact">
-              <span v-if="selectedWarehouse.phone">
-                {{ $t('common.phone') }}: {{ selectedWarehouse.phone }}
-              </span>
-              <span v-if="selectedWarehouse.email">
-                &nbsp;|&nbsp;{{ $t('common.email') }}: {{ selectedWarehouse.email }}
-              </span>
-              <!-- GSTN – always show with fallback -->
-              <span class="store-gst">
-                &nbsp;|&nbsp;GSTIN: {{ displayGSTIN }}
-              </span>
-            </p>
-          </div>
+  <h1 class="store-name">
+    {{ selectedWarehouse.name }}
+  </h1>
+  <p class="store-address">
+    {{ selectedWarehouse.address }}
+  </p>
+  <p class="store-contact">
+    <span v-if="selectedWarehouse.phone" class="contact-item">
+      {{ $t('common.phone') }}: {{ selectedWarehouse.phone }}
+    </span>
+
+    <span v-if="selectedWarehouse.email" class="contact-item">
+      | {{ $t('common.email') }}: {{ selectedWarehouse.email }}
+    </span>
+
+    <!-- GSTIN: Now BOLD, SAME LINE, PERFECT SPACING -->
+    <span class="contact-item gstin-bold">
+      | <strong>GSTIN:</strong> {{ displayGSTIN }}
+    </span>
+  </p>
+</div>
         </div>
 
         
@@ -62,7 +64,7 @@
     <p v-if="order.user?.phone || posSelectedCustomer?.phone" class="party-line">
       Mo: {{ order.user?.phone || posSelectedCustomer?.phone }}
     </p>
-
+<br/>
     <!-- GSTIN: Clean, No <br/>, No Extra Bold -->
     <p v-if="order.user?.gst_number" class="party-line">
       <strong>GSTIN:</strong> {{ order.user.gst_number }}
@@ -1496,6 +1498,30 @@ const printInvoice = async () => {
 .party-line strong {
   font-weight: 800;
   color: #000;
+}
+.store-contact {
+  margin: 6px 0 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+}
+
+.contact-item {
+  white-space: nowrap;
+}
+
+.gstin-bold {
+  font-weight: 600;
+}
+
+.gstin-bold strong {
+  font-weight: 900;
+  color: #000;
+  letter-spacing: 0.5px;
 }
 }
 </style>
