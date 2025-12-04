@@ -1597,5 +1597,13 @@ const printInvoice = async () => {
   text-align: right !important;
   padding-right: 20px !important;
 }
+@media print {
+  .net-amount-label,
+  .net-amount-value {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color: #000 !important;
+    background: #ffff00 !important;
+  }
 }
 </style>
