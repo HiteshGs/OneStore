@@ -826,7 +826,7 @@ const printInvoice = async () => {
   margin-bottom: 4px;
 }
 .invoice-header-text {
-  margin-top: -50px;
+  margin-top: -85px;
 }
 .store-name {
   margin: 0;
