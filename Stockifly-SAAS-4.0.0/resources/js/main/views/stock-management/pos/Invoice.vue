@@ -213,8 +213,10 @@
       <tr class="summary-row">
         <td class="label-strong">IGST :</td>
         <td class="value-right">{{ formatAmountCurrency(computedIGST) }}</td>
-        <td class="label-strong">NET AMOUNT :</td>
-        <td class="value-right big-total" colspan="3">{{ formatAmountCurrency(order.total) }}</td>
+        <td class="label-strong net-amount-label">NET AMOUNT :</td>
+<td class="value-right big-total net-amount-value" colspan="3">
+  {{ formatAmountCurrency(order.total) }}
+</td>
       </tr>
 
 
@@ -1577,6 +1579,23 @@ const printInvoice = async () => {
   font-size: 18px;
   font-weight: 900;
   color: #c62828;
+}
+.net-amount-label {
+  font-weight: 900 !important;
+  font-size: 17px !important;
+  color: #000 !important;
+  background: #ffff00 !important;     /* Yellow background jaise Vyapar */
+  text-align: center !important;
+  letter-spacing: 1px;
+}
+
+.net-amount-value {
+  font-weight: 900 !important;
+  font-size: 20px !important;
+  color: #000000 !important;
+  background: #fff0f0 !important;
+  text-align: right !important;
+  padding-right: 20px !important;
 }
 }
 </style>
