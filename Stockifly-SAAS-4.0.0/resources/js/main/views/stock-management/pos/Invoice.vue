@@ -405,23 +405,25 @@
     </div>
 
     <template #footer>
-      <div class="footer-button">
-        <a-button
-          v-if="order?.user?.email && isVerified"
-          type="primary"
-          @click="sendInvoiceMail(order.xid, selectedLang)"
-          :loading="isSending"
-        >
-          <template #icon><SendOutlined /></template>
-          {{ $t('common.send_invoice') }}
-        </a-button>
+  <div class="footer-button">
+    <a-button v-if="order?.user?.email && isVerified" type="primary" @click="sendInvoiceMail(order.xid, selectedLang)" :loading="isSending">
+      <template #icon><SendOutlined /></template>
+      {{ $t('common.send_invoice') }}
+    </a-button>
 
-        <a-button type="primary" @click="printInvoice">
-          <template #icon><PrinterOutlined /></template>
-          {{ $t('common.print_invoice') }}
-        </a-button>
-      </div>
-    </template>
+    <!-- New: Download PDF Button -->
+    <a-button type="default" @click="downloadPdf" style="margin-right: 8px;">
+      <template #icon><DownloadOutlined /></template>
+      Download PDF
+    </a-button>
+
+    <!-- Old Print Button (still works) -->
+    <a-button type="primary" @click="printInvoice">
+      <template #icon><PrinterOutlined /></template>
+      {{ $t('common.print_invoice') }}
+    </a-button>
+  </div>
+</template>
   </a-modal>
 </template>
 
@@ -433,6 +435,8 @@ import BarcodeGenerator from "../../../../common/components/barcode/BarcodeGener
 import QRcodeGenerator from "../../../../common/components/barcode/QRcodeGenerator.vue";
 import { notification } from "ant-design-vue";
 import { useI18n } from "vue-i18n";
+import html2pdf from 'html2pdf.js';
+import { DownloadOutlined } from '@ant-design/icons-vue';
 
 const posInvoiceCssUrl = window.config.pos_invoice_css;
 
@@ -462,12 +466,13 @@ export default defineComponent({
     autoOpen: { type: Boolean, default: false },
   },
   emits: ["closed", "success"],
-  components: {
-    PrinterOutlined,
-    BarcodeGenerator,
-    QRcodeGenerator,
-    SendOutlined,
-  },
+ components: {
+  PrinterOutlined,
+  SendOutlined,
+  DownloadOutlined,
+  BarcodeGenerator,
+  QRcodeGenerator,
+},
   setup(props, { emit }) {
     const { t } = useI18n();
     const {
@@ -502,7 +507,9 @@ export default defineComponent({
       },
       { immediate: true }
     );
-
+const downloadPdf = () => {
+  printInvoice(); // Reuse same function
+};
     const onClose = () => emit("closed");
 const posSelectedCustomer = computed(() => {
       try {
@@ -644,49 +651,60 @@ const getAllComponentStyles = () => {
   });
   return styles.join('\n');
 };
-   const printInvoice = async () => {
-  await nextTick();
-  const wrapper = document.getElementById("pos-invoice-inner");
-  if (!wrapper) return;
+  const printInvoice = async () => {
+  await nextTick(); // Wait for Vue to render everything (especially barcode/QR)
 
-  // Clone and clean content
-  const content = wrapper.cloneNode(true);
+  const element = document.getElementById('pos-invoice-inner');
+  if (!element) return;
 
-  // Inline barcode as SVG (critical!)
-  const barcodeSvg = content.querySelector('svg');
-  if (barcodeSvg) {
-    barcodeSvg.setAttribute('width', '100%');
-    barcodeSvg.setAttribute('height', '50');
+  // Determine format and margins based on size
+  let format = 'a4';
+  let margin = [8, 8, 8, 8]; // top, left, bottom, right (in mm)
+  let width = 210; // A4 width in mm
+  let height = 'auto';
+
+  if (props.size === 'A5') {
+    format = 'a5';
+  } else if (props.size === '80MM') {
+    format = [80, 'auto'];  // 80mm thermal
+    margin = [3, 3, 3, 3];
+    width = 80;
+  } else if (props.size === '58MM') {
+    format = [58, 'auto'];  // 58mm thermal
+    margin = [2, 2, 2, 2];
+    width = 58;
   }
 
-  const printCss = buildPrintCss();
+  const opt = {
+    margin: margin,
+    filename: `Invoice_${props.order?.invoice_number || 'POS'}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: {
+      scale: 2,
+      useCORS: true,
+      letterRendering: true,
+      allowTaint: false,
+      backgroundColor: '#ffffff',
+      width: element.scrollWidth,
+      height: element.scrollHeight,
+    },
+    jsPDF: {
+      unit: 'mm',
+      format: format,
+      orientation: 'portrait',
+      compress: true,
+    },
+    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
+  };
 
-  const printWindow = window.open("", "", "width=900,height=900");
-  printWindow.document.write(`
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="utf-8">
-        <title>Invoice ${props.order?.invoice_number}</title>
-        <style>
-          ${getAllComponentStyles()}
-          ${printCss}
-          @media print {
-            @page { margin: 0; size: ${props.size === '80mm' ? '80mm auto' : props.size === '58mm' ? '58mm auto' : 'A4' }; }
-            body { margin: 0 !important; padding: 5mm !important; font-family: Arial, sans-serif; }
-            * { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; }
-            .bottom-boxes-row { display: flex !important; gap: 20px; }
-            .final-totals-box, .bottom-section, .bank-details-box { page-break-inside: avoid; }
-            .gst-mini-table th { background: #333 !important; color: white !important; }
-          }
-        </style>
-      </head>
-      <body onload="window.print(); setTimeout(() => window.close(), 500)">
-        ${content.outerHTML}
-      </body>
-    </html>
-  `);
-  printWindow.document.close();
+  // Generate and download PDF
+  html2pdf().set(opt).from(element).save();
+
+  // Optional: Show success message
+  notification.success({
+    message: 'PDF Generated',
+    description: 'Invoice PDF has been downloaded successfully.',
+  });
 };
 
     // Helpers for item-level taxable and tax rate
