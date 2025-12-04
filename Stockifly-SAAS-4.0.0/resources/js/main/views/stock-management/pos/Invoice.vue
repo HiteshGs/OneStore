@@ -295,23 +295,7 @@
         </div>
 
         <!-- DISCOUNT / TAX SUMMARY (OPTIONAL) -->
-        <div
-          v-if="selectedWarehouse.show_discount_tax_on_invoice"
-          class="discount-details"
-        >
-          <p>
-            {{ $t('invoice.total_discount_on_mrp') }} :
-            {{ formatAmountCurrency(order.saving_on_mrp) }}
-          </p>
-          <p>
-            {{ $t('invoice.total_discount') }} :
-            {{ order.saving_percentage }}%
-          </p>
-          <p>
-            {{ $t('invoice.total_tax') }} :
-            {{ formatAmountCurrency(order.total_tax_on_items) }}
-          </p>
-        </div>
+        
 
         <!-- BANK DETAIL + TERMS + SIGN – BOX TABLE LIKE PDF -->
         <!-- BOTTOM SECTION – EXACTLY LIKE YOUR IMAGE -->
