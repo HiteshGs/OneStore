@@ -214,79 +214,60 @@
           </table>
         </div>
 
-        <!-- TOTALS (GROSS / SGST / CGST / IGST / NET) -->
-        <!-- FINAL SINGLE BOX: TOTALS + GST SUMMARY + PAID/DUE -->
-<div class="final-totals-box">
-  <table class="final-totals-table">
-    <tbody>
-      <!-- ROW 1: GROSS, SGST, CGST, IGST, NET -->
-      <tr class="summary-row">
-        <td class="label">GROSS AMT :</td>
-        <td class="value">{{ formatAmountCurrency(getGrossAmount(order)) }}</td>
+<div class="simple-totals-section">
+  <!-- LEFT: GROSS + SGST + CGST + IGST + NET -->
+  <div class="left-amounts">
+    <div class="amt-line">GROSS AMT : <strong>{{ formatAmountCurrency(getGrossAmount(order)) }}</strong></div>
+    <div class="amt-line">SGST      : <strong>{{ formatAmountCurrency(computedSGST) }}</strong></div>
+    <div class="amt-line">CGST      : <strong>{{ formatAmountCurrency(computedCGST) }}</strong></div>
+    <div class="amt-line">IGST      : <strong>{{ formatAmountCurrency(computedIGST) }}</strong></div>
+    <div class="amt-line net-amt-line">
+      NET AMOUNT : <strong class="big-net">{{ formatAmountCurrency(order.total) }}</strong>
+    </div>
+  </div>
 
-        <td class="label">SGST :</td>
-        <td class="value">{{ formatAmountCurrency(computedSGST) }}</td>
-
-        <td class="label">NET AMOUNT :</td>
-        <td class="value big-total">{{ formatAmountCurrency(order.total) }}</td>
-      </tr>
-
-      <tr class="summary-row">
-        <td class="label">CGST :</td>
-        <td class="value">{{ formatAmountCurrency(computedCGST) }}</td>
-
-        <td class="label">IGST :</td>
-        <td class="value">{{ formatAmountCurrency(computedIGST) }}</td>
-
-        <td class="label strong">PAID AMOUNT :</td>
-        <td class="value strong paid">{{ formatAmountCurrency(order.paid_amount) }}</td>
-      </tr>
-
-      <!-- ROW 2: GST SLAB SUMMARY (Small Table Inside) -->
-      <tr>
-        <td colspan="6" style="padding: 12px 0;">
-          <div class="gst-slab-inside">
-            <table class="gst-mini-table">
-              <thead>
-                <tr>
-                  <th>GST(%)</th>
-                  <th>Taxable</th>
-                  <th>GST Amt</th>
-                  <th>Net Amt</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="row in gstSummary" :key="row.rate">
-                  <td class="center">{{ row.rate }}%</td>
-                  <td>{{ formatAmountCurrency(row.taxable) }}</td>
-                  <td>{{ formatAmountCurrency(row.taxAmount) }}</td>
-                  <td>{{ formatAmountCurrency(row.net) }}</td>
-                </tr>
-                <tr class="total-row">
-                  <td class="center"><strong>Total</strong></td>
-                  <td><strong>{{ formatAmountCurrency(gstSummaryTotals.taxable) }}</strong></td>
-                  <td><strong>{{ formatAmountCurrency(gstSummaryTotals.taxAmount) }}</strong></td>
-                  <td><strong>{{ formatAmountCurrency(gstSummaryTotals.net) }}</strong></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </td>
-      </tr>
-
-      <!-- ROW 3: DUE AMOUNT + WORDS -->
-      <tr class="final-row">
-        <td colspan="4" class="due-label">
-          <strong>DUE AMOUNT :</strong>
-          <span class="due-amount">{{ formatAmountCurrency(order.due_amount) }}</span>
-        </td>
-        <td colspan="2" class="words" v-if="order.amount_in_words">
-          Rupees in Words: {{ order.amount_in_words }}
-        </td>
-      </tr>
-    </tbody>
-  </table>
+  <!-- RIGHT: GST BREAKUP TABLE (EXACTLY LIKE YOUR PRINT) -->
+  <div class="gst-summary-box">
+    <table class="gst-summary-table">
+      <thead>
+        <tr>
+          <th>GST(%)</th>
+          <th>Taxable</th>
+          <th>GST</th>
+          <th>Net</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="row in gstSummary" :key="row.rate">
+          <td class="rate-cell">{{ row.rate }}%</td>
+          <td>{{ formatAmountCurrency(row.taxable) }}</td>
+          <td>{{ formatAmountCurrency(row.taxAmount) }}</td>
+          <td>{{ formatAmountCurrency(row.net) }}</td>
+        </tr>
+        <tr class="total-gst-row">
+          <td>Total</td>
+          <td><strong>{{ formatAmountCurrency(gstSummaryTotals.taxable) }}</strong></td>
+          <td><strong>{{ formatAmountCurrency(gstSummaryTotals.taxAmount) }}</strong></td>
+          <td><strong>{{ formatAmountCurrency(gstSummaryTotals.net) }}</strong></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
+
+<!-- PAID & DUE – SIMPLE & CLEAN -->
+<div class="paid-due-simple">
+  <div class="paid-section">
+    <div class="paid-label">Paid Amount</div>
+    <div class="paid-amt">{{ formatAmountCurrency(order.paid_amount) }}</div>
+  </div>
+  <div class="due-section">
+    <div class="due-label">Due Amount</div>
+    <div class="due-amt">{{ formatAmountCurrency(order.due_amount) }}</div>
+  </div>
+</div>
+
+
 
         <!-- PAYMENT MODE -->
         <div>
@@ -602,95 +583,94 @@ console.log("Total Tax Amount:", totalTaxAmount);
     });
 
     const buildPrintCss = () => {
-      const s = (props.size || "A4").toUpperCase();
-      if (s === "A5") {
-        return `
-          @page { size: A5; margin: 10mm; }
-          .invoice-root { max-width: 148mm; width: 148mm; }
-          body, table { font-size: 12px; }
-        `;
-      }
-      if (s === "80MM") {
-        return `
-          @page { size: 80mm auto; margin: 5mm; }
-          .invoice-root { max-width: 80mm; width: 80mm; }
-          body, table { font-size: 11px; }
-          .invoice-logo { width: 70px; }
-        `;
-      }
-      if (s === "58MM") {
-        return `
-          @page { size: 58mm auto; margin: 4mm; }
-          .invoice-root { max-width: 58mm; width: 58mm; }
-          body, table { font-size: 10px; }
-          .invoice-logo { width: 60px; }
-        `;
-      }
-      return `
-        @page { size: A4; margin: 12mm; }
-        .invoice-root { max-width: 210mm; width: 210mm; }
-        body, table { font-size: 13px; }
-      `;
-    };
+  const s = (props.size || "A4").toUpperCase();
+  let css = `
+    body { font-family: Arial, sans-serif; margin: 0; padding: 10mm; }
+    table { width: 100%; border-collapse: collapse; }
+    .items-table th, .items-table td { border: 1px solid #000 !important; padding: 6px; font-size: 12px; }
+    .items-table th { background: #f0f0f0 !important; -webkit-print-color-adjust: exact; }
+  `;
+
+  if (s === "80MM" || s === "58MM") {
+    css += `
+      body { padding: 3mm; font-size: 10px; }
+      .invoice-logo { width: 60px !important; }
+      .store-name { font-size: 14px !important; }
+      .items-table th, .items-table td { padding: 3px !important; font-size: 9px !important; }
+    `;
+  }
+
+  return css;
+};
 
     const printInvoice = () => {
-      const wrapper = document.getElementById("pos-invoice-inner");
-      if (!wrapper) return;
-      const invoiceContent = wrapper.outerHTML;
-      const newWindow = window.open("", "", "height=800,width=800");
-      newWindow.document.write(`
-        <html>
-          <head>
-            <meta charset="utf-8" />
-            <link rel="stylesheet" href="${posInvoiceCssUrl}">
-            <style>
-              ${buildPrintCss()}
-              .invoice-header { text-align:center; border-bottom:1px dotted #ddd !important; padding-bottom:4px; }
-              .invoice-logo { width:100px; margin-bottom:4px; display:table; }
-              .store-name { margin:0; font-size:18px; font-weight:700; text-transform:uppercase; }
-              .store-address { margin:0; white-space:break-spaces; }
-              .store-contact { margin:0; font-size:12px; }
-              .invoice-meta-row { margin-top:6px; border-bottom:1px dotted #ddd !important; padding-bottom:4px; display:flex; justify-content:space-between; }
-              .tax-invoice-title { margin:0; font-size:16px; font-weight:600; text-transform:uppercase; }
-              .items-table { width:100%; border-collapse:collapse; margin-top:8px; }
-              .items-table th, .items-table td { border:1px solid #ddd; padding:4px; font-size:12px; }
-              .items-table thead { background:#eee; font-weight:600; }
-              .right { text-align:right; }
-              .center { text-align:center; }
-              .tax-invoice-totals { margin-top:6px; border-top:2px dotted #ddd !important; border-bottom:2px dotted #ddd !important; padding:4px 0; }
-              .paid-amount-deatils { margin-top:10px; text-align:center; }
-              .paid-amount-row { border-top:2px dotted #ddd !important; border-bottom:2px dotted #ddd !important; }
-              .thanks-details { margin-top:5px; text-align:center; }
-              .barcode-details { margin-top:10px; text-align:center; }
-              .discount-details { padding:5px 0px; border-top:2px dotted #ddd !important; border-bottom:2px dotted #ddd !important; }
-              .discount-details p { margin-bottom:0px; }
+  const printContent = document.getElementById("pos-invoice-inner");
+  if (!printContent) return;
 
-              .bottom-section { margin-top:8px; }
-              .bottom-table { width:100%; border-collapse:collapse; font-size:12px; }
-              .bottom-table td { border:1px solid #000; padding:4px 6px; vertical-align:top; }
-              .inner-bank-table, .inner-terms-table { width:100%; border-collapse:collapse; }
-              .inner-bank-table td, .inner-terms-table td { border:none; padding:2px 0; }
-              .bank-header { font-weight:600; }
-              .terms-header { font-weight:600; text-align:right; }
-              .terms-text-cell { text-align:right; }
-              .terms-for-cell { padding-top:24px; text-align:right; }
-              .signature-box { padding-top:30px; text-align:center; }
+  const WinPrint = window.open("", "", "left=0,top=0,width=900,height=900,toolbar=0,scrollbars=0,status=0");
 
-              table { width:100%; border-collapse:collapse; }
-              thead { background:#eee; }
-              @media print {
-                table { page-break-inside:auto; }
-                tr, td, th { page-break-inside:avoid; }
-              }
-            </style>
-          </head>
-          <body>${invoiceContent}</body>
-        </html>
-      `);
-      newWindow.document.close();
-      newWindow.focus();
-      newWindow.print();
-    };
+  // GET ALL CSS FROM CURRENT PAGE (including your <style> in component)
+  const styles = Array.from(document.styleSheets)
+    .map(styleSheet => {
+      try {
+        return Array.from(styleSheet.cssRules)
+          .map(rule => rule.cssText)
+          .join("\n");
+      } catch (e) {
+        // For cross-origin stylesheets (like AntD), just get the href
+        const href = styleSheet.href;
+        if (href) {
+          return `<link rel="stylesheet" href="${href}" />`;
+        }
+        return "";
+      }
+    })
+    .join("\n");
+
+  // ALSO INCLUDE YOUR CUSTOM PRINT CSS
+  const customPrintCss = buildPrintCss();
+
+  WinPrint.document.write(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Invoice ${order.invoice_number}</title>
+        <style>
+          ${styles}
+        </style>
+        <style>
+          ${customPrintCss}
+          /* FORCE PRINT STYLES – VERY IMPORTANT */
+          @media print {
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .invoice-root { width: 100% !important; max-width: none !important; }
+            table { border-collapse: collapse !important; }
+            .no-print { display: none !important; }
+            /* Fix thermal printer cutting */
+            @page { margin: 5mm; size: auto; }
+          }
+        </style>
+        <!-- Fallback for AntD icons if needed -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/antd/4.24.0/antd.min.css">
+      </head>
+      <body>
+        ${printContent.outerHTML}
+      </body>
+    </html>
+  `);
+
+  WinPrint.document.close();
+  WinPrint.focus();
+
+  // Wait for content & styles to load
+  WinPrint.onload = () => {
+    setTimeout(() => {
+      WinPrint.print();
+      WinPrint.close();
+    }, 500);
+  };
+};
 
     // Helpers for item-level taxable and tax rate
     const getTaxableAmount = (item) => {
