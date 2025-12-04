@@ -629,11 +629,14 @@ const posSelectedCustomer = computed(() => {
     const isIntraState = computed(() => customerState.value === "Gujarat");
 
 // BEST & MOST ACCURATE METHOD (Recommended)
-const totalTaxAmount = 125;
+const totalTaxAmount = ref(125);  // ← use ref()
 console.log("Total Tax Amount:", totalTaxAmount);
     const computedSGST = computed(() => isIntraState.value ? totalTaxAmount.value / 2 : 0);
     const computedCGST = computed(() => isIntraState.value ? totalTaxAmount.value / 2 : 0);
     const computedIGST = computed(() => isIntraState.value ? 0 : totalTaxAmount.value);
+    console.log("SGST:", computedSGST.value);
+    console.log("CGST:", computedCGST.value);
+    console.log("IGST:", computedIGST.value);
     
     watch(
       () => props.order,
