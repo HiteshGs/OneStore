@@ -841,7 +841,7 @@ console.log("Total Tax Amount:", totalTaxAmount);
   margin-bottom: 4px;
 }
 .invoice-header-text {
-  margin-top: 4px;
+  margin-top: -110px;
 }
 .store-name {
   margin: 0;
