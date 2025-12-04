@@ -428,7 +428,7 @@
 </template>
 
 <script>
-import { ref, defineComponent, onMounted, computed, watch } from "vue";
+import { ref, defineComponent, onMounted, computed, watch, nextTick } from "vue";
 import { PrinterOutlined, SendOutlined } from "@ant-design/icons-vue";
 import common from "../../../../common/composable/common";
 import BarcodeGenerator from "../../../../common/components/barcode/BarcodeGenerator.vue";
@@ -651,62 +651,46 @@ const getAllComponentStyles = () => {
   });
   return styles.join('\n');
 };
-  const printInvoice = async () => {
-  await nextTick(); // Wait for Vue to render everything (especially barcode/QR)
+const printInvoice = async () => {
+  await nextTick(); // ← Now works!
 
   const element = document.getElementById('pos-invoice-inner');
   if (!element) return;
 
-  // Determine format and margins based on size
-  let format = 'a4';
-  let margin = [8, 8, 8, 8]; // top, left, bottom, right (in mm)
-  let width = 210; // A4 width in mm
-  let height = 'auto';
+  // Force barcode/QR to render perfectly
+  const svgs = element.querySelectorAll('svg');
+  svgs.forEach(svg => {
+    svg.setAttribute('width', '100%');
+    svg.setAttribute('height', '60');
+  });
 
-  if (props.size === 'A5') {
-    format = 'a5';
-  } else if (props.size === '80MM') {
-    format = [80, 'auto'];  // 80mm thermal
-    margin = [3, 3, 3, 3];
-    width = 80;
-  } else if (props.size === '58MM') {
-    format = [58, 'auto'];  // 58mm thermal
-    margin = [2, 2, 2, 2];
-    width = 58;
-  }
+  let format = 'a4';
+  let margin = [8, 8, 8, 8];
+
+  if (props.size === 'A5') format = 'a5';
+  else if (props.size === '80MM') { format = [80, 'auto']; margin = [3, 3, 3, 3]; }
+  else if (props.size === '58MM') { format = [58, 'auto']; margin = [2, 2, 2, 2]; }
 
   const opt = {
-    margin: margin,
+    margin,
     filename: `Invoice_${props.order?.invoice_number || 'POS'}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: {
       scale: 2,
       useCORS: true,
       letterRendering: true,
-      allowTaint: false,
       backgroundColor: '#ffffff',
-      width: element.scrollWidth,
-      height: element.scrollHeight,
     },
-    jsPDF: {
-      unit: 'mm',
-      format: format,
-      orientation: 'portrait',
-      compress: true,
-    },
-    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
+    jsPDF: { unit: 'mm', format, orientation: 'portrait' },
   };
 
-  // Generate and download PDF
   html2pdf().set(opt).from(element).save();
 
-  // Optional: Show success message
   notification.success({
-    message: 'PDF Generated',
-    description: 'Invoice PDF has been downloaded successfully.',
+    message: 'Success',
+    description: 'Invoice PDF downloaded!',
   });
 };
-
     // Helpers for item-level taxable and tax rate
     const getTaxableAmount = (item) => {
       const subtotal = Number(item.subtotal) || 0;
