@@ -238,7 +238,7 @@
 
   <td class="label-strong" style="width: 18%;">DUE AMOUNT :</td>
   <td class="value-right due-strong" colspan="3" 
-      style="color: #c62828; font-weight: 900; font-size: 18px;">
+      style="color: #51ff00ff; font-weight: 900; font-size: 18px;">
     {{ formatAmountCurrency(order.due_amount) }}
   </td>
 </tr>
