@@ -199,7 +199,7 @@
         <!-- FINAL SINGLE BOX: TOTALS + GST SUMMARY + PAID/DUE -->
 <!-- FINAL TOTALS BOX - NOW LOOKS LIKE ITEMS TABLE (BEAUTIFUL & PROFESSIONAL) -->
 <div class="final-totals-box">
-  <table class="items-table" style="margin-top: 20px; border: 2px solid #000;">
+  <table class="items-table" style="margin-top: 10px; border: 2px solid #000;">
     <tbody>
       <!-- ROW 1: GROSS + SGST + CGST + IGST + NET -->
       <tr class="summary-row">
@@ -221,7 +221,7 @@
 
 
       <!-- PAID & DUE AMOUNT -->
-      <tr style="background: #fff8e1; font-size: 15.5px; height: 50px; border-top: 3px double #000;">
+      <tr style="background: #e7b511ff; font-size: 15.5px; height: 50px; border-top: 3px double #000;">
   <td class="label-strong" style="width: 18%;">PAID AMOUNT :</td>
   <td class="value-right paid-strong" style="width: 25%; color: #0d8321; font-weight: 900;">
     {{ formatAmountCurrency(order.paid_amount) }}
@@ -776,7 +776,7 @@ const printInvoice = async () => {
 
 .store-gstin-line {
   margin: 4px 0 0 0;
-  font-size: 14.5px;
+  font-size: 10px;
   font-weight: 700;
   color: #000;
   letter-spacing: 0.8px;
@@ -956,7 +956,7 @@ const printInvoice = async () => {
 
 .bill-title {
   margin: 0 0 8px 0;
-  font-size: 15px;
+  font-size: 10px;
   font-weight: bold;
   color: #000;
   border-bottom: 1px solid #000;
@@ -1147,15 +1147,15 @@ const printInvoice = async () => {
 /* Terms Box */
 .terms-header {
   font-weight: bold;
-  font-size: 14.5px;
+  font-size: 10px;
   margin-bottom: 12px;
   text-align: left;
 }
 
 .terms-content {
   line-height: 1.7;
-  margin-bottom: 30px;
-  font-size: 13px;
+  margin-bottom: 15px;
+  font-size: 10px;
 }
 
 .for-company {
@@ -1295,7 +1295,7 @@ const printInvoice = async () => {
   background: #ffebee;
   font-size: 16px;
   font-weight: 900;
-  color: #c62828;
+  color: #00ff2fff;
   text-align: left;
   padding-left: 20px;
 }
@@ -1303,7 +1303,7 @@ const printInvoice = async () => {
 .due-amount {
   margin-left: 15px;
   font-size: 18px;
-  color: #c62828;
+  color: #00ff2fff;
 }
 
 .words {
