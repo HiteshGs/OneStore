@@ -1087,11 +1087,11 @@ export default defineComponent({
 .items-table td {
   border: 1px solid #000;
   border-width: 1px;
-  padding: 4px; /* reduced padding so more rows fit */
+  padding: 6px; /* reduced padding so more rows fit */
   font-size: 10px;
   font-weight: 500;
   vertical-align: middle;
-  height: 20px; /* reduced from 25px */
+  height: 30px; /* reduced from 25px */
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
@@ -1123,11 +1123,11 @@ export default defineComponent({
 }
 
 .item-row td {
-  height: 22px; /* reduced from 30px */
+  height: 32px; /* reduced from 30px */
   vertical-align: middle;
 }
 .item-row.blank-row td {
-  height: 22px; /* reduced from 30px */
+  height: 32px; /* reduced from 30px */
   border: 0.5px solid #000;
   vertical-align: middle;
 }
