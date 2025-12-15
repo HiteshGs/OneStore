@@ -1123,11 +1123,11 @@ export default defineComponent({
 }
 
 .item-row td {
-  height: 32px; /* reduced from 30px */
+  height: 30px; /* reduced from 30px */
   vertical-align: middle;
 }
 .item-row.blank-row td {
-  height: 32px; /* reduced from 30px */
+  height: 30px; /* reduced from 30px */
   border: 0.5px solid #000;
   vertical-align: middle;
 }
