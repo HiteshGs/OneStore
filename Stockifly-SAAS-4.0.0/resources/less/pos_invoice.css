@@ -1,6 +1,6 @@
 .invoice-header {
     text-align: center;
-    border-bottom: 1px dotted #ddd !important;
+    border-bottom: 0px dotted #ddd !important;
 }
 .a4-invoice {
     max-width: 210mm;    /* A4 width */
@@ -8,7 +8,7 @@
   }
   
 .invoice-logo {
-    width: 100px;
+    width: 90px;
     display:table;
 }
 
