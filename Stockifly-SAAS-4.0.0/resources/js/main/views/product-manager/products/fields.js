@@ -23,6 +23,7 @@ const fields = () => {
         warehouse_id: undefined,
         name: "",
         slug: "",
+        hsn_code: "",
         image: undefined,
         image_url: undefined,
         barcode_symbology: "CODE128",
@@ -69,6 +70,13 @@ const fields = () => {
             title: t("product.category"),
             dataIndex: "category_id",
         },
+        {
+    title: t("product.hsn_code"),
+    dataIndex: "hsn_code",
+    sorter: true,
+    sorter_field: "products.hsn_code",
+},
+
         {
             title: t("product.brand"),
             dataIndex: "brand_id",
@@ -162,6 +170,7 @@ const fields = () => {
             key: "item_code",
             value: t("product.item_code"),
         },
+        { key: "hsn_code", value: t("product.hsn_code") }, // ✅
     ];
 
     return {

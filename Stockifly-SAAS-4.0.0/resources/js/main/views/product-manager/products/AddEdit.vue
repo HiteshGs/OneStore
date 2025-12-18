@@ -374,6 +374,22 @@
                             </a-form-item>
                         </a-col>
                     </a-row>
+                    <a-row :gutter="16">
+    <a-col :xs="24" :sm="24" :md="12" :lg="12">
+        <a-form-item
+            :label="$t('product.hsn_code')"
+            name="hsn_code"
+            :help="rules.hsn_code ? rules.hsn_code.message : null"
+            :validateStatus="rules.hsn_code ? 'error' : null"
+        >
+            <a-input
+                v-model:value="formData.hsn_code"
+                placeholder="Enter HSN Code"
+            />
+        </a-form-item>
+    </a-col>
+</a-row>
+
                 </a-col>
             </a-row>
 
