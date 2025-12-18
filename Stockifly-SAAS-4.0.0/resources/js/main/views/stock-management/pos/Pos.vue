@@ -176,6 +176,12 @@
                                                             </a-typography-text>
                                                         </small>
                                                     </template>
+                                                    <template v-if="column.dataIndex === 'hsn_code'">
+    <span>
+        {{ record.hsn_code || '-' }}
+    </span>
+</template>
+
                                                     <template
                                                         v-if="
                                                             column.dataIndex ===
@@ -597,6 +603,9 @@
                                                 </a-typography-text>
                                             </small>
                                         </template>
+                                           <template v-if="column.dataIndex === 'hsn_code'">
+        {{ record.hsn_code || '-' }}
+    </template>
                                         <template
                                             v-if="column.dataIndex === 'unit_quantity'"
                                         >
@@ -1158,6 +1167,7 @@ onMounted(async () => {
         name: newProduct.name,
         subtotal: newProduct.subtotal,
         tax_rate: newProduct.tax_rate,
+        hsn_code: newProduct.hsn_code || newProduct.product?.hsn_code || '',
     });
 
     if (!includes(selectedProductIds.value, newProduct.xid)) {
@@ -1172,6 +1182,7 @@ onMounted(async () => {
             discount_rate: newProduct.discount_rate || 0,
             unit_price: formatAmount(newProduct.unit_price),
             tax_rate: newProduct.tax_rate || 0,
+    hsn_code: newProduct.hsn_code || newProduct.product?.hsn_code || '',
 
             // force exclusive logic from day one
             tax_type: "exclusive",

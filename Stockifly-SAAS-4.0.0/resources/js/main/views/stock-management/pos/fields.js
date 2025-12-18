@@ -39,6 +39,11 @@ const fields = () => {
             dataIndex: "name",
         },
         {
+        title: t("product.hsn_code"),
+        dataIndex: "hsn_code",
+        width: 110,
+    },
+        {
             title: t("product.quantity"),
             dataIndex: "unit_quantity",
         },
