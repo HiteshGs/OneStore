@@ -37,7 +37,7 @@ class ProductImport implements ToArray, WithHeadingRow
      */
     protected array $standardColumns = [
         // product-level (old/new)
-        'name','description','barcode_symbology','item_code',
+        'name','description','barcode_symbology','item_code','hsn_code',
         'category','brand','unit','unit_name','unit_code','warehouse','slug',
         'sku','barcode','image_url',
 
@@ -119,6 +119,13 @@ class ProductImport implements ToArray, WithHeadingRow
                 if (Product::where('item_code', $itemCode)->exists()) {
                     throw new ApiException('Item Code ' . $itemCode . ' Already Exists');
                 }
+                // HSN Code
+$hsnCode = trim((string)($product['hsn_code'] ?? ''));
+
+if ($hsnCode !== '' && !preg_match('/^\d{4,8}$/', $hsnCode)) {
+    throw new ApiException('HSN Code must be 4 to 8 digits');
+}
+
 
                 // Tax
                 $taxName = trim((string)($product['tax'] ?? ''));
@@ -160,10 +167,12 @@ class ProductImport implements ToArray, WithHeadingRow
                 $newProduct->slug = Str::slug($productName, '-');
                 $newProduct->barcode_symbology = $barcodeSymbology;
                 $newProduct->item_code = $itemCode;
+                $newProduct->hsn_code = $hsnCode ?: null; // ✅ ADD THIS
                 $newProduct->category_id = $category->id;
                 $newProduct->brand_id = $brand->id;
                 $newProduct->unit_id = $unit->id;
                 $newProduct->user_id = $user->id;
+                $newProduct->hsn_code = $hsnCode ?: null;
                 $newProduct->save();
 
                 // Numbers
@@ -217,6 +226,10 @@ class ProductImport implements ToArray, WithHeadingRow
         if (!array_key_exists('description', $r)) {
             $r['description'] = '';
         }
+        if (!array_key_exists('hsn_code', $r)) {
+    $r['hsn_code'] = null;
+}
+
         if (!isset($r['unit']) || trim((string)$r['unit']) === '') {
             if (!empty($r['unit_name'])) $r['unit'] = $r['unit_name'];
         }

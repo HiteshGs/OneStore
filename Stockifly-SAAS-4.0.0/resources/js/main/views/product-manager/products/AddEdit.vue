@@ -377,7 +377,7 @@
                     <a-row :gutter="16">
     <a-col :xs="24" :sm="24" :md="12" :lg="12">
         <a-form-item
-            :label="$t('product.hsn_code')"
+            :label="$t('HSN Code')"
             name="hsn_code"
             :help="rules.hsn_code ? rules.hsn_code.message : null"
             :validateStatus="rules.hsn_code ? 'error' : null"

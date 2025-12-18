@@ -71,7 +71,7 @@ const fields = () => {
             dataIndex: "category_id",
         },
         {
-    title: t("product.hsn_code"),
+    title: t("HSN Code"),
     dataIndex: "hsn_code",
     sorter: true,
     sorter_field: "products.hsn_code",
