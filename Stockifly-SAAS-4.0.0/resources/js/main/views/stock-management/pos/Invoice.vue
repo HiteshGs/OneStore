@@ -129,18 +129,20 @@
         <!-- ITEMS TABLE -->
         <div class="tax-invoice-items">
           <table class="items-table">
-            <thead>
-              <tr>
-                <th style="width: 5%">NO</th>
-                <th style="width: 35%">{{ $t('common.item') }}</th>
-                <th style="width: 8%">{{ $t('common.qty') }}</th>
-                <th style="width: 12%">{{ $t('common.rate') }}</th>
-                <th style="width: 8%">{{ $t('product.tax') }} %</th>
-                <th style="width: 12%; text-align: right">
-                  {{ $t('common.total') }}
-                </th>
-              </tr>
-            </thead>
+           <thead>
+  <tr>
+    <th style="width: 5%">NO</th>
+    <th style="width: 30%">{{ $t('common.item') }}</th>
+    <th style="width: 10%">HSN</th>
+    <th style="width: 8%">{{ $t('common.qty') }}</th>
+    <th style="width: 12%">{{ $t('common.rate') }}</th>
+    <th style="width: 8%">{{ $t('product.tax') }} %</th>
+    <th style="width: 12%; text-align: right">
+      {{ $t('common.total') }}
+    </th>
+  </tr>
+</thead>
+
             <tbody>
               <!-- FIXED ROW TABLE USING paddedItems -->
               <tr
@@ -172,6 +174,9 @@
                     </span>
                   </div>
                 </td>
+<td class="center">
+  {{ item.__blank ? '' : (item.product?.hsn_code || '-') }}
+</td>
 
 
                 <!-- QTY -->
