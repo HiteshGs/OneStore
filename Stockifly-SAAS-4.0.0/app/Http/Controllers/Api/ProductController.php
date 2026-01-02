@@ -529,4 +529,27 @@ class ProductController extends ApiBaseController
     {
         return ApiResponse::make('Added Successfully', []);
     }
+
+    public function checkDuplicateName(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string',
+            'exclude_id' => 'nullable|integer'
+        ]);
+
+        $company = company();
+        $query = Product::where('name', $request->name)
+            ->where('company_id', $company->id);
+
+        if ($request->exclude_id) {
+            $query->where('id', '!=', $request->exclude_id);
+        }
+
+        $exists = $query->exists();
+
+        return ApiResponse::make('Checked Successfully', [
+            'is_duplicate' => $exists,
+            'message' => $exists ? 'Product with this name already exists' : 'Product name is available'
+        ]);
+    }
 }

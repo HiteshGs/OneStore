@@ -100,6 +100,7 @@ ApiRoute::group(['namespace' => 'App\Http\Controllers\Api'], function () {
 
             // Products
             ApiRoute::post('products/check-variants', ['as' => 'api.products.check-variants', 'uses' => 'ProductController@checkProductVariant']);
+            ApiRoute::post('products/check-duplicate-name', ['as' => 'api.products.check-duplicate-name', 'uses' => 'ProductController@checkDuplicateName']);
             ApiRoute::resource('products', 'ProductController', ['as' => 'api', 'except' => ['index']]);
 
             ApiRoute::resource('brands', 'BrandController', $options);
