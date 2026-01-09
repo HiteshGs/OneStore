@@ -1158,6 +1158,7 @@ onMounted(async () => {
 
         const searchValueSelected = (value, option) => {
             const newProduct = option.product;
+            console.log("RAW product from API:", newProduct);
             selectSaleProduct(newProduct);
         };
 
