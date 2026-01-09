@@ -175,9 +175,12 @@
                   </div>
                 </td>
 <td class="center">
-  {{ item.__blank ? '' : (item.product?.hsn_code || '-') }}
+  {{
+    item.__blank
+      ? ''
+      : (item.hsn_code || item.product?.hsn_code || '-')
+  }}
 </td>
-
 
                 <!-- QTY -->
                 <td class="center">
