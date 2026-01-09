@@ -178,7 +178,13 @@
   {{
     item.__blank
       ? ''
-      : (item.hsn_code || item.product?.hsn_code || '-')
+      : (
+          item.hsn ||
+          item.hsn_code ||
+          item.product?.hsn ||
+          item.product?.hsn_code ||
+          '-'
+        )
   }}
 </td>
 
