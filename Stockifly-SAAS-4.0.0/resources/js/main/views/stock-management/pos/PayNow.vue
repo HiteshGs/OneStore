@@ -7,7 +7,7 @@
     @close="drawerClosed"
   >
     <a-row>
-      <!-- Left summary -->
+      <!-- LEFT SUMMARY -->
       <a-col :xs="24" :md="8">
         <a-statistic
           :title="$t('stock.total_items')"
@@ -40,10 +40,10 @@
         />
       </a-col>
 
-      <!-- Right content -->
+      <!-- RIGHT CONTENT -->
       <a-col :xs="24" :md="16">
         <a-row :gutter="[24, 24]">
-          <!-- Actions -->
+          <!-- ACTION BUTTONS -->
           <a-col :span="24" v-if="!showAddForm">
             <a-row :gutter="16" class="mt-20">
               <a-col :md="10">
@@ -65,7 +65,7 @@
             </a-row>
           </a-col>
 
-          <!-- Payments table -->
+          <!-- PAYMENT TABLE -->
           <a-col :span="24" v-if="!showAddForm">
             <a-table
               :dataSource="allPaymentRecords"
@@ -83,11 +83,7 @@
                 </template>
 
                 <template v-if="column.dataIndex === 'action'">
-                  <a-button
-                    danger
-                    type="primary"
-                    @click="deletePayment(record.id)"
-                  >
+                  <a-button danger type="primary" @click="deletePayment(record.id)">
                     <DeleteOutlined />
                   </a-button>
                 </template>
@@ -95,16 +91,13 @@
             </a-table>
           </a-col>
 
-          <!-- Add payment -->
+          <!-- ADD PAYMENT FORM -->
           <a-col :span="24" v-else>
             <a-form layout="vertical">
               <a-row :gutter="16">
                 <a-col :md="12">
                   <a-form-item :label="$t('payments.payment_mode')">
-                    <a-select
-                      v-model:value="formData.payment_mode_id"
-                      allowClear
-                    >
+                    <a-select v-model:value="formData.payment_mode_id" allowClear>
                       <a-select-option
                         v-for="m in paymentModes"
                         :key="m.xid"
@@ -130,12 +123,7 @@
                 <a-textarea v-model:value="formData.notes" rows="4" />
               </a-form-item>
 
-              <a-button
-                block
-                type="primary"
-                @click="onSubmit"
-                :loading="loading"
-              >
+              <a-button block type="primary" @click="onSubmit" :loading="loading">
                 <CheckOutlined /> {{ $t('common.add') }}
               </a-button>
             </a-form>
@@ -144,7 +132,7 @@
       </a-col>
     </a-row>
 
-    <!-- ENTRY PERSON MODAL (FIXED) -->
+    <!-- ENTRY PERSON MODAL -->
     <a-modal
       :open="entryPersonModalVisible"
       title="Enter Entry Person Name"
@@ -158,20 +146,14 @@
       />
 
       <div style="margin-top: 16px; text-align: right">
-        <a-button @click="entryPersonModalVisible = false">
-          Cancel
-        </a-button>
-        <a-button
-          type="primary"
-          style="margin-left: 8px"
-          @click="confirmEntryPerson"
-        >
+        <a-button @click="entryPersonModalVisible = false">Cancel</a-button>
+        <a-button type="primary" style="margin-left: 8px" @click="confirmEntryPerson">
           Continue
         </a-button>
       </div>
     </a-modal>
 
-    <!-- Print chooser -->
+    <!-- PRINT MODAL -->
     <a-modal
       :open="printModalVisible"
       title="Select Print Layout"
@@ -246,13 +228,10 @@ export default {
     };
 
     const confirmEntryPerson = () => {
-      const value = entryPersonName.value?.trim();
-
-      if (value) {
-        localStorage.setItem(ENTRY_PERSON_KEY, value);
-      } else {
-        localStorage.removeItem(ENTRY_PERSON_KEY);
-      }
+      const value = entryPersonName.value.trim();
+      value
+        ? localStorage.setItem(ENTRY_PERSON_KEY, value)
+        : localStorage.removeItem(ENTRY_PERSON_KEY);
 
       entryPersonModalVisible.value = false;
       printModalVisible.value = true;
@@ -261,7 +240,7 @@ export default {
     const onSubmit = () => {
       allPaymentRecords.value.push({
         ...formData.value,
-        id: Math.random().toString(36).slice(2),
+        id: crypto.randomUUID(),
       });
       formData.value = { payment_mode_id: undefined, amount: 0, notes: "" };
       showAddForm.value = false;
@@ -272,12 +251,12 @@ export default {
         url: "pos/save",
         data: {
           all_payments: allPaymentRecords.value,
-product_items: props.selectedProducts.map(p => ({
-  ...p,
-  hsn_code: p.hsn_code || null, // ✅ ensure HSN always goes
-})),
+          product_items: props.selectedProducts.map(p => ({
+            ...p,
+            hsn_code: p.hsn_code || null,
+          })),
           details: props.data,
-          entry_person_name: localStorage.getItem(ENTRY_PERSON_KEY),
+          entry_person_name: localStorage.getItem(ENTRY_PERSON_KEY) || null,
           print_pref: { size: selectedPrintSize.value },
         },
         success: res => {
@@ -301,10 +280,7 @@ product_items: props.selectedProducts.map(p => ({
     };
 
     const deletePayment = id => {
-      allPaymentRecords.value = filter(
-        allPaymentRecords.value,
-        p => p.id !== id
-      );
+      allPaymentRecords.value = filter(allPaymentRecords.value, p => p.id !== id);
     };
 
     const getPaymentModeName = id => {
