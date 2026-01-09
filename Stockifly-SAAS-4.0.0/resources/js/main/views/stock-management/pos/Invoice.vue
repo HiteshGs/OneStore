@@ -477,6 +477,8 @@ export default defineComponent({
       o => {
         if (o) {
           console.log('POS Invoice Order:', JSON.parse(JSON.stringify(o)));
+                console.log('Entry Person Name:', order.entry_person_name);
+
           if (Array.isArray(o.items)) {
             console.log(
               'POS Invoice Order Items:',
