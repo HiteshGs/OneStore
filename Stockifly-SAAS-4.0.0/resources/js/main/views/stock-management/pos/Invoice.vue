@@ -509,25 +509,33 @@ const hsnMap = computed(() => {
 const resolveHSN = (item) => {
   if (!item || item.__blank) return '';
 
-  // 1️⃣ From order item itself
+  // 1️⃣ Direct HSN on item
   if (item.hsn || item.hsn_code) {
     return item.hsn || item.hsn_code;
   }
 
-  // 2️⃣ From product object
-  if (item.product?.hsn || item.product?.hsn_code) {
-    return item.product.hsn || item.product.hsn_code;
+  // 2️⃣ HSN on product object
+  if (item.product) {
+    if (item.product.hsn || item.product.hsn_code) {
+      return item.product.hsn || item.product.hsn_code;
+    }
   }
 
-  // 3️⃣ From localStorage map (BEST fallback)
-  const productId = item.x_product_id || item.product?.xid;
-  if (productId && hsnMap.value[productId]) {
-    return hsnMap.value[productId];
+  // 3️⃣ Resolve product ID SAFELY
+  const productId =
+    item.x_product_id ||
+    item.product?.xid ||
+    item.product_id ||
+    item.xid; // last fallback (safe)
+
+  // 4️⃣ Lookup from localStorage map
+  if (productId && hsnMap.value[String(productId)]) {
+    return hsnMap.value[String(productId)];
   }
 
+  // 5️⃣ Final fallback
   return '-';
 };
-
     const downloadPdf = async () => {
       await nextTick();
 
