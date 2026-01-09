@@ -175,17 +175,7 @@
                   </div>
                 </td>
 <td class="center">
-  {{
-    item.__blank
-      ? ''
-      : (
-          item.hsn ||
-          item.hsn_code ||
-          item.product?.hsn ||
-          item.product?.hsn_code ||
-          '-'
-        )
-  }}
+  {{ item.__blank ? '' : resolveHSN(item) }}
 </td>
 
                 <!-- QTY -->
@@ -430,6 +420,7 @@ import { useI18n } from 'vue-i18n';
 
 const posInvoiceCssUrl = window.config.pos_invoice_css;
 const ENTRY_PERSON_KEY = 'pos_entry_person_name';
+const PRODUCT_HSN_MAP_KEY = 'pos_product_hsn_map';
 
 // Static fallbacks
 const FALLBACK_GSTIN = '24BNGPG0699R1ZD';
@@ -507,6 +498,35 @@ export default defineComponent({
   { immediate: true }
 );
 
+const hsnMap = computed(() => {
+  try {
+    const raw = localStorage.getItem(PRODUCT_HSN_MAP_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    return {};
+  }
+});
+const resolveHSN = (item) => {
+  if (!item || item.__blank) return '';
+
+  // 1️⃣ From order item itself
+  if (item.hsn || item.hsn_code) {
+    return item.hsn || item.hsn_code;
+  }
+
+  // 2️⃣ From product object
+  if (item.product?.hsn || item.product?.hsn_code) {
+    return item.product.hsn || item.product.hsn_code;
+  }
+
+  // 3️⃣ From localStorage map (BEST fallback)
+  const productId = item.x_product_id || item.product?.xid;
+  if (productId && hsnMap.value[productId]) {
+    return hsnMap.value[productId];
+  }
+
+  return '-';
+};
 
     const downloadPdf = async () => {
       await nextTick();
