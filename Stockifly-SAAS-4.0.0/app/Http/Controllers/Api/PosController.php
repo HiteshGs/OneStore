@@ -30,6 +30,8 @@ class PosController extends ApiBaseController
             'products.name',
             'products.image',
             'products.product_type',
+                'products.hsn_code', // ✅ ADD THIS
+
             'product_details.sales_price',
             'products.unit_id',
             'product_details.sales_tax_type',
@@ -100,6 +102,8 @@ class PosController extends ApiBaseController
                 'name'    =>  $product->name,
                 'image'    =>  $product->image,
                 'image_url'    =>  $product->image_url,
+                    'hsn_code' => $product->hsn_code,
+
                 'discount_rate'    =>  0,
                 'total_discount'    =>  0,
                 'x_tax_id'    => $tax ? $tax->xid : null,
