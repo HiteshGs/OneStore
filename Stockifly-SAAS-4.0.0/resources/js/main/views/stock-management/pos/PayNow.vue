@@ -53,11 +53,7 @@
               </a-col>
 
               <a-col :md="10">
-                <a-button
-                  block
-                  :loading="loading"
-                  @click="openEntryPersonDialog"
-                >
+                <a-button block :loading="loading" @click="openEntryPersonDialog">
                   {{ $t('stock.complete_order') }}
                   <RightOutlined />
                 </a-button>
@@ -83,11 +79,7 @@
                 </template>
 
                 <template v-if="column.dataIndex === 'action'">
-                  <a-button
-                    danger
-                    type="primary"
-                    @click="deletePayment(record.id)"
-                  >
+                  <a-button danger type="primary" @click="deletePayment(record.id)">
                     <DeleteOutlined />
                   </a-button>
                 </template>
@@ -101,10 +93,7 @@
               <a-row :gutter="16">
                 <a-col :md="12">
                   <a-form-item :label="$t('payments.payment_mode')">
-                    <a-select
-                      v-model:value="formData.payment_mode_id"
-                      allowClear
-                    >
+                    <a-select v-model:value="formData.payment_mode_id" allowClear>
                       <a-select-option
                         v-for="m in paymentModes"
                         :key="m.xid"
@@ -130,12 +119,7 @@
                 <a-textarea v-model:value="formData.notes" rows="4" />
               </a-form-item>
 
-              <a-button
-                block
-                type="primary"
-                @click="onSubmit"
-                :loading="loading"
-              >
+              <a-button block type="primary" @click="onSubmit" :loading="loading">
                 <CheckOutlined /> {{ $t('common.add') }}
               </a-button>
             </a-form>
@@ -184,7 +168,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import {
   CheckOutlined,
   PlusOutlined,
@@ -196,7 +180,7 @@ import common from "../../../../common/composable/common";
 import apiAdmin from "../../../../common/composable/apiAdmin";
 
 export default {
-  props: ["visible", "data", "selectedProducts", "successMessage"],
+  props: ["visible", "data", "selectedProducts"],
   emits: ["closed", "success", "print"],
   setup(props, { emit }) {
     const ENTRY_PERSON_KEY = "pos_entry_person_name";
@@ -215,7 +199,7 @@ export default {
     });
 
     const entryPersonModalVisible = ref(false);
-    const entryPersonName = ref("");
+    const entryPersonName = ref(null);
 
     const printModalVisible = ref(false);
     const selectedPrintSize = ref("A4");
@@ -228,19 +212,18 @@ export default {
     });
 
     const openEntryPersonDialog = () => {
-      entryPersonName.value =
-        localStorage.getItem(ENTRY_PERSON_KEY) || "";
+      entryPersonName.value = localStorage.getItem(ENTRY_PERSON_KEY);
       entryPersonModalVisible.value = true;
     };
 
     const confirmEntryPerson = () => {
-      if (entryPersonName.value?.trim()) {
-        localStorage.setItem(
-          ENTRY_PERSON_KEY,
-          entryPersonName.value.trim()
-        );
+      const value = entryPersonName.value?.trim();
+
+      if (value) {
+        localStorage.setItem(ENTRY_PERSON_KEY, value);
       } else {
         localStorage.removeItem(ENTRY_PERSON_KEY);
+        entryPersonName.value = null;
       }
 
       entryPersonModalVisible.value = false;
@@ -263,8 +246,7 @@ export default {
           all_payments: allPaymentRecords.value,
           product_items: props.selectedProducts,
           details: props.data,
-          entry_person_name:
-            localStorage.getItem(ENTRY_PERSON_KEY) || "",
+          entry_person_name: localStorage.getItem(ENTRY_PERSON_KEY),
           print_pref: { size: selectedPrintSize.value },
         },
         success: res => {
@@ -274,26 +256,30 @@ export default {
             size: selectedPrintSize.value,
             autoOpen: autoOpenPrint.value,
           });
-          drawerClosed();
         },
       });
     };
 
     const drawerClosed = () => {
       allPaymentRecords.value = [];
-      entryPersonName.value = "";
-      localStorage.removeItem(ENTRY_PERSON_KEY);
+      entryPersonName.value = null;
       entryPersonModalVisible.value = false;
       printModalVisible.value = false;
       showAddForm.value = false;
       emit("closed");
     };
 
+    watch(
+      () => props.visible,
+      v => {
+        if (!v) {
+          localStorage.removeItem(ENTRY_PERSON_KEY);
+        }
+      }
+    );
+
     const deletePayment = id => {
-      allPaymentRecords.value = filter(
-        allPaymentRecords.value,
-        p => p.id !== id
-      );
+      allPaymentRecords.value = filter(allPaymentRecords.value, p => p.id !== id);
     };
 
     const getPaymentModeName = id => {
