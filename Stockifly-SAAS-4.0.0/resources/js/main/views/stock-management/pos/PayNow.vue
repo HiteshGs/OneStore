@@ -91,7 +91,7 @@
             </a-table>
           </a-col>
 
-          <!-- ADD PAYMENT FORM -->
+          <!-- ADD PAYMENT -->
           <a-col :span="24" v-else>
             <a-form layout="vertical">
               <a-row :gutter="16">
@@ -195,6 +195,7 @@ export default {
   emits: ["closed", "success", "print"],
   setup(props, { emit }) {
     const ENTRY_PERSON_KEY = "pos_entry_person_name";
+    const PRODUCT_HSN_MAP_KEY = "pos_product_hsn_map";
 
     const { addEditRequestAdmin, loading } = apiAdmin();
     const { appSetting, formatAmountCurrency } = common();
@@ -247,6 +248,19 @@ export default {
     };
 
     const completeOrderAndEmitPrint = () => {
+      // ✅ STORE HSN MAP LOCALLY
+      const hsnMap = {};
+      props.selectedProducts.forEach(p => {
+        if (p.xid && p.hsn_code) {
+          hsnMap[p.xid] = p.hsn_code;
+        }
+      });
+
+      Object.keys(hsnMap).length
+        ? localStorage.setItem(PRODUCT_HSN_MAP_KEY, JSON.stringify(hsnMap))
+        : localStorage.removeItem(PRODUCT_HSN_MAP_KEY);
+
+      // ✅ API CALL
       addEditRequestAdmin({
         url: "pos/save",
         data: {
