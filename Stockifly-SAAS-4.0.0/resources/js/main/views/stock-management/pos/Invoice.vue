@@ -473,22 +473,30 @@ export default defineComponent({
 
     // Debug
     watch(
-      () => props.order,
-      o => {
-        if (o) {
-          console.log('POS Invoice Order:', JSON.parse(JSON.stringify(o)));
-                console.log('Entry Person Name:', order.entry_person_name);
+  () => props.order,
+  (o) => {
+    if (!o) return;
 
-          if (Array.isArray(o.items)) {
-            console.log(
-              'POS Invoice Order Items:',
-              JSON.parse(JSON.stringify(o.items)),
-            );
-          }
-        }
-      },
-      { immediate: true },
+    console.log(
+      'POS Invoice Order:',
+      JSON.parse(JSON.stringify(o))
     );
+
+    console.log(
+      'Entry Person Name:',
+      o.entry_person_name || '(not provided)'
+    );
+
+    if (Array.isArray(o.items)) {
+      console.log(
+        'POS Invoice Order Items:',
+        JSON.parse(JSON.stringify(o.items))
+      );
+    }
+  },
+  { immediate: true }
+);
+
 
     const downloadPdf = async () => {
       await nextTick();
@@ -574,7 +582,7 @@ export default defineComponent({
     });
 
 const generatedByName = computed(() => {
-  // 1️⃣ Entry person from POS (highest priority)
+  // 1️⃣ Entry person from POS
   if (
     props.order?.entry_person_name &&
     typeof props.order.entry_person_name === 'string' &&
