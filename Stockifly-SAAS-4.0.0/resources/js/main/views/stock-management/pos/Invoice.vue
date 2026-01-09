@@ -429,7 +429,13 @@ const FALLBACK_BANK = {
   branch: 'SURAT VARACHHA',
   ifsc: 'FDRL0001865',
 };
-const authUser = JSON.parse(localStorage.getItem('auth_user')) || {};
+let authUser = {};
+try {
+  const rawUser = localStorage.getItem('auth_user');
+  authUser = rawUser ? JSON.parse(rawUser) : {};
+} catch (e) {
+  authUser = {};
+}
 const currentTime = new Date().toLocaleString();
 
 export default defineComponent({
@@ -566,14 +572,22 @@ export default defineComponent({
     });
 
 const generatedByName = computed(() => {
-  // 1️⃣ Entry person name from order (POS flow)
-  if (props.order?.entry_person_name && props.order.entry_person_name.trim()) {
-    return props.order.entry_person_name;
+  // 1️⃣ Entry person from POS (highest priority)
+  if (
+    props.order?.entry_person_name &&
+    typeof props.order.entry_person_name === 'string' &&
+    props.order.entry_person_name.trim()
+  ) {
+    return props.order.entry_person_name.trim();
   }
 
-  // 2️⃣ Logged-in user name
-  if (authUser?.name && authUser.name.trim()) {
-    return authUser.name;
+  // 2️⃣ Logged-in user
+  if (
+    authUser &&
+    typeof authUser.name === 'string' &&
+    authUser.name.trim()
+  ) {
+    return authUser.name.trim();
   }
 
   // 3️⃣ Final fallback
