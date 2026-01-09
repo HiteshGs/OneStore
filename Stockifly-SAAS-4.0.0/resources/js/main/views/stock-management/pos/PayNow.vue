@@ -8,73 +8,56 @@
   >
     <a-row>
       <!-- Left summary -->
-      <a-col :xs="24" :sm="24" :md="8" :lg="8">
-        <a-row>
-          <a-col :span="24">
-            <a-statistic
-              :title="$t('stock.total_items')"
-              :value="selectedProducts.length"
-            />
-          </a-col>
+      <a-col :xs="24" :md="8">
+        <a-statistic
+          :title="$t('stock.total_items')"
+          :value="selectedProducts.length"
+        />
 
-          <a-col :span="24" class="mt-20">
-            <a-statistic
-              :title="$t('stock.paying_amount')"
-              :value="formatAmountCurrency(totalEnteredAmount)"
-            />
-          </a-col>
+        <a-statistic
+          class="mt-20"
+          :title="$t('stock.paying_amount')"
+          :value="formatAmountCurrency(totalEnteredAmount)"
+        />
 
-          <a-col :span="24" class="mt-20">
-            <a-statistic
-              :title="$t('stock.payable_amount')"
-              :value="formatAmountCurrency(data.subtotal)"
-            />
-          </a-col>
+        <a-statistic
+          class="mt-20"
+          :title="$t('stock.payable_amount')"
+          :value="formatAmountCurrency(data.subtotal)"
+        />
 
-          <a-col :span="24" class="mt-20">
-            <a-statistic
-              v-if="totalEnteredAmount <= data.subtotal"
-              :title="$t('payments.due_amount')"
-              :value="formatAmountCurrency(data.subtotal - totalEnteredAmount)"
-            />
-            <a-statistic
-              v-else
-              :title="$t('stock.change_return')"
-              :value="formatAmountCurrency(totalEnteredAmount - data.subtotal)"
-            />
-          </a-col>
-        </a-row>
+        <a-statistic
+          class="mt-20"
+          v-if="totalEnteredAmount <= data.subtotal"
+          :title="$t('payments.due_amount')"
+          :value="formatAmountCurrency(data.subtotal - totalEnteredAmount)"
+        />
+        <a-statistic
+          class="mt-20"
+          v-else
+          :title="$t('stock.change_return')"
+          :value="formatAmountCurrency(totalEnteredAmount - data.subtotal)"
+        />
       </a-col>
 
       <!-- Right content -->
-      <a-col :xs="24" :sm="24" :md="16" :lg="16">
+      <a-col :xs="24" :md="16">
         <a-row :gutter="[24, 24]">
-          <!-- Top actions -->
+          <!-- Actions -->
           <a-col :span="24" v-if="!showAddForm">
-            <a-row :gutter="[16, 8]" class="mt-20">
+            <a-row :gutter="16" class="mt-20">
               <a-col :md="10">
-                <a-button block type="primary" @click="() => (showAddForm = true)">
+                <a-button block type="primary" @click="showAddForm = true">
                   <PlusOutlined /> {{ $t('payments.add') }}
                 </a-button>
               </a-col>
 
               <a-col :md="10">
-                <a-button
-                  :loading="loading"
-                  block
-                  @click="openNameDialog"
-                >
+                <a-button block :loading="loading" @click="openEntryPersonDialog">
                   {{ $t('stock.complete_order') }} <RightOutlined />
                 </a-button>
               </a-col>
             </a-row>
-          </a-col>
-
-          <!-- Back button -->
-          <a-col :span="24" v-else>
-            <a-button block type="primary" @click="goBack">
-              <LeftOutlined /> {{ $t('common.back') }}
-            </a-button>
           </a-col>
 
           <!-- Payments table -->
@@ -83,7 +66,7 @@
               :dataSource="allPaymentRecords"
               :columns="paymentRecordsColumns"
               :pagination="false"
-              :rowKey="record => record.id"
+              rowKey="id"
             >
               <template #bodyCell="{ column, record }">
                 <template v-if="column.dataIndex === 'payment_mode'">
@@ -103,7 +86,7 @@
             </a-table>
           </a-col>
 
-          <!-- Add payment form -->
+          <!-- Add payment -->
           <a-col :span="24" v-else>
             <a-form layout="vertical">
               <a-row :gutter="16">
@@ -144,17 +127,17 @@
       </a-col>
     </a-row>
 
-    <!-- Customer Name Modal -->
+    <!-- Entry Person Modal -->
     <a-modal
-      :open="nameModalVisible"
-      title="Enter Customer Name"
-      @ok="confirmNameAndProceed"
-      @cancel="() => (nameModalVisible = false)"
+      :open="entryPersonModalVisible"
+      title="Enter Entry Person Name"
+      @ok="confirmEntryPerson"
+      @cancel="() => (entryPersonModalVisible = false)"
       :maskClosable="false"
     >
       <a-input
-        v-model:value="customerName"
-        placeholder="Customer name (optional)"
+        v-model:value="entryPersonName"
+        placeholder="Entry person name (optional)"
       />
     </a-modal>
 
@@ -162,10 +145,10 @@
     <a-modal
       :open="printModalVisible"
       title="Select Print Layout"
+      okText="Complete & Print"
+      :confirmLoading="loading"
       @ok="completeOrderAndEmitPrint"
       @cancel="() => (printModalVisible = false)"
-      :confirmLoading="loading"
-      okText="Complete & Print"
       :maskClosable="false"
     >
       <a-radio-group v-model:value="selectedPrintSize">
@@ -188,11 +171,9 @@ import { ref, computed, onMounted } from "vue";
 import {
   CheckOutlined,
   PlusOutlined,
-  LeftOutlined,
   RightOutlined,
   DeleteOutlined,
 } from "@ant-design/icons-vue";
-import { useI18n } from "vue-i18n";
 import { find, filter, sumBy } from "lodash-es";
 import common from "../../../../common/composable/common";
 import apiAdmin from "../../../../common/composable/apiAdmin";
@@ -200,17 +181,9 @@ import apiAdmin from "../../../../common/composable/apiAdmin";
 export default {
   props: ["visible", "data", "selectedProducts", "successMessage"],
   emits: ["closed", "success", "print"],
-  components: {
-    CheckOutlined,
-    PlusOutlined,
-    LeftOutlined,
-    RightOutlined,
-    DeleteOutlined,
-  },
   setup(props, { emit }) {
     const { addEditRequestAdmin, loading } = apiAdmin();
     const { appSetting, formatAmountCurrency } = common();
-    const { t } = useI18n();
 
     const paymentModes = ref([]);
     const allPaymentRecords = ref([]);
@@ -222,18 +195,12 @@ export default {
       notes: "",
     });
 
-    const nameModalVisible = ref(false);
-    const customerName = ref("");
+    const entryPersonModalVisible = ref(false);
+    const entryPersonName = ref("");
 
     const printModalVisible = ref(false);
     const selectedPrintSize = ref("A4");
     const autoOpenPrint = ref(true);
-
-    const paymentRecordsColumns = [
-      { title: t("payments.payment_mode"), dataIndex: "payment_mode" },
-      { title: t("payments.amount"), dataIndex: "amount" },
-      { title: t("common.action"), dataIndex: "action" },
-    ];
 
     onMounted(() => {
       axiosAdmin.get("payment-modes").then(res => {
@@ -241,12 +208,12 @@ export default {
       });
     });
 
-    const openNameDialog = () => {
-      nameModalVisible.value = true;
+    const openEntryPersonDialog = () => {
+      entryPersonModalVisible.value = true;
     };
 
-    const confirmNameAndProceed = () => {
-      nameModalVisible.value = false;
+    const confirmEntryPerson = () => {
+      entryPersonModalVisible.value = false;
       printModalVisible.value = true;
     };
 
@@ -266,7 +233,7 @@ export default {
           all_payments: allPaymentRecords.value,
           product_items: props.selectedProducts,
           details: props.data,
-          customer_name: customerName.value || "",
+          entry_person_name: entryPersonName.value || "",
           print_pref: { size: selectedPrintSize.value },
         },
         success: res => {
@@ -283,24 +250,20 @@ export default {
 
     const drawerClosed = () => {
       allPaymentRecords.value = [];
-      customerName.value = "";
-      showAddForm.value = false;
+      entryPersonName.value = "";
+      entryPersonModalVisible.value = false;
       printModalVisible.value = false;
-      nameModalVisible.value = false;
+      showAddForm.value = false;
       emit("closed");
     };
 
-    const goBack = () => {
-      showAddForm.value = false;
+    const deletePayment = id => {
+      allPaymentRecords.value = filter(allPaymentRecords.value, p => p.id !== id);
     };
 
     const getPaymentModeName = id => {
       const m = find(paymentModes.value, ["xid", id]);
       return m ? m.name : "-";
-    };
-
-    const deletePayment = id => {
-      allPaymentRecords.value = filter(allPaymentRecords.value, p => p.id !== id);
     };
 
     const totalEnteredAmount = computed(() =>
@@ -311,22 +274,20 @@ export default {
       loading,
       paymentModes,
       allPaymentRecords,
-      paymentRecordsColumns,
       showAddForm,
       formData,
-      nameModalVisible,
-      customerName,
+      entryPersonModalVisible,
+      entryPersonName,
       printModalVisible,
       selectedPrintSize,
       autoOpenPrint,
-      openNameDialog,
-      confirmNameAndProceed,
+      openEntryPersonDialog,
+      confirmEntryPerson,
       onSubmit,
       completeOrderAndEmitPrint,
       drawerClosed,
-      goBack,
-      getPaymentModeName,
       deletePayment,
+      getPaymentModeName,
       appSetting,
       formatAmountCurrency,
       totalEnteredAmount,
@@ -337,7 +298,6 @@ export default {
 </script>
 
 <style>
-.mt-10 { margin-top: 10px; }
 .mt-20 { margin-top: 20px; }
 .ml-10 { margin-left: 10px; }
 </style>
