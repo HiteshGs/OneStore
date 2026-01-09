@@ -990,6 +990,7 @@ const generatedByName = computed(() => {
       paidAmount,
       dueAmount,
       generatedByName,
+      resolveHSN,
     };
   },
 });
