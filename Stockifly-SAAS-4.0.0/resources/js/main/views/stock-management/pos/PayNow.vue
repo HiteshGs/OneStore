@@ -272,7 +272,10 @@ export default {
         url: "pos/save",
         data: {
           all_payments: allPaymentRecords.value,
-          product_items: props.selectedProducts,
+product_items: props.selectedProducts.map(p => ({
+  ...p,
+  hsn_code: p.hsn_code || null, // ✅ ensure HSN always goes
+})),
           details: props.data,
           entry_person_name: localStorage.getItem(ENTRY_PERSON_KEY),
           print_pref: { size: selectedPrintSize.value },
