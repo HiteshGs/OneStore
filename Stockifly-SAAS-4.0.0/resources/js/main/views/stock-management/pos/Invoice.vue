@@ -912,7 +912,6 @@ const generatedByName = computed(() => {
     return {
       onClose,
       formatDate,
-      displayName,
       currentTime,
       selectedWarehouse,
       formatAmountCurrency,
