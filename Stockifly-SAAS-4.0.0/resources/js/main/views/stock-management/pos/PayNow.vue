@@ -53,8 +53,13 @@
               </a-col>
 
               <a-col :md="10">
-                <a-button block :loading="loading" @click="openEntryPersonDialog">
-                  {{ $t('stock.complete_order') }} <RightOutlined />
+                <a-button
+                  block
+                  :loading="loading"
+                  @click="openEntryPersonDialog"
+                >
+                  {{ $t('stock.complete_order') }}
+                  <RightOutlined />
                 </a-button>
               </a-col>
             </a-row>
@@ -78,7 +83,11 @@
                 </template>
 
                 <template v-if="column.dataIndex === 'action'">
-                  <a-button danger type="primary" @click="deletePayment(record.id)">
+                  <a-button
+                    danger
+                    type="primary"
+                    @click="deletePayment(record.id)"
+                  >
                     <DeleteOutlined />
                   </a-button>
                 </template>
@@ -92,7 +101,10 @@
               <a-row :gutter="16">
                 <a-col :md="12">
                   <a-form-item :label="$t('payments.payment_mode')">
-                    <a-select v-model:value="formData.payment_mode_id" allowClear>
+                    <a-select
+                      v-model:value="formData.payment_mode_id"
+                      allowClear
+                    >
                       <a-select-option
                         v-for="m in paymentModes"
                         :key="m.xid"
@@ -118,7 +130,12 @@
                 <a-textarea v-model:value="formData.notes" rows="4" />
               </a-form-item>
 
-              <a-button block type="primary" @click="onSubmit" :loading="loading">
+              <a-button
+                block
+                type="primary"
+                @click="onSubmit"
+                :loading="loading"
+              >
                 <CheckOutlined /> {{ $t('common.add') }}
               </a-button>
             </a-form>
@@ -131,9 +148,9 @@
     <a-modal
       :open="entryPersonModalVisible"
       title="Enter Entry Person Name"
-      @ok="confirmEntryPerson"
-      @cancel="() => (entryPersonModalVisible = false)"
       :maskClosable="false"
+      @ok="confirmEntryPerson"
+      @cancel="entryPersonModalVisible = false"
     >
       <a-input
         v-model:value="entryPersonName"
@@ -147,9 +164,9 @@
       title="Select Print Layout"
       okText="Complete & Print"
       :confirmLoading="loading"
-      @ok="completeOrderAndEmitPrint"
-      @cancel="() => (printModalVisible = false)"
       :maskClosable="false"
+      @ok="completeOrderAndEmitPrint"
+      @cancel="printModalVisible = false"
     >
       <a-radio-group v-model:value="selectedPrintSize">
         <a-radio value="A4">A4</a-radio>
@@ -182,6 +199,8 @@ export default {
   props: ["visible", "data", "selectedProducts", "successMessage"],
   emits: ["closed", "success", "print"],
   setup(props, { emit }) {
+    const ENTRY_PERSON_KEY = "pos_entry_person_name";
+
     const { addEditRequestAdmin, loading } = apiAdmin();
     const { appSetting, formatAmountCurrency } = common();
 
@@ -209,10 +228,21 @@ export default {
     });
 
     const openEntryPersonDialog = () => {
+      entryPersonName.value =
+        localStorage.getItem(ENTRY_PERSON_KEY) || "";
       entryPersonModalVisible.value = true;
     };
 
     const confirmEntryPerson = () => {
+      if (entryPersonName.value?.trim()) {
+        localStorage.setItem(
+          ENTRY_PERSON_KEY,
+          entryPersonName.value.trim()
+        );
+      } else {
+        localStorage.removeItem(ENTRY_PERSON_KEY);
+      }
+
       entryPersonModalVisible.value = false;
       printModalVisible.value = true;
     };
@@ -233,7 +263,8 @@ export default {
           all_payments: allPaymentRecords.value,
           product_items: props.selectedProducts,
           details: props.data,
-          entry_person_name: entryPersonName.value || "",
+          entry_person_name:
+            localStorage.getItem(ENTRY_PERSON_KEY) || "",
           print_pref: { size: selectedPrintSize.value },
         },
         success: res => {
@@ -251,6 +282,7 @@ export default {
     const drawerClosed = () => {
       allPaymentRecords.value = [];
       entryPersonName.value = "";
+      localStorage.removeItem(ENTRY_PERSON_KEY);
       entryPersonModalVisible.value = false;
       printModalVisible.value = false;
       showAddForm.value = false;
@@ -258,7 +290,10 @@ export default {
     };
 
     const deletePayment = id => {
-      allPaymentRecords.value = filter(allPaymentRecords.value, p => p.id !== id);
+      allPaymentRecords.value = filter(
+        allPaymentRecords.value,
+        p => p.id !== id
+      );
     };
 
     const getPaymentModeName = id => {

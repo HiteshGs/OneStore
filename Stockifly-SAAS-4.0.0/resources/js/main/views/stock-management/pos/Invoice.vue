@@ -420,6 +420,7 @@ import { useI18n } from 'vue-i18n';
 // import html2pdf from 'html2pdf.js';
 
 const posInvoiceCssUrl = window.config.pos_invoice_css;
+const ENTRY_PERSON_KEY = 'pos_entry_person_name';
 
 // Static fallbacks
 const FALLBACK_GSTIN = '24BNGPG0699R1ZD';
@@ -582,7 +583,7 @@ export default defineComponent({
     });
 
 const generatedByName = computed(() => {
-  // 1️⃣ Entry person from POS
+  // 1️⃣ From order (best case)
   if (
     props.order?.entry_person_name &&
     typeof props.order.entry_person_name === 'string' &&
@@ -591,7 +592,17 @@ const generatedByName = computed(() => {
     return props.order.entry_person_name.trim();
   }
 
-  // 2️⃣ Logged-in user
+  // 2️⃣ From localStorage (POS fallback)
+  const storedEntryPerson = localStorage.getItem(ENTRY_PERSON_KEY);
+  if (
+    storedEntryPerson &&
+    typeof storedEntryPerson === 'string' &&
+    storedEntryPerson.trim()
+  ) {
+    return storedEntryPerson.trim();
+  }
+
+  // 3️⃣ Logged-in user
   if (
     authUser &&
     typeof authUser.name === 'string' &&
@@ -600,9 +611,10 @@ const generatedByName = computed(() => {
     return authUser.name.trim();
   }
 
-  // 3️⃣ Final fallback
+  // 4️⃣ Final fallback
   return 'Admin';
 });
+
 
     const finalCustomerAddress = computed(() => {
       return (
