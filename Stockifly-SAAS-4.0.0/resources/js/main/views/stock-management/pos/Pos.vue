@@ -1161,34 +1161,38 @@ onMounted(async () => {
             selectSaleProduct(newProduct);
         };
 
-        const selectSaleProduct = (newProduct) => {
+const selectSaleProduct = (newProduct) => {
+    // ✅ Normalize HSN code once
+    const resolvedHsnCode =
+        newProduct.hsn_code ||
+        newProduct.product?.hsn_code ||
+        null;
+
     console.log("Selected product:", {
         xid: newProduct.xid,
         name: newProduct.name,
         subtotal: newProduct.subtotal,
         tax_rate: newProduct.tax_rate,
-        hsn_code: newProduct.hsn_code || newProduct.product?.hsn_code || '',
+        hsn_code: resolvedHsnCode,
     });
 
     if (!includes(selectedProductIds.value, newProduct.xid)) {
         selectedProductIds.value.push(newProduct.xid);
 
-        // 🔹 Build base line item
         const baseLine = {
             ...newProduct,
             sn: selectedProducts.value.length + 1,
-            // make sure we have a quantity
             quantity: newProduct.quantity || 1,
             discount_rate: newProduct.discount_rate || 0,
             unit_price: formatAmount(newProduct.unit_price),
             tax_rate: newProduct.tax_rate || 0,
-    hsn_code: newProduct.hsn_code || newProduct.product?.hsn_code || '',
 
-            // force exclusive logic from day one
+            // ✅ attach normalized HSN here
+            hsn_code: resolvedHsnCode,
+
             tax_type: "exclusive",
         };
 
-        // 🔹 Recalculate subtotal / tax as EXCLUSIVE
         const calculatedLine = recalculateValues(baseLine);
 
         selectedProducts.value.push(calculatedLine);
@@ -1197,7 +1201,6 @@ onMounted(async () => {
         state.products = [];
         recalculateFinalTotal();
     } else {
-        // existing logic (increment quantity)
         const newProductSelection = find(selectedProducts.value, [
             "xid",
             newProduct.xid,
@@ -1208,33 +1211,14 @@ onMounted(async () => {
             (newProductSelection.quantity < newProductSelection.stock_quantity ||
                 newProductSelection.product_type == "service")
         ) {
-            const newResults = [];
-            let foundRecord = {};
-
-            selectedProducts.value.map((selectedProduct) => {
-                let newQuantity = selectedProduct.quantity;
-
-                if (selectedProduct.xid == newProduct.xid) {
-                    newQuantity += 1;
-                    selectedProduct.quantity = newQuantity;
-                    foundRecord = selectedProduct;
-                }
-
-                newResults.push(selectedProduct);
-            });
-
-            selectedProducts.value = newResults;
-
-            state.orderSearchTerm = undefined;
-            state.products = [];
-
-            quantityChanged(foundRecord);
+            newProductSelection.quantity += 1;
+            quantityChanged(newProductSelection);
         } else {
-            state.orderSearchTerm = undefined;
-            state.products = [];
-
             message.error(t("common.out_of_stock"));
         }
+
+        state.orderSearchTerm = undefined;
+        state.products = [];
     }
 };
 
