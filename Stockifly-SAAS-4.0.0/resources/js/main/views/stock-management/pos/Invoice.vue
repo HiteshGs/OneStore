@@ -1046,9 +1046,9 @@ const generatedByName = computed(() => {
 }
 .store-contact-line {
   margin: 4px 0;
-  font-size: 10px;
-  font-weight: 500;
-  color: #333;
+  font-size: 11px;
+  font-weight: 700;
+  color: #000;
 }
 .store-gstin-line {
   margin: 4px 0 0 0;
