@@ -884,13 +884,17 @@ const generatedByName = computed(() => {
       return 0;
     };
 
-    const getGrossAmount = order => {
-      if (!order?.items || !Array.isArray(order.items)) return 0;
+   const getGrossAmount = (order) => {
+  if (!order?.items || !Array.isArray(order.items)) return 0;
 
-      return order.items.reduce((sum, item) => {
-        return sum + Number(item.subtotal || 0);
-      }, 0);
-    };
+  return order.items.reduce((sum, item) => {
+    const subtotal = Number(item.subtotal || 0);
+    const tax = Number(item.total_tax || item.tax_amount || 0);
+
+    return sum + (subtotal - tax);
+  }, 0);
+};
+
 
     const gstSummary = computed(() => {
       if (!props.order?.items || !Array.isArray(props.order.items)) return [];
