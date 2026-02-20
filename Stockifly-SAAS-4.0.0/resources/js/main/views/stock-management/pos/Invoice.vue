@@ -1168,8 +1168,36 @@ const generatedByName = computed(() => {
 }
 
 /* Items table */
-.tax-invoice-items {
-  margin-top: 8px;
+@media print {
+
+  /* Allow items table to split across pages */
+  .tax-invoice-items {
+    page-break-inside: auto !important;
+  }
+
+  .items-table {
+    page-break-inside: auto !important;
+  }
+
+  .items-table tr {
+    page-break-inside: avoid !important;
+    page-break-after: auto !important;
+  }
+
+  .items-table thead {
+    display: table-header-group !important;
+  }
+
+  .items-table tfoot {
+    display: table-footer-group !important;
+  }
+
+  /* Keep totals section together */
+  .final-totals-box,
+  .bottom-section {
+    page-break-inside: avoid !important;
+  }
+
 }
 .items-table {
   width: 100%;
