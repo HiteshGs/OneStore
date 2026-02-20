@@ -1697,39 +1697,27 @@ export default defineComponent({
 
 
     const paddedItems = computed(() => {
+  const items = Array.isArray(props.order?.items)
+    ? props.order.items
+    : [];
 
-      const items = Array.isArray(props.order?.items)
+  // A4 safe row limit (based on your layout)
+  const MAX_ROWS_FIRST_PAGE = 32;  
 
-        ? props.order.items
+  const visibleItems = items.slice(0, MAX_ROWS_FIRST_PAGE);
 
-        : [];
+  const blanksToAdd = Math.max(0, MAX_ROWS_FIRST_PAGE - visibleItems.length);
 
-      const MIN_ROWS = 20; // Fixed 20 rows for A4 format
+  const blankRows = Array.from(
+    { length: blanksToAdd },
+    (_, i) => ({
+      __blank: true,
+      xid: `blank-${i}`,
+    })
+  );
 
-      const blanksToAdd = Math.max(0, MIN_ROWS - items.length);
-
-
-
-      const blankRows = Array.from(
-
-        { length: blanksToAdd },
-
-        (_, i) => ({
-
-          __blank: true,
-
-          xid: `blank-${i}`,
-
-        }),
-
-      );
-
-
-
-      return [...items, ...blankRows];
-
-    });
-
+  return [...visibleItems, ...blankRows];
+});
 
 
     const paidAmount = computed(() => {
@@ -2679,11 +2667,11 @@ export default defineComponent({
 }
 
 .a4-invoice {
-
-  max-width: 210mm;
-
+  width: 210mm;
+  min-height: 270mm;
+  max-height: 270mm;
+  overflow: hidden;
 }
-
 .a5-invoice {
 
   max-width: 148mm;
@@ -2723,7 +2711,11 @@ export default defineComponent({
     size: A4;
 
   }
-
+.a4-invoice {
+    height: 270mm !important;
+    max-height: 270mm !important;
+    overflow: hidden !important;
+  }
 
 
   body {
