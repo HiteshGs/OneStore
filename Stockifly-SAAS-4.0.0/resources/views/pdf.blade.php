@@ -535,80 +535,77 @@
                 print-color-adjust: exact !important;
             }
 
-            .invoice-header,
-            .bill-party-row,
-            .tax-invoice-items,
-            .final-totals-box,
-            .bottom-section,
-            .bank-details-box,
-            .bottom-boxes-row {
+            /* Page break rules for multi-page invoices */
+            .invoice-header {
                 page-break-inside: avoid;
+                page-break-after: avoid;
+                border-bottom: 1px solid #000 !important;
+            }
+
+            .bill-party-row {
+                page-break-inside: avoid;
+                page-break-after: avoid;
+            }
+
+            .tax-invoice-items {
+                page-break-inside: auto;
+            }
+
+            .items-table {
+                page-break-inside: auto;
+            }
+
+            .items-table thead {
+                page-break-inside: avoid;
+                border-bottom: 1px solid #000 !important;
+                background: #ffffff !important;
+            }
+
+            .item-row {
+                page-break-inside: avoid;
+                page-break-after: auto;
+            }
+
+            .final-totals-box {
+                page-break-inside: avoid;
+                page-break-before: auto;
+                border: 0px solid #000 !important;
+            }
+
+            .bottom-section {
+                page-break-inside: avoid;
+                page-break-before: auto;
+                margin-bottom: 25px;
+                padding-bottom: 15px;
+            }
+
+            .bank-details-box {
+                page-break-inside: avoid;
+                border: 1px solid #000 !important;
             }
 
             .bottom-boxes-row {
                 display: flex !important;
                 align-items: stretch !important;
-            }
-
-            .invoice-header {
-                border-bottom: 1px solid #000 !important;
-            }
-
-            /*.bill-party-row {
-                border-bottom: 1px solid #000 !important;
-            }*/
-
-            .items-table,
-            .items-table th,
-            .items-table td {
-                border: 1px solid #000 !important;
-                border-width: 1px !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-
-            .items-table th {
-                border-bottom: 1px solid #000 !important;
-                background: #ffffff !important;
-            }
-
-            .final-totals-box {
-                border: 0px solid #000 !important;
-            }
-
-            .final-totals-box .items-table {
-                border-collapse: collapse !important;
-                border: 0px solid #000 !important;
-            }
-
-            .final-totals-box .items-table td {
-                border: 0px solid #000 !important;
-                border-width: 0.5px !important;
-            }
-
-            .net-amount-label {
-                text-align: left !important;
-            }
-
-            .net-amount-value {
-                text-align: right !important;
-            }
-
-            .bank-details-box {
-                border: 1px solid #000 !important;
+                page-break-inside: avoid;
+                gap: 8px !important;
+                margin-top: 4px !important;
+                justify-content: space-between !important;
             }
 
             .terms-box-final,
             .signature-box-final {
+                page-break-inside: avoid;
                 border: 1px solid #000 !important;
+            }
+
+            .thanks-details {
+                page-break-before: auto;
+                border-top: 1px solid #ddd !important;
             }
 
             .signature-space {
                 border-bottom: 1px solid #000 !important;
-            }
-
-            .thanks-details {
-                border-top: 1px solid #ddd !important;
             }
 
             .bill-party-right,
@@ -627,13 +624,6 @@
                 border: 1px solid #000 !important;
                 color: #000 !important;
                 background: #ffffff !important;
-            }
-
-            .bottom-boxes-row {
-                display: flex !important;
-                gap: 8px !important;
-                margin-top: 4px !important;
-                justify-content: space-between !important;
             }
 
             /* Ensure all text is black and borders are visible */
@@ -889,11 +879,18 @@
                         <!-- Item name + custom fields -->
                         <td>
                             <div class="item-name">
-                                {{ $item->product->name }}
+                                {{ $item->product->name ?? $item->product_name ?? 'Product ID: ' . ($item->product_id ?? 'N/A') }}
                             </div>
-                            {{-- Custom fields logic from Vue component is omitted as it requires complex data structure not guaranteed in Blade context --}}
+                            @if(isset($item->custom_fields) && is_iterable($item->custom_fields) && count($item->custom_fields) > 0)
+                            <div class="item-custom-fields">
+                                @foreach($item->custom_fields as $cf)
+                                <span class="item-custom-field-line">
+                                    {{ $cf->label ?? $cf->name ?? 'Field' }}: {{ $cf->value ?? '' }}
+                                </span>
+                                @endforeach
+                            </div>
+                            @endif
                         </td>
-
 
                         <!-- QTY -->
                         <td class="center">

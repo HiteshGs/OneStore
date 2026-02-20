@@ -1480,24 +1480,6 @@ const getRowTaxAmount = (record) => {
             resetPos();
 
             var walkInCustomerId =
-                posDefaultCustomer.value && posDefaultCustomer.value.xid
-                    ? posDefaultCustomer.value.xid
-                    : undefined;
-            formData.value = {
-                ...formData.value,
-                user_id: walkInCustomerId,
-            };
-
-            reFetchProducts();
-            payNowVisible.value = false;
-
-            printInvoiceOrder.value = invoiceOrder;
-            printInvoiceModalVisible.value = true;
-        };
-
-        return {
-            taxes,
-            customers,
             categories,
             brands,
             productLists,

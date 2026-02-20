@@ -62,20 +62,20 @@
           <div class="bill-party-left">
             <h4 class="bill-title">Bill To Party</h4>
             <p class="party-line party-name">
-              {{ order.user?.name || posSelectedCustomer?.name || 'Walk-in Customer' }}
+              {{ currentCustomerData.name }}
             </p>
             <p
-              v-if="order.user?.phone || posSelectedCustomer?.phone"
+              v-if="currentCustomerData.phone"
               class="party-line"
             >
-              Mo: {{ order.user?.phone || posSelectedCustomer?.phone }}
+              Mo: {{ currentCustomerData.phone }}
             </p>
 
             <br />
 
             <!-- GSTIN (Customer) -->
-            <p v-if="order.user?.gst_number" class="party-line">
-              <strong>GSTIN:</strong> {{ order.user.gst_number }}
+            <p v-if="currentCustomerData.gst_number" class="party-line">
+              <strong>GSTIN:</strong> {{ currentCustomerData.gst_number }}
             </p>
 
             <p
@@ -156,7 +156,7 @@
                 <!-- Item name + custom fields -->
                 <td>
                   <div class="item-name">
-                    {{ item.__blank ? '' : item.product?.name }}
+                    {{ item.__blank ? '' : (item.product?.name || item.product_name || `Product ID: ${item.product_id || 'N/A'}`) }}
                   </div>
 
                   <div
@@ -172,7 +172,6 @@
                     </span>
                   </div>
                 </td>
-
 
                 <!-- QTY -->
                 <td class="center">
@@ -570,6 +569,29 @@ export default defineComponent({
       );
     });
 
+    const currentCustomerData = computed(() => {
+      // Prioritize order user data over localStorage data
+      if (props.order?.user) {
+        return {
+          name: props.order.user.name,
+          phone: props.order.user.phone,
+          address: props.order.user.address,
+          gst_number: props.order.user.gst_number
+        };
+      }
+      // Fallback to localStorage data
+      if (posSelectedCustomer.value) {
+        return posSelectedCustomer.value;
+      }
+      // Default fallback
+      return {
+        name: 'Walk-in Customer',
+        phone: null,
+        address: null,
+        gst_number: null
+      };
+    });
+
     const customerState = computed(() => {
       const addr = finalCustomerAddress.value.toLowerCase();
       const gujaratKeywords = [
@@ -745,6 +767,49 @@ export default defineComponent({
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
               }
+              /* Page break rules for multi-page invoices */
+              .invoice-header {
+                page-break-inside: avoid;
+                page-break-after: avoid;
+              }
+              .bill-party-row {
+                page-break-inside: avoid;
+                page-break-after: avoid;
+              }
+              .tax-invoice-items {
+                page-break-inside: auto;
+              }
+              .items-table {
+                page-break-inside: auto;
+              }
+              .items-table thead {
+                page-break-inside: avoid;
+              }
+              .item-row {
+                page-break-inside: avoid;
+                page-break-after: auto;
+              }
+              .final-totals-box {
+                page-break-inside: avoid;
+                page-break-before: auto;
+              }
+              .bottom-section {
+                page-break-inside: avoid;
+                page-break-before: auto;
+              }
+              .bank-details-box {
+                page-break-inside: avoid;
+              }
+              .bottom-boxes-row {
+                page-break-inside: avoid;
+              }
+              .terms-box-final,
+              .signature-box-final {
+                page-break-inside: avoid;
+              }
+              .thanks-details {
+                page-break-before: auto;
+              }
             }
             @media screen {
               body {
@@ -851,8 +916,17 @@ export default defineComponent({
       const items = Array.isArray(props.order?.items)
         ? props.order.items
         : [];
-      const MIN_ROWS = 20; // Fixed 20 rows for A4 format
-      const blanksToAdd = Math.max(0, MIN_ROWS - items.length);
+
+      // Calculate dynamic rows based on content height for pagination
+      const ITEMS_PER_PAGE = props.size === 'A5' ? 15 : 20;
+      const MAX_ROWS = props.size === 'A5' ? 30 : 40; // Maximum rows before forcing new page
+
+      // If items exceed maximum, don't add blank rows - let natural pagination occur
+      if (items.length >= MAX_ROWS) {
+        return items;
+      }
+
+      const blanksToAdd = Math.max(0, ITEMS_PER_PAGE - items.length);
 
       const blankRows = Array.from(
         { length: blanksToAdd },
@@ -903,6 +977,7 @@ export default defineComponent({
       computedIGST,
       posSelectedCustomer,
       finalCustomerAddress,
+      currentCustomerData,
       paddedItems,
       paidAmount,
       dueAmount,
