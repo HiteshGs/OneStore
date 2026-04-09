@@ -1163,7 +1163,28 @@ export default {
 
                     const url = URL.createObjectURL(pdfBlob);
 
-                    print(url);
+                    // Open PDF in new window with print completion detection
+                    const printWindow = window.open(url, '_blank');
+                    
+                    if (printWindow) {
+                        // Add print completion event listener
+                        printWindow.onafterprint = () => {
+                            printWindow.close();
+                        };
+                        
+                        // Fallback timeout to close window if onafterprint doesn't fire
+                        setTimeout(() => {
+                            if (!printWindow.closed) {
+                                printWindow.close();
+                            }
+                        }, 1000);
+                        
+                        // Trigger print dialog
+                        printWindow.print();
+                    } else {
+                        // Fallback if popup is blocked
+                        print(url);
+                    }
 
                     URL.revokeObjectURL(url);
 

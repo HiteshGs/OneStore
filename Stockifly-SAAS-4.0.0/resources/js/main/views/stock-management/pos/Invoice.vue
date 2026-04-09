@@ -831,9 +831,17 @@ export default defineComponent({
       iframe.onload = () => {
         setTimeout(() => {
           iframe.contentWindow.print();
-          // Remove iframe after printing
+          // Remove iframe after printing and close modal
           setTimeout(() => {
             document.body.removeChild(iframe);
+            // Close the modal after successful print
+            onClose();
+            // Show success notification
+            notification.success({
+              message: 'Success',
+              description: 'Invoice printed successfully!',
+              duration: 3,
+            });
           }, 1000);
         }, 500);
       };
