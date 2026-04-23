@@ -1173,11 +1173,11 @@ onMounted(async () => {
             unit_price: formatAmount(newProduct.unit_price),
             tax_rate: newProduct.tax_rate || 0,
 
-            // force exclusive logic from day one
-            tax_type: "exclusive",
+            // preserve the original tax_type from backend
+            tax_type: newProduct.tax_type || "exclusive",
         };
 
-        // 🔹 Recalculate subtotal / tax as EXCLUSIVE
+        // 🔹 Recalculate subtotal / tax with proper tax handling
         const calculatedLine = recalculateValues(baseLine);
 
         selectedProducts.value.push(calculatedLine);
@@ -1243,15 +1243,24 @@ onMounted(async () => {
     const totalDiscount = discountRate > 0 ? (discountRate / 100) * unitPrice : 0;
     const totalPriceAfterDiscount = unitPrice - totalDiscount;
 
-    // Tax (always EXCLUSIVE)
+    // Tax calculation for both INCLUSIVE and EXCLUSIVE
     let taxAmount = 0;
     let subtotal = totalPriceAfterDiscount;
     let singleUnitPrice = unitPrice;
+    const taxType = product.tax_type || 'exclusive';
 
     if (product.tax_rate > 0) {
-        taxAmount = totalPriceAfterDiscount * (product.tax_rate / 100);
-        subtotal = totalPriceAfterDiscount + taxAmount;
-        singleUnitPrice = totalPriceAfterDiscount;
+        if (taxType === 'inclusive') {
+            // For inclusive tax: extract tax amount from the price
+            taxAmount = totalPriceAfterDiscount - (totalPriceAfterDiscount * 100 / (100 + product.tax_rate));
+            subtotal = totalPriceAfterDiscount; // Price already includes tax
+            singleUnitPrice = totalPriceAfterDiscount - (totalPriceAfterDiscount * 100 / (100 + product.tax_rate));
+        } else {
+            // For exclusive tax: add tax to the price
+            taxAmount = totalPriceAfterDiscount * (product.tax_rate / 100);
+            subtotal = totalPriceAfterDiscount + taxAmount;
+            singleUnitPrice = totalPriceAfterDiscount;
+        }
     }
 
     const newObject = {
@@ -1263,13 +1272,13 @@ onMounted(async () => {
         max_quantity: maxQuantity,
         single_unit_price: singleUnitPrice,
 
-        // normalize every recalculated line as EXCLUSIVE
-        tax_type: "exclusive",
+        // preserve the original tax_type from backend
+        tax_type: taxType,
     };
 
     return newObject;
 };
-const normalizeExistingLinesToExclusive = () => {
+const recalculateExistingLines = () => {
     if (!selectedProducts.value.length) return;
 
     selectedProducts.value = selectedProducts.value.map((p) =>
@@ -1277,7 +1286,7 @@ const normalizeExistingLinesToExclusive = () => {
             ...p,
             quantity: p.quantity || 1,
             discount_rate: p.discount_rate || 0,
-            tax_type: "exclusive",
+            tax_type: p.tax_type || "exclusive",
         })
     );
 
@@ -1456,8 +1465,8 @@ const getRowTaxAmount = (record) => {
     tax_id: addEditFormData.value.tax_id,
     tax_rate: selecteTax[0] ? selecteTax[0].rate : 0,
 
-    // 🔥 force exclusive on save too
-    tax_type: "exclusive",
+    // preserve the tax_type from form or use existing
+    tax_type: addEditFormData.value.tax_type || record[0].tax_type || "exclusive",
 };
 
             quantityChanged(newData);
