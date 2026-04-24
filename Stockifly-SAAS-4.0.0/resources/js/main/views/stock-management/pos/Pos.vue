@@ -1184,11 +1184,11 @@ onMounted(async () => {
             tax_rate: newProduct.tax_rate || 0,
     hsn_code: newProduct.hsn_code || newProduct.product?.hsn_code || '',
 
-            // force exclusive logic from day one
-            tax_type: "exclusive",
+            // respect product's original tax_type (sales_tax_type from product details)
+            tax_type: newProduct.sales_tax_type || newProduct.product?.details?.sales_tax_type || "exclusive",
         };
 
-        // 🔹 Recalculate subtotal / tax as EXCLUSIVE
+        // 🔹 Recalculate subtotal / tax based on product's tax_type
         const calculatedLine = recalculateValues(baseLine);
 
         selectedProducts.value.push(calculatedLine);
@@ -1254,15 +1254,24 @@ onMounted(async () => {
     const totalDiscount = discountRate > 0 ? (discountRate / 100) * unitPrice : 0;
     const totalPriceAfterDiscount = unitPrice - totalDiscount;
 
-    // Tax (always EXCLUSIVE)
+    // Tax (handle both INCLUSIVE and EXCLUSIVE)
     let taxAmount = 0;
     let subtotal = totalPriceAfterDiscount;
     let singleUnitPrice = unitPrice;
 
     if (product.tax_rate > 0) {
-        taxAmount = totalPriceAfterDiscount * (product.tax_rate / 100);
-        subtotal = totalPriceAfterDiscount + taxAmount;
-        singleUnitPrice = totalPriceAfterDiscount;
+        if (product.tax_type === "inclusive") {
+            // For inclusive tax, the unit_price already includes tax
+            // We need to extract the tax amount from the price
+            taxAmount = (totalPriceAfterDiscount * product.tax_rate) / (100 + product.tax_rate);
+            subtotal = totalPriceAfterDiscount; // subtotal includes tax for inclusive
+            singleUnitPrice = totalPriceAfterDiscount - taxAmount; // base price without tax
+        } else {
+            // For exclusive tax, add tax on top of the price
+            taxAmount = totalPriceAfterDiscount * (product.tax_rate / 100);
+            subtotal = totalPriceAfterDiscount + taxAmount;
+            singleUnitPrice = totalPriceAfterDiscount;
+        }
     }
 
     const newObject = {
@@ -1274,8 +1283,8 @@ onMounted(async () => {
         max_quantity: maxQuantity,
         single_unit_price: singleUnitPrice,
 
-        // normalize every recalculated line as EXCLUSIVE
-        tax_type: "exclusive",
+        // preserve the original tax_type
+        tax_type: product.tax_type,
     };
 
     return newObject;
