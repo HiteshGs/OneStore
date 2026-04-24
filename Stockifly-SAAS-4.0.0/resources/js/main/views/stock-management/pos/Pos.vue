@@ -1559,8 +1559,9 @@ handleCustomerChange,
             inputValueChanged,
 
             showMobileCart,
-getRowSubtotalWithTax,
-    getRowTaxAmount,        };
+            getRowSubtotalWithTax,
+            getRowTaxAmount,
+        };
     },
 };
 </script>
