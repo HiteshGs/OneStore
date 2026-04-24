@@ -1135,6 +1135,48 @@ export default defineComponent({
             }
         );
 
+        // Watch for purchase tax type changes
+        watch(
+            () => props.formData.purchase_tax_type,
+            (newVal, oldVal) => {
+                if (oldVal && newVal && oldVal !== newVal && props.formData.purchase_price) {
+                    const taxRate = props.formData.tax_rate || 0;
+                    const currentPrice = props.formData.purchase_price;
+                    
+                    if (oldVal === 'exclusive' && newVal === 'inclusive') {
+                        // Converting from exclusive to inclusive: remove tax to show base price
+                        const priceWithoutTax = currentPrice / (1 + (taxRate / 100));
+                        props.formData.purchase_price = parseFloat(priceWithoutTax.toFixed(2));
+                    } else if (oldVal === 'inclusive' && newVal === 'exclusive') {
+                        // Converting from inclusive to exclusive: add tax to show price with tax
+                        const priceWithTax = currentPrice * (1 + (taxRate / 100));
+                        props.formData.purchase_price = parseFloat(priceWithTax.toFixed(2));
+                    }
+                }
+            }
+        );
+
+        // Watch for sales tax type changes
+        watch(
+            () => props.formData.sales_tax_type,
+            (newVal, oldVal) => {
+                if (oldVal && newVal && oldVal !== newVal && props.formData.sales_price) {
+                    const taxRate = props.formData.tax_rate || 0;
+                    const currentPrice = props.formData.sales_price;
+                    
+                    if (oldVal === 'exclusive' && newVal === 'inclusive') {
+                        // Converting from exclusive to inclusive: remove tax to show base price
+                        const priceWithoutTax = currentPrice / (1 + (taxRate / 100));
+                        props.formData.sales_price = parseFloat(priceWithoutTax.toFixed(2));
+                    } else if (oldVal === 'inclusive' && newVal === 'exclusive') {
+                        // Converting from inclusive to exclusive: add tax to show price with tax
+                        const priceWithTax = currentPrice * (1 + (taxRate / 100));
+                        props.formData.sales_price = parseFloat(priceWithTax.toFixed(2));
+                    }
+                }
+            }
+        );
+
         return {
             loading,
             rules,

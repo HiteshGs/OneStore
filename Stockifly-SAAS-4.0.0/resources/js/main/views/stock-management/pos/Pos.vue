@@ -945,7 +945,7 @@
 </template>
 
 <script>
-import { ref, onMounted, reactive, toRefs, nextTick } from "vue";
+import { ref, onMounted, reactive, toRefs, nextTick, watch } from "vue";
 import {
     ShoppingCartOutlined,
     PlusOutlined,
@@ -1468,6 +1468,27 @@ const getRowTaxAmount = (record) => {
             addEditFormData.value = {};
             addEditVisible.value = false;
         };
+
+        // Watch for tax type changes in POS edit form
+        watch(
+            () => addEditFormData.value.tax_type,
+            (newVal, oldVal) => {
+                if (oldVal && newVal && oldVal !== newVal && addEditFormData.value.unit_price) {
+                    const taxRate = addEditFormData.value.tax_rate || 0;
+                    const currentPrice = addEditFormData.value.unit_price;
+                    
+                    if (oldVal === 'exclusive' && newVal === 'inclusive') {
+                        // Converting from exclusive to inclusive: remove tax to show base price
+                        const priceWithoutTax = currentPrice / (1 + (taxRate / 100));
+                        addEditFormData.value.unit_price = parseFloat(priceWithoutTax.toFixed(2));
+                    } else if (oldVal === 'inclusive' && newVal === 'exclusive') {
+                        // Converting from inclusive to exclusive: add tax to show price with tax
+                        const priceWithTax = currentPrice * (1 + (taxRate / 100));
+                        addEditFormData.value.unit_price = parseFloat(priceWithTax.toFixed(2));
+                    }
+                }
+            }
+        );
 
         // Customer
         const customerAdded = () => {
