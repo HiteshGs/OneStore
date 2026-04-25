@@ -1478,8 +1478,9 @@ const getRowTaxAmount = (record) => {
 
         const payNowSuccess = (invoiceOrder) => {
             resetPos();
+        };
 
-            var walkInCustomerId =
+        return {
             categories,
             brands,
             productLists,
@@ -1538,8 +1539,9 @@ handleCustomerChange,
             inputValueChanged,
 
             showMobileCart,
-getRowSubtotalWithTax,
-    getRowTaxAmount,        };
+            getRowSubtotalWithTax,
+            getRowTaxAmount,
+        };
     },
 };
 </script>
