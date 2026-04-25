@@ -30,3 +30,4 @@ __MACOSX/*
 /dist/*
 /out
 /out/*
+._*
