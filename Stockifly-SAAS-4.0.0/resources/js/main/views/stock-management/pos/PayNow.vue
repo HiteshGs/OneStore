@@ -168,6 +168,7 @@
         <a-radio value="A5">A5</a-radio>
         <a-radio value="80mm">Thermal 80mm</a-radio>
         <a-radio value="58mm">Thermal 58mm</a-radio>
+        <a-radio value="retail">Retail Invoice</a-radio>
       </a-radio-group>
 
       <div class="mt-20">
@@ -175,6 +176,15 @@
         <span class="ml-10">Print Preview</span>
       </div>
     </a-modal>
+
+    <!-- DMART INVOICE MODAL -->
+    <DmartInvoice
+      :visible="dmartInvoiceVisible"
+      :order="dmartOrderData"
+      :description="dmartDescription"
+      @closed="dmartInvoiceVisible = false"
+      @success="onDmartInvoiceSuccess"
+    />
   </a-drawer>
 </template>
 
@@ -189,8 +199,12 @@ import {
 import { find, filter, sumBy } from "lodash-es";
 import common from "../../../../common/composable/common";
 import apiAdmin from "../../../../common/composable/apiAdmin";
+import DmartInvoice from "./dmartinvoice.vue";
 
 export default {
+  components: {
+    DmartInvoice,
+  },
   props: ["visible", "data", "selectedProducts"],
   emits: ["closed", "success", "print"],
   setup(props, { emit }) {
@@ -216,6 +230,10 @@ export default {
     const printModalVisible = ref(false);
     const selectedPrintSize = ref("A4");
     const autoOpenPrint = ref(true);
+
+    const dmartInvoiceVisible = ref(false);
+    const dmartOrderData = ref(null);
+    const dmartDescription = ref("");
 
     onMounted(() => {
       axiosAdmin.get("payment-modes").then(res => {
@@ -275,13 +293,28 @@ export default {
         },
         success: res => {
           emit("success", res.order);
-          emit("print", {
-            order: res.order,
-            size: selectedPrintSize.value,
-            autoOpen: autoOpenPrint.value,
-          });
+          
+          // Check if retail invoice is selected
+          if (selectedPrintSize.value === "retail") {
+            // Show retail invoice modal instead of regular print
+            dmartOrderData.value = res.order;
+            dmartDescription.value = "";
+            dmartInvoiceVisible.value = true;
+            printModalVisible.value = false;
+          } else {
+            // Regular print flow
+            emit("print", {
+              order: res.order,
+              size: selectedPrintSize.value,
+              autoOpen: autoOpenPrint.value,
+            });
+          }
         },
       });
+    };
+
+    const onDmartInvoiceSuccess = () => {
+      dmartInvoiceVisible.value = false;
     };
 
     const drawerClosed = () => {
@@ -289,6 +322,9 @@ export default {
       entryPersonName.value = "";
       entryPersonModalVisible.value = false;
       printModalVisible.value = false;
+      dmartInvoiceVisible.value = false;
+      dmartOrderData.value = null;
+      dmartDescription.value = "";
       showAddForm.value = false;
       emit("closed");
     };
@@ -317,10 +353,14 @@ export default {
       printModalVisible,
       selectedPrintSize,
       autoOpenPrint,
+      dmartInvoiceVisible,
+      dmartOrderData,
+      dmartDescription,
       openEntryPersonDialog,
       confirmEntryPerson,
       onSubmit,
       completeOrderAndEmitPrint,
+      onDmartInvoiceSuccess,
       drawerClosed,
       deletePayment,
       getPaymentModeName,
