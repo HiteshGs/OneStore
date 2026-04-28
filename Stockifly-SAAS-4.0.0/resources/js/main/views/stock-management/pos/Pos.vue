@@ -1487,8 +1487,11 @@ const getRowTaxAmount = (record) => {
             reFetchProducts();
             payNowVisible.value = false;
 
-            printInvoiceOrder.value = invoiceOrder;
-            printInvoiceModalVisible.value = true;
+            // Only show regular print modal if it's not a retail invoice
+            if (!invoiceOrder.isRetailInvoice) {
+                printInvoiceOrder.value = invoiceOrder;
+                printInvoiceModalVisible.value = true;
+            }
         };
 
         return {

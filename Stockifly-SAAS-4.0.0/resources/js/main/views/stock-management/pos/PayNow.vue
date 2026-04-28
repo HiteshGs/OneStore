@@ -165,10 +165,10 @@
     >
       <a-radio-group v-model:value="selectedPrintSize">
         <a-radio value="A4">A4</a-radio>
+        <a-radio value="retail">Retail Invoice</a-radio>
         <a-radio value="A5">A5</a-radio>
         <a-radio value="80mm">Thermal 80mm</a-radio>
         <a-radio value="58mm">Thermal 58mm</a-radio>
-        <a-radio value="retail">Retail Invoice</a-radio>
       </a-radio-group>
 
       <div class="mt-20">
@@ -292,8 +292,6 @@ export default {
           print_pref: { size: selectedPrintSize.value },
         },
         success: res => {
-          emit("success", res.order);
-          
           // Check if retail invoice is selected
           if (selectedPrintSize.value === "retail") {
             // Show retail invoice modal instead of regular print
@@ -301,8 +299,12 @@ export default {
             dmartDescription.value = "";
             dmartInvoiceVisible.value = true;
             printModalVisible.value = false;
+            
+            // Emit success but with a flag to prevent regular print modal
+            emit("success", { ...res.order, isRetailInvoice: true });
           } else {
             // Regular print flow
+            emit("success", res.order);
             emit("print", {
               order: res.order,
               size: selectedPrintSize.value,
