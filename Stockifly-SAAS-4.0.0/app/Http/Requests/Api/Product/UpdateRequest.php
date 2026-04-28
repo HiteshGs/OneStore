@@ -31,7 +31,13 @@ class UpdateRequest extends FormRequest
         $id = $convertedId[0];
 
         $rules = [
-            'name'    => 'required',
+            'name'    => [
+                'required',
+                Rule::unique('products', 'name')->where(function ($query) use ($company, $id) {
+                    return $query->where('company_id', $company->id)
+                        ->where('id', '!=', $id);
+                })
+            ],
             'slug'    => [
                 'required',
                 Rule::unique('products', 'slug')->where(function ($query) use ($company, $id) {

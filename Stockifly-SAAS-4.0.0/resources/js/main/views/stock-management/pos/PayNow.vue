@@ -7,84 +7,71 @@
     @close="drawerClosed"
   >
     <a-row>
-      <!-- Left summary -->
-      <a-col :xs="24" :sm="24" :md="8" :lg="8">
-        <a-row>
-          <a-col :span="24">
-            <a-statistic
-              :title="$t('stock.total_items')"
-              :value="selectedProducts.length"
-              style="margin-right: 50px"
-            />
-          </a-col>
+      <!-- LEFT SUMMARY -->
+      <a-col :xs="24" :md="8">
+        <a-statistic
+          :title="$t('stock.total_items')"
+          :value="selectedProducts.length"
+        />
 
-          <a-col :span="24" class="mt-20">
-            <a-statistic
-              :title="$t('stock.paying_amount')"
-              :value="formatAmountCurrency(totalEnteredAmount)"
-            />
-          </a-col>
+        <a-statistic
+          class="mt-20"
+          :title="$t('stock.paying_amount')"
+          :value="formatAmountCurrency(totalEnteredAmount)"
+        />
 
-          <a-col :span="24" class="mt-20">
-            <a-statistic
-              :title="$t('stock.payable_amount')"
-              :value="formatAmountCurrency(data.subtotal)"
-            />
-          </a-col>
+        <a-statistic
+          class="mt-20"
+          :title="$t('stock.payable_amount')"
+          :value="formatAmountCurrency(data.subtotal)"
+        />
 
-          <a-col :span="24" class="mt-20">
-            <a-statistic
-              v-if="totalEnteredAmount <= data.subtotal"
-              :title="$t('payments.due_amount')"
-              :value="formatAmountCurrency(data.subtotal - totalEnteredAmount)"
-            />
-            <a-statistic
-              v-else
-              :title="$t('stock.change_return')"
-              :value="formatAmountCurrency(totalEnteredAmount - data.subtotal)"
-            />
-          </a-col>
-        </a-row>
+        <a-statistic
+          class="mt-20"
+          v-if="totalEnteredAmount <= data.subtotal"
+          :title="$t('payments.due_amount')"
+          :value="formatAmountCurrency(data.subtotal - totalEnteredAmount)"
+        />
+        <a-statistic
+          class="mt-20"
+          v-else
+          :title="$t('stock.change_return')"
+          :value="formatAmountCurrency(totalEnteredAmount - data.subtotal)"
+        />
       </a-col>
 
-      <!-- Right content -->
-      <a-col :xs="24" :sm="24" :md="16" :lg="16">
+      <!-- RIGHT CONTENT -->
+      <a-col :xs="24" :md="16">
         <a-row :gutter="[24, 24]">
-          <!-- Top actions -->
+          <!-- ACTION BUTTONS -->
           <a-col :span="24" v-if="!showAddForm">
-            <a-row :gutter="[16, 8]" class="mt-20">
-              <a-col :xs="24" :sm="24" :md="10" :lg="10">
-                <a-button :block="true" type="primary" @click="() => (showAddForm = true)">
+            <a-row :gutter="16" class="mt-20">
+              <a-col :md="10">
+                <a-button block type="primary" @click="showAddForm = true">
                   <PlusOutlined /> {{ $t('payments.add') }}
                 </a-button>
               </a-col>
 
-              <a-col :xs="24" :sm="24" :md="10" :lg="10">
-                <a-button :loading="loading" :block="true" @click="openPrintChooser">
-                  {{ $t('stock.complete_order') }} <RightOutlined />
+              <a-col :md="10">
+                <a-button
+                  block
+                  :loading="loading"
+                  @click="openEntryPersonDialog"
+                >
+                  {{ $t('stock.complete_order') }}
+                  <RightOutlined />
                 </a-button>
               </a-col>
             </a-row>
           </a-col>
 
-          <!-- Back button when add form is open -->
-          <a-col :span="24" v-else>
-            <a-row>
-              <a-col :xs="24" :sm="24" :md="10" :lg="10">
-                <a-button :block="true" type="primary" @click="goBack">
-                  <LeftOutlined /> {{ $t('common.back') }}
-                </a-button>
-              </a-col>
-            </a-row>
-          </a-col>
-
-          <!-- Payments table -->
+          <!-- PAYMENT TABLE -->
           <a-col :span="24" v-if="!showAddForm">
             <a-table
               :dataSource="allPaymentRecords"
               :columns="paymentRecordsColumns"
               :pagination="false"
-              :rowKey="record => record.id"
+              rowKey="id"
             >
               <template #bodyCell="{ column, record }">
                 <template v-if="column.dataIndex === 'payment_mode'">
@@ -96,104 +83,88 @@
                 </template>
 
                 <template v-if="column.dataIndex === 'action'">
-                  <a-button type="primary" @click="deletePayment(record.id)" danger>
-                    <template #icon><DeleteOutlined /></template>
+                  <a-button danger type="primary" @click="deletePayment(record.id)">
+                    <DeleteOutlined />
                   </a-button>
                 </template>
               </template>
             </a-table>
           </a-col>
 
-          <!-- Add payment form -->
+          <!-- ADD PAYMENT -->
           <a-col :span="24" v-else>
             <a-form layout="vertical">
               <a-row :gutter="16">
-                <a-col :xs="24" :sm="24" :md="12" :lg="12">
-                  <a-form-item
-                    :label="$t('payments.payment_mode')"
-                    name="payment_mode_id"
-                    :help="rules.payment_mode_id ? rules.payment_mode_id.message : null"
-                    :validateStatus="rules.payment_mode_id ? 'error' : null"
-                  >
-                    <a-select
-                      v-model:value="formData.payment_mode_id"
-                      :placeholder="$t('common.select_default_text', [$t('payments.payment_mode')])"
-                      :allowClear="true"
-                    >
+                <a-col :md="12">
+                  <a-form-item :label="$t('payments.payment_mode')">
+                    <a-select v-model:value="formData.payment_mode_id" allowClear>
                       <a-select-option
-                        v-for="paymentMode in paymentModes"
-                        :key="paymentMode.xid"
-                        :value="paymentMode.xid"
+                        v-for="m in paymentModes"
+                        :key="m.xid"
+                        :value="m.xid"
                       >
-                        {{ paymentMode.name }}
+                        {{ m.name }}
                       </a-select-option>
                     </a-select>
                   </a-form-item>
                 </a-col>
 
-                <a-col :xs="24" :sm="24" :md="12" :lg="12">
-                  <a-form-item
-                    :label="$t('stock.paying_amount')"
-                    name="amount"
-                    :help="rules.amount ? rules.amount.message : null"
-                    :validateStatus="rules.amount ? 'error' : null"
-                  >
+                <a-col :md="12">
+                  <a-form-item :label="$t('stock.paying_amount')">
                     <a-input
-                      :prefix="appSetting.currency.symbol"
                       v-model:value="formData.amount"
-                      :placeholder="$t('common.placeholder_default_text', [$t('stock.payable_amount')])"
-                    />
-                    <small style="color:#7c8db5 !important">
-                      {{ $t('stock.payable_amount') }}
-                      <span>{{ formatAmountCurrency(data.subtotal) }}</span>
-                    </small>
-                  </a-form-item>
-                </a-col>
-              </a-row>
-
-              <a-row :gutter="16">
-                <a-col :xs="24" :sm="24" :md="24" :lg="24">
-                  <a-form-item
-                    :label="$t('payments.notes')"
-                    name="notes"
-                    :help="rules.notes ? rules.notes.message : null"
-                    :validateStatus="rules.notes ? 'error' : null"
-                  >
-                    <a-textarea
-                      v-model:value="formData.notes"
-                      :placeholder="$t('payments.notes')"
-                      :rows="5"
+                      :prefix="appSetting.currency.symbol"
                     />
                   </a-form-item>
                 </a-col>
               </a-row>
 
-              <a-row :gutter="16">
-                <a-col :xs="24" :sm="24" :md="24" :lg="24">
-                  <a-button type="primary" :loading="loading" @click="onSubmit" block>
-                    <template #icon><CheckOutlined /></template>
-                    {{ $t('common.add') }}
-                  </a-button>
-                </a-col>
-              </a-row>
+              <a-form-item :label="$t('payments.notes')">
+                <a-textarea v-model:value="formData.notes" rows="4" />
+              </a-form-item>
+
+              <a-button block type="primary" @click="onSubmit" :loading="loading">
+                <CheckOutlined /> {{ $t('common.add') }}
+              </a-button>
             </a-form>
           </a-col>
         </a-row>
       </a-col>
     </a-row>
 
-    <!-- Print chooser modal -->
+    <!-- ENTRY PERSON MODAL -->
+    <a-modal
+      :open="entryPersonModalVisible"
+      title="Enter Entry Person Name"
+      :maskClosable="false"
+      :footer="null"
+      @cancel="entryPersonModalVisible = false"
+    >
+      <a-input
+        v-model:value="entryPersonName"
+        placeholder="Entry person name (optional)"
+      />
+
+      <div style="margin-top: 16px; text-align: right">
+        <a-button @click="entryPersonModalVisible = false">Cancel</a-button>
+        <a-button type="primary" style="margin-left: 8px" @click="confirmEntryPerson">
+          Continue
+        </a-button>
+      </div>
+    </a-modal>
+
+    <!-- PRINT MODAL -->
     <a-modal
       :open="printModalVisible"
-      :title="$t('payments.select_print_layout')"
-      @ok="completeOrderAndEmitPrint"
-      @cancel="() => (printModalVisible = false)"
-      :confirmLoading="loading"
+      title="Select Print Layout"
       okText="Complete & Print"
+      :confirmLoading="loading"
       :maskClosable="false"
+      @ok="completeOrderAndEmitPrint"
+      @cancel="printModalVisible = false"
     >
       <a-radio-group v-model:value="selectedPrintSize">
-        <a-radio value="A4">A4 (Invoice)</a-radio>
+        <a-radio value="A4">A4</a-radio>
         <a-radio value="A5">A5</a-radio>
         <a-radio value="80mm">Thermal 80mm</a-radio>
         <a-radio value="58mm">Thermal 58mm</a-radio>
@@ -203,36 +174,31 @@
         <a-switch v-model:checked="autoOpenPrint" />
         <span class="ml-10">Print Preview</span>
       </div>
-
-      <small class="block mt-10" style="color:#7c8db5">
-        You can change later
-      </small>
     </a-modal>
   </a-drawer>
 </template>
 
 <script>
-import { ref, onMounted, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import {
   CheckOutlined,
   PlusOutlined,
-  LeftOutlined,
   RightOutlined,
   DeleteOutlined,
 } from "@ant-design/icons-vue";
-import { useI18n } from "vue-i18n";
 import { find, filter, sumBy } from "lodash-es";
 import common from "../../../../common/composable/common";
 import apiAdmin from "../../../../common/composable/apiAdmin";
 
 export default {
-  props: ["visible", "data", "selectedProducts", "successMessage"],
+  props: ["visible", "data", "selectedProducts"],
   emits: ["closed", "success", "print"],
-  components: { CheckOutlined, PlusOutlined, LeftOutlined, RightOutlined, DeleteOutlined },
   setup(props, { emit }) {
-    const { addEditRequestAdmin, loading, rules } = apiAdmin();
+    const ENTRY_PERSON_KEY = "pos_entry_person_name";
+    const PRODUCT_HSN_MAP_KEY = "pos_product_hsn_map";
+
+    const { addEditRequestAdmin, loading } = apiAdmin();
     const { appSetting, formatAmountCurrency } = common();
-    const { t } = useI18n();
 
     const paymentModes = ref([]);
     const allPaymentRecords = ref([]);
@@ -244,108 +210,123 @@ export default {
       notes: "",
     });
 
-    // --- print chooser state ---
+    const entryPersonModalVisible = ref(false);
+    const entryPersonName = ref("");
+
     const printModalVisible = ref(false);
     const selectedPrintSize = ref("A4");
     const autoOpenPrint = ref(true);
 
-    const paymentRecordsColumns = ref([
-      { title: t("payments.payment_mode"), dataIndex: "payment_mode" },
-      { title: t("payments.amount"), dataIndex: "amount" },
-      { title: t("common.action"), dataIndex: "action" },
-    ]);
-
     onMounted(() => {
-      axiosAdmin.get("payment-modes").then((response) => {
-        paymentModes.value = response.data;
+      axiosAdmin.get("payment-modes").then(res => {
+        paymentModes.value = res.data;
       });
     });
 
-    const resetForm = () => {
-      formData.value = { payment_mode_id: undefined, amount: 0, notes: "" };
+    const openEntryPersonDialog = () => {
+      entryPersonName.value = localStorage.getItem(ENTRY_PERSON_KEY) || "";
+      entryPersonModalVisible.value = true;
     };
 
-    const drawerClosed = () => {
-      resetForm();
-      allPaymentRecords.value = [];
-      showAddForm.value = false;
-      printModalVisible.value = false;
-      emit("closed");
-    };
+    const confirmEntryPerson = () => {
+      const value = entryPersonName.value.trim();
+      value
+        ? localStorage.setItem(ENTRY_PERSON_KEY, value)
+        : localStorage.removeItem(ENTRY_PERSON_KEY);
 
-    const onSubmit = () => {
-      addEditRequestAdmin({
-        url: "pos/payment",
-        data: formData.value,
-        success: () => {
-          allPaymentRecords.value = [
-            ...allPaymentRecords.value,
-            { ...formData.value, id: Math.random().toString(36).slice(2) },
-          ];
-          resetForm();
-          showAddForm.value = false;
-        },
-      });
-    };
-
-    const openPrintChooser = () => {
+      entryPersonModalVisible.value = false;
       printModalVisible.value = true;
     };
 
-    const completeOrderAndEmitPrint = () => {
-      const payload = {
-        all_payments: allPaymentRecords.value,
-        product_items: props.selectedProducts,
-        details: props.data,
-        print_pref: { size: selectedPrintSize.value },
-      };
+    const onSubmit = () => {
+      allPaymentRecords.value.push({
+        ...formData.value,
+        id: crypto.randomUUID(),
+      });
+      formData.value = { payment_mode_id: undefined, amount: 0, notes: "" };
+      showAddForm.value = false;
+    };
 
+    const completeOrderAndEmitPrint = () => {
+      // ✅ STORE HSN MAP LOCALLY
+      const hsnMap = {};
+      props.selectedProducts.forEach(p => {
+        if (p.xid && p.hsn_code) {
+          hsnMap[p.xid] = p.hsn_code;
+        }
+      });
+
+      Object.keys(hsnMap).length
+        ? localStorage.setItem(PRODUCT_HSN_MAP_KEY, JSON.stringify(hsnMap))
+        : localStorage.removeItem(PRODUCT_HSN_MAP_KEY);
+
+      // ✅ API CALL
       addEditRequestAdmin({
         url: "pos/save",
-        data: payload,
-        successMessage: props.successMessage,
-        success: (res) => {
-          resetForm();
-          allPaymentRecords.value = [];
-          showAddForm.value = false;
-          printModalVisible.value = false;
-
+        data: {
+          all_payments: allPaymentRecords.value,
+          product_items: props.selectedProducts.map(p => ({
+            ...p,
+            hsn_code: p.hsn_code || null,
+          })),
+          details: props.data,
+          entry_person_name: localStorage.getItem(ENTRY_PERSON_KEY) || null,
+          print_pref: { size: selectedPrintSize.value },
+        },
+        success: res => {
           emit("success", res.order);
-
           emit("print", {
             order: res.order,
-            size: selectedPrintSize.value, // 'A4' | 'A5' | '80mm' | '58mm'
+            size: selectedPrintSize.value,
             autoOpen: autoOpenPrint.value,
           });
         },
       });
     };
 
-    const goBack = () => {
-      resetForm();
+    const drawerClosed = () => {
+      allPaymentRecords.value = [];
+      entryPersonName.value = "";
+      entryPersonModalVisible.value = false;
+      printModalVisible.value = false;
       showAddForm.value = false;
+      emit("closed");
     };
 
-    const getPaymentModeName = (paymentId) => {
-      const selectedMode = find(paymentModes.value, ["xid", paymentId]);
-      return selectedMode ? selectedMode.name : "-";
+    const deletePayment = id => {
+      allPaymentRecords.value = filter(allPaymentRecords.value, p => p.id !== id);
     };
 
-    const deletePayment = (paymentId) => {
-      allPaymentRecords.value = filter(allPaymentRecords.value, (p) => p.id != paymentId);
+    const getPaymentModeName = id => {
+      const m = find(paymentModes.value, ["xid", id]);
+      return m ? m.name : "-";
     };
 
-    const totalEnteredAmount = computed(() => {
-      const allPaymentSum = sumBy(allPaymentRecords.value, (p) => parseFloat(p.amount || 0));
-      return allPaymentSum + parseFloat(formData.value.amount || 0);
-    });
+    const totalEnteredAmount = computed(() =>
+      sumBy(allPaymentRecords.value, p => Number(p.amount || 0))
+    );
 
     return {
-      loading, rules, paymentModes, allPaymentRecords, paymentRecordsColumns, showAddForm, formData,
-      printModalVisible, selectedPrintSize, autoOpenPrint,
-      drawerClosed, onSubmit, openPrintChooser, completeOrderAndEmitPrint, goBack,
-      getPaymentModeName, deletePayment,
-      appSetting, formatAmountCurrency, totalEnteredAmount,
+      loading,
+      paymentModes,
+      allPaymentRecords,
+      showAddForm,
+      formData,
+      entryPersonModalVisible,
+      entryPersonName,
+      printModalVisible,
+      selectedPrintSize,
+      autoOpenPrint,
+      openEntryPersonDialog,
+      confirmEntryPerson,
+      onSubmit,
+      completeOrderAndEmitPrint,
+      drawerClosed,
+      deletePayment,
+      getPaymentModeName,
+      appSetting,
+      formatAmountCurrency,
+      totalEnteredAmount,
       drawerWidth: window.innerWidth <= 991 ? "90%" : "50%",
     };
   },
@@ -353,7 +334,6 @@ export default {
 </script>
 
 <style>
-.mt-10 { margin-top: 10px; }
 .mt-20 { margin-top: 20px; }
 .ml-10 { margin-left: 10px; }
 </style>

@@ -119,8 +119,8 @@
                             <a-form-item
                                 :label="$t('product.name')"
                                 name="name"
-                                :help="rules.name ? rules.name.message : null"
-                                :validateStatus="rules.name ? 'error' : null"
+                                :help="rules.name ? rules.name.message : (duplicateNameAlert ? duplicateNameAlert : null)"
+                                :validateStatus="rules.name ? 'error' : (duplicateNameAlert ? 'warning' : null)"
                                 class="required"
                             >
                                 <a-input
@@ -133,6 +133,16 @@
                                     v-on:keyup="
                                         formData.slug = slugify($event.target.value)
                                     "
+                                    @blur="checkDuplicateName"
+                                    @input="onNameInput"
+                                />
+                                <a-alert
+                                    v-if="duplicateNameAlert"
+                                    :message="duplicateNameAlert"
+                                    :type="isDuplicate ? 'error' : 'success'"
+                                    show-icon
+                                    style="margin-top: 8px; margin-bottom: 0"
+                                    size="small"
                                 />
                             </a-form-item>
                         </a-col>
@@ -823,6 +833,9 @@ export default defineComponent({
         const warehouseUrl = "warehouses?limit=10000";
         const waehouseId = ref(undefined);
         const variableTypeTable = ref(null);
+        const duplicateNameAlert = ref("");
+        const isDuplicate = ref(false);
+        const nameCheckTimeout = ref(null);
 
         const variations = ref([]);
         const variationsUrl =
@@ -1002,6 +1015,53 @@ export default defineComponent({
 
         const storeScanCode = (value) => {
             props.formData.item_code = value;
+        };
+
+        const onNameInput = () => {
+            // Clear previous timeout
+            if (nameCheckTimeout.value) {
+                clearTimeout(nameCheckTimeout.value);
+            }
+            
+            // Clear previous alert immediately for better UX
+            duplicateNameAlert.value = "";
+            isDuplicate.value = false;
+            
+            // Only check if name has at least 2 characters
+            if (props.formData.name && props.formData.name.length >= 2) {
+                // Set a timeout to check after user stops typing (debounce)
+                nameCheckTimeout.value = setTimeout(() => {
+                    checkDuplicateName();
+                }, 800);
+            }
+        };
+
+        const checkDuplicateName = async () => {
+            if (!props.formData.name || props.formData.name.trim() === "") {
+                duplicateNameAlert.value = "";
+                isDuplicate.value = false;
+                return;
+            }
+
+            try {
+                const excludeId = props.addEditType === 'edit' ? props.data.id : null;
+                const response = await axiosAdmin.post('products/check-duplicate-name', {
+                    name: props.formData.name.trim(),
+                    exclude_id: excludeId
+                });
+
+                if (response.data.is_duplicate) {
+                    duplicateNameAlert.value = response.data.message;
+                    isDuplicate.value = true;
+                } else {
+                    duplicateNameAlert.value = response.data.message;
+                    isDuplicate.value = false;
+                }
+            } catch (error) {
+                console.error('Error checking duplicate name:', error);
+                duplicateNameAlert.value = "";
+                isDuplicate.value = false;
+            }
         };
 
         const onSubmit = (sbumitType = "add-edit") => {
@@ -1189,6 +1249,11 @@ export default defineComponent({
             variations,
             variableTypeTable,
             storeScanCode,
+
+            duplicateNameAlert,
+            isDuplicate,
+            onNameInput,
+            checkDuplicateName,
         };
     },
 });

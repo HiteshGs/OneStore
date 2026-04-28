@@ -39,7 +39,7 @@ const fields = () => {
             dataIndex: "name",
         },
         {
-        title: t("product.hsn_code"),
+        title: t("HSN Code"),
         dataIndex: "hsn_code",
         width: 110,
     },

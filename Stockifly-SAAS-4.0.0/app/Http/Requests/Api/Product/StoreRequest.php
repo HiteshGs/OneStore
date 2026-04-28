@@ -29,7 +29,12 @@ class StoreRequest extends FormRequest
         $loggedUser = auth('api')->user();
 
         $rules = [
-            'name'    => 'required',
+            'name'    => [
+                'required',
+                Rule::unique('products', 'name')->where(function ($query) use ($company) {
+                    return $query->where('company_id', $company->id);
+                })
+            ],
             'slug'    => [
                 'required',
                 Rule::unique('products', 'slug')->where(function ($query) use ($company) {
