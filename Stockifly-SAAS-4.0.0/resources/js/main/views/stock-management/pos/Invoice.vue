@@ -857,11 +857,23 @@ const generatedByName = computed(() => {
       // Wait for content to load, then print
       iframe.onload = () => {
         setTimeout(() => {
-          iframe.contentWindow.print();
-          // Remove iframe after printing
-          setTimeout(() => {
+          // Add onafterprint event handler to refresh page after successful print
+          iframe.contentWindow.onafterprint = function() {
+            // Remove iframe
             document.body.removeChild(iframe);
-          }, 1000);
+            // Refresh the current page to show new page
+            window.location.reload();
+          };
+          
+          // Fallback: Set a timeout to refresh if onafterprint doesn't work
+          setTimeout(() => {
+            if (document.body.contains(iframe)) {
+              document.body.removeChild(iframe);
+              window.location.reload();
+            }
+          }, 3000); // 3 seconds fallback
+          
+          iframe.contentWindow.print();
         }, 500);
       };
     };
