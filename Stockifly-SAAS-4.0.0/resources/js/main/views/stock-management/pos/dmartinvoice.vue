@@ -469,6 +469,23 @@ export default defineComponent({
             const win = window.open("", "", `height=700,width=${w}`);
             win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><style>${getCSS()}</style></head><body>${content}</body></html>`);
             win.document.close();
+            
+            // Add onafterprint event handler to refresh page after successful print
+            win.onafterprint = function() {
+                // Close the print window
+                win.close();
+                // Refresh the current page to show new page
+                window.location.reload();
+            };
+            
+            // Fallback: Set a timeout to refresh if onafterprint doesn't work
+            setTimeout(() => {
+                if (!win.closed) {
+                    win.close();
+                    window.location.reload();
+                }
+            }, 3000); // 3 seconds fallback
+            
             setTimeout(() => win.print(), 400);
         };
 
