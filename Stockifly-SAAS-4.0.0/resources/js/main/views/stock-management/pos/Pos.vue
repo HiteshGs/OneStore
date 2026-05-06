@@ -1130,7 +1130,26 @@ onMounted(async () => {
         };
 
         const fetchProducts = debounce((value) => {
-            fetchAllSearchedProduct(value);
+            // Use client-side filtering like product manager
+            state.orderSearchTerm = value;
+            if (value && value.trim() !== '') {
+                // Filter products from productLists based on search term
+                const filtered = productLists.value.filter((product) => {
+                    const searchLower = value.toLowerCase().trim();
+                    const productName = (product.name || '').toLowerCase();
+                    const productBarcode = (product.barcode_symbology || '').toLowerCase();
+                    const productCode = (product.item_code || '').toLowerCase();
+                    
+                    return productName.includes(searchLower) || 
+                           productBarcode.includes(searchLower) || 
+                           productCode.includes(searchLower);
+                });
+                
+                state.products = filtered;
+                console.log('Client-side filtered products:', filtered.length);
+            } else {
+                state.products = [];
+            }
         }, 300);
 
         const fetchAllSearchedProduct = (value) => {
@@ -1151,24 +1170,40 @@ onMounted(async () => {
                         limit: 1000, // Add high limit to get all products
                     })
                     .then((response) => {
-                        console.log('Search response:', response.data); // Debug log
-                        console.log('Response length:', response.data.length); // Debug log
-                        console.log('Full response object:', response); // Debug log
+                        console.log('=== SEARCH API DEBUG ==='); // Debug log
+                        console.log('Search term:', value); // Debug log
+                        console.log('Full response:', response); // Debug log
+                        console.log('Response status:', response.status); // Debug log
+                        console.log('Response headers:', response.headers); // Debug log
                         
-                        // Check if response has pagination or limit info
-                        if (response.data && response.data.data) {
-                            console.log('Response has data property:', response.data.data);
-                            state.products = response.data.data;
-                        } else if (response.data && Array.isArray(response.data)) {
-                            console.log('Response is direct array');
+                        // Check different response structures
+                        if (response.data) {
+                            console.log('Response.data type:', typeof response.data);
+                            console.log('Response.data is array:', Array.isArray(response.data));
+                            console.log('Response.data length:', response.data ? response.data.length : 'undefined');
                             
-                            if (response.data.length == 1) {
-                                searchValueSelected("", { product: response.data[0] });
+                            if (response.data.data && Array.isArray(response.data.data)) {
+                                console.log('Paginated response - data.data length:', response.data.data.length);
+                                state.products = response.data.data;
+                            } else if (Array.isArray(response.data)) {
+                                console.log('Direct array response - length:', response.data.length);
+                                console.log('First 5 products:', response.data.slice(0, 5));
+                                
+                                if (response.data.length == 1) {
+                                    searchValueSelected("", { product: response.data[0] });
+                                } else {
+                                    state.products = response.data;
+                                }
+                            } else if (response.data.products && Array.isArray(response.data.products)) {
+                                console.log('Nested products array - length:', response.data.products.length);
+                                state.products = response.data.products;
                             } else {
-                                state.products = response.data;
+                                console.log('Unknown response structure');
+                                console.log('Available keys:', Object.keys(response.data));
+                                state.products = [];
                             }
                         } else {
-                            console.log('Unexpected response format');
+                            console.log('No response.data');
                             state.products = [];
                         }
 
