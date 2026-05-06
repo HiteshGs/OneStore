@@ -1140,19 +1140,41 @@ onMounted(async () => {
                 state.productFetching = true;
                 let url = `search-product`;
 
+                console.log('Searching for products:', value); // Debug log
+                console.log('Current selected product IDs:', selectedProductIds.value); // Debug log
+
                 axiosAdmin
                     .post(url, {
                         order_type: "sales",
                         search_term: value,
-                        // products: selectedProductIds.value,
+                        products: selectedProductIds.value,
                     })
                     .then((response) => {
-                        if (response.data.length == 1) {
-                            searchValueSelected("", { product: response.data[0] });
+                        console.log('Search response:', response.data); // Debug log
+                        console.log('Response length:', response.data.length); // Debug log
+                        console.log('Full response object:', response); // Debug log
+                        
+                        // Check if response has pagination or limit info
+                        if (response.data && response.data.data) {
+                            console.log('Response has data property:', response.data.data);
+                            state.products = response.data.data;
+                        } else if (response.data && Array.isArray(response.data)) {
+                            console.log('Response is direct array');
+                            
+                            if (response.data.length == 1) {
+                                searchValueSelected("", { product: response.data[0] });
+                            } else {
+                                state.products = response.data;
+                            }
                         } else {
-                            state.products = response.data;
+                            console.log('Unexpected response format');
+                            state.products = [];
                         }
 
+                        state.productFetching = false;
+                    })
+                    .catch((error) => {
+                        console.error('Search error:', error);
                         state.productFetching = false;
                     });
             }
