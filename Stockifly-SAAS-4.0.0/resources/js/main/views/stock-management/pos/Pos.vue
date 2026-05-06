@@ -103,6 +103,9 @@
                                                 :not-found-content="
                                                     productFetching ? undefined : null
                                                 "
+                                                :dropdown-style="{ maxHeight: '300px', overflow: 'auto' }"
+                                                :max-tag-count="10"
+                                                :show-arrow="true"
                                                 @search="
                                                     (searchedValue) => {
                                                         orderSearchTerm = searchedValue;
@@ -506,6 +509,9 @@
                         :placeholder="$t('product.search_scan_product')"
                         style="width: 90%"
                         :not-found-content="productFetching ? undefined : null"
+                        :dropdown-style="{ maxHeight: '300px', overflow: 'auto' }"
+                        :max-tag-count="10"
+                        :show-arrow="true"
                         @search="
                             (searchedValue) => {
                                 orderSearchTerm = searchedValue;
