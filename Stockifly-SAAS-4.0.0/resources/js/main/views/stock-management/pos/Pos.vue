@@ -1148,6 +1148,7 @@ onMounted(async () => {
                         order_type: "sales",
                         search_term: value,
                         products: selectedProductIds.value,
+                        limit: 1000, // Add high limit to get all products
                     })
                     .then((response) => {
                         console.log('Search response:', response.data); // Debug log
