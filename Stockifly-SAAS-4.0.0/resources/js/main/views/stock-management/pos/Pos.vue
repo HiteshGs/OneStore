@@ -266,7 +266,7 @@
                         <a-card>
                             <div class="bill-footer">
                                 <a-row :gutter="[16, 16]">
-                                    <a-col :xs="24" :sm="24" :md="8" :lg="8" :xl="8">
+                                    <a-col :xs="24" :sm="24" :md="6" :lg="6" :xl="6">
                                         <a-form-item :label="$t('stock.order_tax')">
                                             <a-select
                                                 v-model:value="formData.tax_id"
@@ -290,7 +290,24 @@
                                             </a-select>
                                         </a-form-item>
                                     </a-col>
-                                    <a-col :xs="24" :sm="24" :md="8" :lg="8" :xl="8">
+                                    <a-col :xs="24" :sm="24" :md="6" :lg="6" :xl="6">
+                                        <a-form-item :label="$t('product.tax_type')">
+                                            <a-select
+                                                v-model:value="formData.tax_type"
+                                                :placeholder="$t('common.select_default_text', [$t('product.tax_type')])"
+                                                style="width: 100%"
+                                                @change="taxTypeChanged"
+                                            >
+                                                <a-select-option value="exclusive">
+                                                    Exclusive
+                                                </a-select-option>
+                                                <a-select-option value="inclusive">
+                                                    Inclusive
+                                                </a-select-option>
+                                            </a-select>
+                                        </a-form-item>
+                                    </a-col>
+                                    <a-col :xs="24" :sm="24" :md="6" :lg="6" :xl="6">
                                         <a-form-item :label="$t('stock.discount')">
                                             <a-input-group compact>
                                                 <a-select
@@ -322,7 +339,7 @@
                                             </a-input-group>
                                         </a-form-item>
                                     </a-col>
-                                    <a-col :xs="24" :sm="24" :md="8" :lg="8" :xl="8">
+                                    <a-col :xs="24" :sm="24" :md="6" :lg="6" :xl="6">
                                         <a-form-item :label="$t('stock.shipping')">
                                             <a-input-number
                                                 v-model:value="formData.shipping"
@@ -1191,7 +1208,7 @@ const selectSaleProduct = (newProduct) => {
             // ✅ attach normalized HSN here
             hsn_code: resolvedHsnCode,
 
-            tax_type: "exclusive",
+            tax_type: formData.value.tax_type || "exclusive",
         };
 
         const calculatedLine = recalculateValues(baseLine);
@@ -1228,56 +1245,55 @@ const selectSaleProduct = (newProduct) => {
     let quantityValue = parseFloat(product.quantity);
     const maxQuantity = parseFloat(product.stock_quantity);
     const unitPrice = parseFloat(product.unit_price);
+    const taxType = product.tax_type || formData.value.tax_type || "exclusive";
 
     // Clamp quantity to available stock (for non-service)
     if (product.product_type != "service") {
         quantityValue = quantityValue > maxQuantity ? maxQuantity : quantityValue;
     }
 
-    // Discount
-    const discountRate = product.discount_rate || 0;
-    const totalDiscount = discountRate > 0 ? (discountRate / 100) * unitPrice : 0;
-    const totalPriceAfterDiscount = unitPrice - totalDiscount;
-
-    // Tax (always EXCLUSIVE)
     let taxAmount = 0;
-    let subtotal = totalPriceAfterDiscount;
+    let subtotal = 0;
     let singleUnitPrice = unitPrice;
+    let basePrice = unitPrice;
+
+    // Discount (always calculated on base price)
+    const discountRate = product.discount_rate || 0;
+    const totalDiscount = discountRate > 0 ? (discountRate / 100) * basePrice : 0;
+    const priceAfterDiscount = basePrice - totalDiscount;
 
     if (product.tax_rate > 0) {
-        taxAmount = totalPriceAfterDiscount * (product.tax_rate / 100);
-        subtotal = totalPriceAfterDiscount + taxAmount;
-        singleUnitPrice = totalPriceAfterDiscount;
+        if (taxType === "inclusive") {
+            // For inclusive tax: unit price includes GST
+            // Extract base price from inclusive price
+            basePrice = priceAfterDiscount / (1 + (product.tax_rate / 100));
+            taxAmount = (priceAfterDiscount - basePrice) * quantityValue;
+            subtotal = priceAfterDiscount * quantityValue; // Show inclusive price as subtotal
+            singleUnitPrice = basePrice; // Show base price as unit price
+        } else {
+            // For exclusive tax: GST is added on top
+            taxAmount = priceAfterDiscount * (product.tax_rate / 100);
+            subtotal = (priceAfterDiscount + taxAmount) * quantityValue;
+            singleUnitPrice = priceAfterDiscount;
+        }
+    } else {
+        // No tax
+        subtotal = priceAfterDiscount * quantityValue;
+        singleUnitPrice = priceAfterDiscount;
     }
 
     const newObject = {
         ...product,
         total_discount: totalDiscount * quantityValue,
-        subtotal: subtotal * quantityValue,
+        subtotal: subtotal,
         quantity: quantityValue,
-        total_tax: taxAmount * quantityValue,
+        total_tax: taxAmount,
         max_quantity: maxQuantity,
         single_unit_price: singleUnitPrice,
-
-        // normalize every recalculated line as EXCLUSIVE
-        tax_type: "exclusive",
+        tax_type: taxType,
     };
 
     return newObject;
-};
-const normalizeExistingLinesToExclusive = () => {
-    if (!selectedProducts.value.length) return;
-
-    selectedProducts.value = selectedProducts.value.map((p) =>
-        recalculateValues({
-            ...p,
-            quantity: p.quantity || 1,
-            discount_rate: p.discount_rate || 0,
-            tax_type: "exclusive",
-        })
-    );
-
-    recalculateFinalTotal();
 };
 
 
@@ -1388,6 +1404,20 @@ const getRowTaxAmount = (record) => {
             recalculateFinalTotal();
         };
 
+        const taxTypeChanged = (value) => {
+            formData.value.tax_type = value || "exclusive";
+            // Recalculate all existing products with new tax type
+            if (selectedProducts.value.length > 0) {
+                selectedProducts.value = selectedProducts.value.map((product) => {
+                    return recalculateValues({
+                        ...product,
+                        tax_type: formData.value.tax_type,
+                    });
+                });
+                recalculateFinalTotal();
+            }
+        };
+
         // Edit a selected product
         const editItem = (product) => {
             addEditFormData.value = {
@@ -1421,6 +1451,7 @@ const getRowTaxAmount = (record) => {
                 tax_id: undefined,
                 tax_rate: 0,
                 tax_amount: 0,
+                tax_type: "exclusive",
                 discount_value: 0,
                 discount: 0,
                 shipping: 0,
@@ -1452,8 +1483,8 @@ const getRowTaxAmount = (record) => {
     tax_id: addEditFormData.value.tax_id,
     tax_rate: selecteTax[0] ? selecteTax[0].rate : 0,
 
-    // 🔥 force exclusive on save too
-    tax_type: "exclusive",
+    // Use the selected tax type
+    tax_type: taxType,
 };
 
             quantityChanged(newData);
