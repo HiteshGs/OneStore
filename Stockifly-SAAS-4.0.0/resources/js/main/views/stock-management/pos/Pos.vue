@@ -1098,32 +1098,19 @@ const handleCustomerChange = (selectedCustomerId) => {
 };
         // This will get customer data from localStorage when the page loads
         const getCustomerFromLocalStorage = () => {
-    const storedCustomer = localStorage.getItem('selectedCustomer');
+    const storedCustomer = localStorage.getItem('pos_selected_customer');
     if (storedCustomer) {
         const customer = JSON.parse(storedCustomer);
-        formData.user_id = customer.xid; // Set the user ID
-        // Optionally set more fields if necessary
-        // For example:
-        // formData.name = customer.name;
-        // formData.phone = customer.phone;
+        formData.value.user_id = customer.xid; // Set the user ID
+        console.log('Customer loaded from storage on init:', customer);
     }
 };
 
 onMounted(async () => {
     await getPreFetchData();
 
-    // Load the customer we actually saved
-    const savedData = localStorage.getItem('pos_selected_customer');
-    if (savedData) {
-        try {
-            const savedCustomer = JSON.parse(savedData);
-            formData.value.user_id = savedCustomer.xid;
-            console.log('Customer loaded from storage:', savedCustomer);
-        } catch (e) {
-            console.error('Failed to parse saved customer');
-            localStorage.removeItem('pos_selected_customer');
-        }
-    }
+    // Load customer from localStorage using the dedicated function
+    getCustomerFromLocalStorage();
 });
         const reFetchProducts = () => {
             axiosAdmin
@@ -1208,7 +1195,7 @@ const selectSaleProduct = (newProduct) => {
             // ✅ attach normalized HSN here
             hsn_code: resolvedHsnCode,
 
-            tax_type: formData.value.tax_type || "exclusive",
+            tax_type: formData.value.tax_type || "inclusive",
         };
 
         const calculatedLine = recalculateValues(baseLine);
@@ -1245,7 +1232,7 @@ const selectSaleProduct = (newProduct) => {
     let quantityValue = parseFloat(product.quantity);
     const maxQuantity = parseFloat(product.stock_quantity);
     const unitPrice = parseFloat(product.unit_price);
-    const taxType = product.tax_type || formData.value.tax_type || "exclusive";
+    const taxType = product.tax_type || formData.value.tax_type || "inclusive";
 
     // Clamp quantity to available stock (for non-service)
     if (product.product_type != "service") {
@@ -1405,7 +1392,7 @@ const getRowTaxAmount = (record) => {
         };
 
         const taxTypeChanged = (value) => {
-            formData.value.tax_type = value || "exclusive";
+            formData.value.tax_type = value || "inclusive";
             // Recalculate all existing products with new tax type
             if (selectedProducts.value.length > 0) {
                 selectedProducts.value = selectedProducts.value.map((product) => {
@@ -1451,7 +1438,7 @@ const getRowTaxAmount = (record) => {
                 tax_id: undefined,
                 tax_rate: 0,
                 tax_amount: 0,
-                tax_type: "exclusive",
+                tax_type: "inclusive",
                 discount_value: 0,
                 discount: 0,
                 shipping: 0,
@@ -1474,7 +1461,7 @@ const getRowTaxAmount = (record) => {
             const taxType =
                 addEditFormData.value.tax_type != undefined
                     ? addEditFormData.value.tax_type
-                    : "exclusive";
+                    : "inclusive";
 
             const newData = {
     ...record[0],

@@ -22,7 +22,7 @@ const fields = () => {
         tax_id: undefined,
         tax_rate: 0,
         tax_amount: 0,
-        tax_type: "exclusive",
+        tax_type: "inclusive",
         discount_type: "percentage",
         discount_value: 0,
         discount: 0,
@@ -101,10 +101,13 @@ const fields = () => {
                 ]);
                 if (defaultWalkInCustomer) {
                     posDefaultCustomer.value = defaultWalkInCustomer;
-                    formData.value = {
-                        ...formData.value,
-                        user_id: defaultWalkInCustomer.xid,
-                    };
+                    // Only set default customer if no customer is already selected
+                    if (!formData.value.user_id) {
+                        formData.value = {
+                            ...formData.value,
+                            user_id: defaultWalkInCustomer.xid,
+                        };
+                    }
                 }
             }
         );
