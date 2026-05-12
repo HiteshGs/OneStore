@@ -1186,6 +1186,7 @@ const generatedByName = computed(() => {
 /* Items table */
 .tax-invoice-items {
   margin-top: 8px;
+  page-break-inside: auto;
 }
 .items-table {
   width: 100%;
@@ -1486,12 +1487,21 @@ const generatedByName = computed(() => {
 
   .invoice-header,
   .bill-party-row,
-  .tax-invoice-items,
   .final-totals-box,
   .bottom-section,
   .bank-details-box,
   .bottom-boxes-row {
     page-break-inside: avoid;
+  }
+
+  /* Allow table to break across pages */
+  .tax-invoice-items {
+    page-break-inside: auto;
+  }
+
+  /* Ensure table headers repeat on page breaks */
+  .items-table thead {
+    display: table-header-group;
   }
 
   .invoice-header {
