@@ -889,11 +889,16 @@
                         <!-- Item name + custom fields -->
                         <td>
                             <div class="item-name">
-                                {{ $item->product->name }}
+                                @if($item->product && $item->product->name)
+                                    {{ $item->product->name }}
+                                @elseif($item->product)
+                                    {{ 'Product ID: ' . ($item->product->id ?? $item->product_id ?? 'N/A') }}
+                                @else
+                                    {{ 'Product Name Not Available (ID: ' . ($item->product_id ?? 'N/A') . ')' }}
+                                @endif
                             </div>
                             {{-- Custom fields logic from Vue component is omitted as it requires complex data structure not guaranteed in Blade context --}}
                         </td>
-
 
                         <!-- QTY -->
                         <td class="center">
