@@ -557,13 +557,13 @@ const getProductDisplayName = (item) => {
     return item.product_name;
   }
   
-  // If we have x_product_id but no product data, fetch it
-  if (item.x_product_id && !item.product) {
-    fetchProductData(item.x_product_id);
+  // If we have product_id but no product data, fetch it
+  if (item.product_id && !item.product && !fetchingProducts.value.has(item.product_id)) {
+    fetchProductData(item);
   }
   
   // Show loading state while fetching product data
-  if (item.x_product_id && fetchingProducts.value.has(item.x_product_id)) {
+  if (item.product_id && fetchingProducts.value.has(item.product_id)) {
     return 'Loading...';
   }
   
@@ -578,34 +578,34 @@ const getProductDisplayName = (item) => {
 const productCache = ref(new Map());
 const fetchingProducts = ref(new Set());
 
-const fetchProductData = async (xProductId) => {
-  if (!xProductId || productCache.value.has(xProductId) || fetchingProducts.value.has(xProductId)) {
+const fetchProductData = async (item) => {
+  if (!item || !item.product_id || productCache.value.has(item.product_id) || fetchingProducts.value.has(item.product_id)) {
     return;
   }
   
-  fetchingProducts.value.add(xProductId);
+  fetchingProducts.value.add(item.product_id);
   
   try {
-    // Use x_product_id parameter to search for product
-    const response = await axiosAdmin.get(`products?x_product_id=${xProductId}&limit=1`);
-    const product = response.data.data?.[0];
+    // Use actual product_id to fetch product data
+    const response = await axiosAdmin.get(`products/${item.product_id}`);
+    const product = response.data.data;
     
     if (product && product.name) {
-      productCache.value.set(xProductId, product.name);
+      productCache.value.set(item.product_id, product.name);
       
-      // Update all items in the order that have this x_product_id
+      // Update all items in the order that have this product_id
       if (props.order && props.order.items) {
-        props.order.items.forEach(item => {
-          if (item.x_product_id === xProductId && !item.product) {
-            item.product = { name: product.name };
+        props.order.items.forEach(orderItem => {
+          if (orderItem.product_id === item.product_id && !orderItem.product) {
+            orderItem.product = { name: product.name };
           }
         });
       }
     }
   } catch (error) {
-    console.error('Failed to fetch product data by x_product_id:', error);
+    console.error('Failed to fetch product data by product_id:', error);
   } finally {
-    fetchingProducts.value.delete(xProductId);
+    fetchingProducts.value.delete(item.product_id);
   }
 };
 
@@ -615,10 +615,10 @@ watch(
   (newOrder) => {
     if (!newOrder || !newOrder.items) return;
     
-    // Fetch product data for items that have x_product_id but no product object
+    // Fetch product data for items that have product_id but no product object
     newOrder.items.forEach(item => {
-      if (item.x_product_id && !item.product && !productCache.value.has(item.x_product_id)) {
-        fetchProductData(item.x_product_id);
+      if (item.product_id && !item.product && !productCache.value.has(item.product_id)) {
+        fetchProductData(item);
       }
     });
   },
