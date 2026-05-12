@@ -1070,7 +1070,7 @@ const generatedByName = computed(() => {
       const items = Array.isArray(props.order?.items)
         ? props.order.items
         : [];
-      const MIN_ROWS = 50; // Fixed 50 rows for A4 format to accommodate up to 50 items
+      const MIN_ROWS = 35; // Fixed 35 rows for A4 format to accommodate up to 35 items
       const blanksToAdd = Math.max(0, MIN_ROWS - items.length);
 
       const blankRows = Array.from(
