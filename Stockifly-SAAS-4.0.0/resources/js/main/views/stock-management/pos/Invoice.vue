@@ -145,11 +145,11 @@
 
             <tbody>
               <!-- FIXED ROW TABLE USING paddedItems -->
-             <tr
-  class="item-row"
-  v-for="(item, index) in order.items"
-  :key="item.xid || index"
->
+              <tr
+                :class="['item-row', item.__blank ? 'blank-row' : '']"
+                v-for="(item, index) in paddedItems"
+                :key="item.xid || index"
+              >
                 <!-- Sr No -->
                 <td class="center">
                   {{ item.__blank ? '' : index + 1 }}
@@ -157,10 +157,8 @@
 
                 <!-- Item name + custom fields -->
                 <td>
-                  <div class="item-name" v-if="!item.__blank">
-                    {{ getProductDisplayName(item) }}
-                  </div>
-                  <div class="item-name" v-else>
+                  <div class="item-name">
+                    {{ item.__blank ? '' : item.product?.name }}
                   </div>
 
                   <div
@@ -538,115 +536,6 @@ const resolveHSN = (item) => {
   // 5️⃣ Final fallback
   return '-';
 };
-
-const getProductDisplayName = (item) => {
-  if (!item) return '';
-  
-  // Try to get product name from product relationship
-  if (item.product && item.product.name) {
-    return item.product.name;
-  }
-  
-  // Fallback to item name if available
-  if (item.name) {
-    return item.name;
-  }
-  
-  // Fallback to product name directly on item
-  if (item.product_name) {
-    return item.product_name;
-  }
-  
-  // If we have product_id but no product data, fetch it
-  if (item.product_id && !item.product && !fetchingProducts.value.has(item.product_id)) {
-    fetchProductData(item);
-  }
-  
-  // Show loading state while fetching product data
-  if (item.product_id && fetchingProducts.value.has(item.product_id)) {
-    return 'Loading...';
-  }
-  
-  // Last resort - show item ID or generic placeholder
-  if (item.xid) {
-    return `Product ID: ${item.xid}`;
-  }
-  
-  return 'Unknown Product';
-};
-
-const productCache = ref(new Map());
-const fetchingProducts = ref(new Set());
-
-const fetchProductData = async (item) => {
-  if (!item || !item.product_id || productCache.value.has(item.product_id) || fetchingProducts.value.has(item.product_id)) {
-    return;
-  }
-  
-  fetchingProducts.value.add(item.product_id);
-  
-  try {
-    console.log(`Fetching product data for product_id: ${item.product_id}`);
-    
-    // Use actual product_id to fetch product data
-    const response = await axiosAdmin.get(`products/${item.product_id}`);
-    console.log(`API response for product_id ${item.product_id}:`, response);
-    
-    const product = response.data.data;
-    
-    if (product && product.name) {
-      productCache.value.set(item.product_id, product.name);
-      console.log(`Successfully cached product name for product_id ${item.product_id}: ${product.name}`);
-      
-      // Update all items in the order that have this product_id
-      if (props.order && props.order.items) {
-        props.order.items.forEach(orderItem => {
-          if (orderItem.product_id === item.product_id && !orderItem.product) {
-            orderItem.product = { name: product.name };
-            console.log(`Updated order item with product name: ${product.name}`);
-          }
-        });
-      }
-    } else {
-      console.log(`No product data found for product_id: ${item.product_id}`);
-    }
-  } catch (error) {
-    console.error(`Failed to fetch product data for product_id ${item.product_id}:`, error);
-    console.error('Error details:', error.response?.data || error.message);
-    
-    // Fallback: Try to use item name if available
-    if (item.name) {
-      console.log(`Using fallback item name: ${item.name}`);
-      productCache.value.set(item.product_id, item.name);
-      if (props.order && props.order.items) {
-        props.order.items.forEach(orderItem => {
-          if (orderItem.product_id === item.product_id && !orderItem.product) {
-            orderItem.product = { name: item.name };
-          }
-        });
-      }
-    }
-  } finally {
-    fetchingProducts.value.delete(item.product_id);
-  }
-};
-
-// Watch for order changes and fetch missing product data
-watch(
-  () => props.order,
-  (newOrder) => {
-    if (!newOrder || !newOrder.items) return;
-    
-    // Fetch product data for items that have product_id but no product object
-    newOrder.items.forEach(item => {
-      if (item.product_id && !item.product && !productCache.value.has(item.product_id)) {
-        fetchProductData(item);
-      }
-    });
-  },
-  { immediate: true }
-);
-
     const downloadPdf = async () => {
       await nextTick();
 
@@ -934,7 +823,7 @@ const generatedByName = computed(() => {
             ${inlineStyles}
             @media print {
               @page {
-                margin: 0.2cm;
+                margin: 0.5cm;
                 size: A4;
               }
               body {
@@ -943,22 +832,10 @@ const generatedByName = computed(() => {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
                 background: #fff !important;
-                font-size: 6px !important;
               }
               * {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
-                font-size: inherit !important;
-              }
-              .items-table {
-                page-break-inside: auto !important;
-              }
-              .items-table tr {
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
-              }
-              .tax-invoice-items {
-                page-break-inside: auto !important;
               }
             }
             @media screen {
@@ -977,21 +854,27 @@ const generatedByName = computed(() => {
 
       iframeDoc.close();
 
-          // Wait for content to load, then print
+      // Wait for content to load, then print
       iframe.onload = () => {
         setTimeout(() => {
-          iframe.contentWindow.focus();
+          // Add onafterprint event handler to refresh page after successful print
+          iframe.contentWindow.onafterprint = function() {
+            // Remove iframe
+            document.body.removeChild(iframe);
+            // Refresh the current page to show new page
+            window.location.reload();
+          };
           
-          // Print the iframe content
-          iframe.contentWindow.print();
-          
-          // Clean up after print
+          // Fallback: Set a timeout to refresh if onafterprint doesn't work
           setTimeout(() => {
             if (document.body.contains(iframe)) {
               document.body.removeChild(iframe);
+              window.location.reload();
             }
-          }, 1000);
-        }, 100);
+          }, 3000); // 3 seconds fallback
+          
+          iframe.contentWindow.print();
+        }, 500);
       };
     };
 
@@ -1076,7 +959,7 @@ const generatedByName = computed(() => {
       const items = Array.isArray(props.order?.items)
         ? props.order.items
         : [];
-      const MIN_ROWS = 40; // Fixed 40 rows for A4 format to accommodate up to 40 items
+      const MIN_ROWS = 20; // Fixed 20 rows for A4 format
       const blanksToAdd = Math.max(0, MIN_ROWS - items.length);
 
       const blankRows = Array.from(
@@ -1132,10 +1015,6 @@ const generatedByName = computed(() => {
       dueAmount,
       generatedByName,
       resolveHSN,
-      getProductDisplayName,
-      productCache,
-      fetchProductData,
-      fetchingProducts,
     };
   },
 });
@@ -1145,12 +1024,12 @@ const generatedByName = computed(() => {
 .invoice-header {
   text-align: center;
   border-bottom: 1px solid #000 !important;
-  padding-bottom: 2px; /* further reduced from 5px */
+  padding-bottom: 10px;
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 1px; /* further reduced from 4px */
+  margin-bottom: 8px;
 }
 .invoice-logo {
   width: 3%;
@@ -1165,7 +1044,7 @@ const generatedByName = computed(() => {
 }
 .tax-invoice-title {
   margin: 0 0 1px 0;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
   text-decoration: none;
@@ -1173,23 +1052,23 @@ const generatedByName = computed(() => {
 }
 .store-name {
   margin: 0 0 2px 0;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
   text-transform: uppercase;
 }
 .store-address {
-  margin: 2px 0;
-  font-size: 9px;
+  margin: 4px 0;
+  font-size: 10px;
 }
 .store-contact-line {
-  margin: 2px 0;
-  font-size: 10px;
+  margin: 4px 0;
+  font-size: 11px;
   font-weight: 700;
   color: #000;
 }
 .store-gstin-line {
-  margin: 2px 0 0 0;
-  font-size: 10px;
+  margin: 4px 0 0 0;
+  font-size: 11px;
   font-weight: 700;
   color: #000;
   letter-spacing: 0.5px;
@@ -1210,7 +1089,7 @@ const generatedByName = computed(() => {
 }
 .invoice-header-contact .store-contact-line {
   margin: 0;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: bold;
   color: #000;
 }
@@ -1220,8 +1099,8 @@ const generatedByName = computed(() => {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin: 2px 0 1px; /* further reduced from 10px 0 3px */
-  padding-bottom: 1px; /* further reduced from 3px */
+  margin: 20px 0 6px;
+  padding-bottom: 6px;
   /*border-bottom: 1px solid #000;*/
   page-break-inside: avoid;
 }
@@ -1232,19 +1111,19 @@ const generatedByName = computed(() => {
 }
 .address-line {
   font-weight: 500;
-  margin-top: 1px;
+  margin-top: 2px;
   white-space: pre-line;
 }
 
 .bill-party-right {
   width: 40%;
-  margin-right: 4px;
+  margin-right: 8px;
 }
 
 /* Invoice Details Table */
 .invoice-details-table-print-safe {
   border-collapse: collapse;
-  font-size: 8px;
+  font-size: 10px;
   background: #ffffff;
   border: 1px solid #000;
   min-width: 280px;
@@ -1253,10 +1132,9 @@ const generatedByName = computed(() => {
 }
 .invoice-details-table-print-safe th,
 .invoice-details-table-print-safe td {
-  padding: 1px; /* further reduced from 4px */
+  padding: 7px;
   border: 1px solid #000;
   background: #ffffff;
-  font-size: 6px; /* reduced font size */
 }
 .invoice-details-table-print-safe .meta-label {
   font-weight: 600;
@@ -1307,7 +1185,7 @@ const generatedByName = computed(() => {
 
 /* Items table */
 .tax-invoice-items {
-  margin-top: 1px; /* further reduced from 2px */
+  margin-top: 8px;
 }
 .items-table {
   width: 100%;
@@ -1318,12 +1196,11 @@ const generatedByName = computed(() => {
 .items-table td {
   border: 1px solid #000;
   border-width: 1px;
-  padding: 0.5px; /* minimal padding to maximize space */
-  font-size: 6px; /* further reduced font size for 40 rows */
+  padding: 4px; /* reduced padding so more rows fit */
+  font-size: 10px;
   font-weight: 500;
   vertical-align: middle;
-  height: 8px; /* minimal height for 40 rows */
-  line-height: 0.9;
+  height: 20px; /* reduced from 25px */
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
@@ -1335,17 +1212,15 @@ const generatedByName = computed(() => {
 .items-table th {
   text-align: center;
   font-weight: 700;
-  font-size: 6px; /* matched with table cell font size */
-  padding: 0.5px; /* minimal padding */
+  font-size: 10px;
+  padding: 7px;
   border: 1px solid #000;
   background: #ffffff; /* Set to white for print consistency */
-  height: 8px; /* matched with table cell height */
-  line-height: 0.9;
 }
 .item-name {
   font-weight: 500;
-  font-size: 5px; /* further reduced to fit 40 rows */
-  line-height: 0.9;
+  font-size: 10px;
+  line-height: 1.2;
 }
 .item-custom-fields {
   margin-top: 1px;
@@ -1357,11 +1232,11 @@ const generatedByName = computed(() => {
 }
 
 .item-row td {
-  height: 8px; /* matched with table cell height */
+  height: 22px; /* reduced from 30px */
   vertical-align: middle;
 }
 .item-row.blank-row td {
-  height: 8px; /* matched with table cell height */
+  height: 22px; /* reduced from 30px */
   border: 0.5px solid #000;
   vertical-align: middle;
 }
@@ -1375,7 +1250,7 @@ const generatedByName = computed(() => {
 
 /* FINAL TOTALS BOX */
 .final-totals-box {
-  margin: 1px 0 1px 0; /* further reduced from 2px */
+  margin: 4px 0 4px 0;
   border: 0px solid #000;
   background: #fff;
 }
@@ -1433,7 +1308,7 @@ const generatedByName = computed(() => {
 
 /* Bottom section: Bank + Terms + Sign */
 .bottom-section {
-  margin-top: 1px; /* further reduced from 2px */
+  margin-top: 4px;
   font-size: 13px;
   page-break-inside: avoid;
 }
@@ -1592,7 +1467,7 @@ const generatedByName = computed(() => {
 /* PRINT */
 @media print {
   @page {
-    margin: 0.2cm;
+    margin: 0.5cm;
     size: A4;
   }
 
@@ -1602,41 +1477,21 @@ const generatedByName = computed(() => {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
     background: #fff !important;
-    font-size: 6px !important;
   }
 
   * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
-    font-size: inherit !important;
   }
 
   .invoice-header,
-  .bill-party-row {
+  .bill-party-row,
+  .tax-invoice-items,
+  .final-totals-box,
+  .bottom-section,
+  .bank-details-box,
+  .bottom-boxes-row {
     page-break-inside: avoid;
-  }
-
-  .tax-invoice-items {
-    page-break-inside: auto !important;
-  }
-  
-  .items-table {
-    page-break-inside: auto !important;
-  }
-  
-  .items-table tr {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-  }
-
-  .items-table,
-  .items-table th,
-  .items-table td {
-    border: 1px solid #000 !important;
-    border-width: 1px !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-    font-size: 6px !important;
   }
 
   .invoice-header {
@@ -1670,17 +1525,9 @@ const generatedByName = computed(() => {
     border: 0px solid #000 !important;
   }
 
-  .final-totals-box,
-  .bottom-section,
-  .bank-details-box,
-  .bottom-boxes-row {
-    page-break-inside: avoid;
-  }
-  
   .final-totals-box .items-table td {
-    font-size: 6px !important;
-    height: 12px !important;
-    padding: 2px !important;
+    border: 0px solid #000 !important;
+    border-width: 0.5px !important;
   }
 
   .net-amount-label {
