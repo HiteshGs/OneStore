@@ -581,9 +581,9 @@ const fetchProductData = async (xProductId) => {
   fetchingProducts.value.add(xProductId);
   
   try {
-    // Try to fetch product by xid first
-    const response = await axiosAdmin.get(`products/${xProductId}`);
-    const product = response.data.data;
+    // Use x_product_id parameter to search for product
+    const response = await axiosAdmin.get(`products?x_product_id=${xProductId}&limit=1`);
+    const product = response.data.data?.[0];
     
     if (product && product.name) {
       productCache.value.set(xProductId, product.name);
@@ -598,26 +598,7 @@ const fetchProductData = async (xProductId) => {
       }
     }
   } catch (error) {
-    console.error('Failed to fetch product data:', error);
-    // If direct xid lookup fails, try searching by x_product_id
-    try {
-      const searchResponse = await axiosAdmin.get(`products?x_product_id=${xProductId}&limit=1`);
-      const searchProduct = searchResponse.data.data?.[0];
-      
-      if (searchProduct && searchProduct.name) {
-        productCache.value.set(xProductId, searchProduct.name);
-        
-        if (props.order && props.order.items) {
-          props.order.items.forEach(item => {
-            if (item.x_product_id === xProductId && !item.product) {
-              item.product = { name: searchProduct.name };
-            }
-          });
-        }
-      }
-    } catch (searchError) {
-      console.error('Failed to search product by x_product_id:', searchError);
-    }
+    console.error('Failed to fetch product data by x_product_id:', error);
   } finally {
     fetchingProducts.value.delete(xProductId);
   }
