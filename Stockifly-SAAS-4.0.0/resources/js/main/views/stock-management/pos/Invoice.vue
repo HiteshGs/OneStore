@@ -158,7 +158,7 @@
                 <!-- Item name + custom fields -->
                 <td>
                   <div class="item-name">
-                    {{ item.__blank ? '' : item.product?.name }}
+                    {{ item.__blank ? '' : (item.product?.name || item.product_name || 'Product Not Found') }}
                   </div>
 
                   <div
@@ -514,26 +514,31 @@ const resolveHSN = (item) => {
     return item.hsn || item.hsn_code;
   }
 
-  // 2️⃣ HSN on product object
+  // 2️⃣ Stored product_hsn_code on item (from database)
+  if (item.product_hsn_code) {
+    return item.product_hsn_code;
+  }
+
+  // 3️⃣ HSN on product object
   if (item.product) {
     if (item.product.hsn || item.product.hsn_code) {
       return item.product.hsn || item.product.hsn_code;
     }
   }
 
-  // 3️⃣ Resolve product ID SAFELY
+  // 4️⃣ Resolve product ID SAFELY
   const productId =
     item.x_product_id ||
     item.product?.xid ||
     item.product_id ||
     item.xid; // last fallback (safe)
 
-  // 4️⃣ Lookup from localStorage map
+  // 5️⃣ Lookup from localStorage map
   if (productId && hsnMap.value[String(productId)]) {
     return hsnMap.value[String(productId)];
   }
 
-  // 5️⃣ Final fallback
+  // 6️⃣ Final fallback
   return '-';
 };
     const downloadPdf = async () => {

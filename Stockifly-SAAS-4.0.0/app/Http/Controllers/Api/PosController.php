@@ -187,6 +187,16 @@ class PosController extends ApiBaseController
 
         Common::storeAndUpdateOrder($order, $oldOrderId);
 
+        // Store product details in order items to preserve data even if product is deleted
+        foreach ($order->items as $item) {
+            if ($item->product_id && $item->product) {
+                $item->product_name = $item->product->name;
+                $item->product_image = $item->product->image;
+                $item->product_hsn_code = $item->product->hsn_code ?? null;
+                $item->save();
+            }
+        }
+
         // Updating Warehouse History
         Common::updateWarehouseHistory('order', $order, "add_edit");
 
@@ -225,7 +235,7 @@ class PosController extends ApiBaseController
         Common::updateOrderAmount($order->id);
 
         $savedOrder = Order::select('id', 'unique_id', 'invoice_number', 'user_id', 'staff_user_id', 'order_date', 'discount', 'shipping', 'tax_amount', 'subtotal', 'total', 'paid_amount', 'due_amount', 'total_items', 'total_quantity')
-            ->with(['user:id,name,email', 'items:id,order_id,product_id,unit_id,unit_price,subtotal,quantity,mrp,total_tax','items.product', 'items.product:id,name', 'items.unit:id,name,short_name', 'orderPayments:id,order_id,payment_id,amount', 'orderPayments.payment:id,payment_mode_id', 'orderPayments.payment.paymentMode:id,name', 'staffMember:id,name'])
+            ->with(['user:id,name,email', 'items:id,order_id,product_id,unit_id,unit_price,subtotal,quantity,mrp,total_tax,single_unit_price,tax_rate,tax_type', 'items.product:id,name,image,hsn_code,product_type', 'items.unit:id,name,short_name', 'items.product.details:id,product_id,warehouse_id,current_stock', 'orderPayments:id,order_id,payment_id,amount', 'orderPayments.payment:id,payment_mode_id', 'orderPayments.payment.paymentMode:id,name', 'staffMember:id,name'])
             ->find($order->id);
 
         $totalMrp = 0;
