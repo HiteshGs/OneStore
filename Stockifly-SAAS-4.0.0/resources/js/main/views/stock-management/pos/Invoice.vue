@@ -557,15 +557,13 @@ const getProductDisplayName = (item) => {
     return item.product_name;
   }
   
-  const cacheKey = item.x_product_id || item.product_id;
-  
-  // If we have IDs but no product data, fetch it
-  if ((item.x_product_id || item.product_id) && !item.product && !fetchingProducts.value.has(cacheKey)) {
-    fetchProductData(item);
+  // If we have x_product_id but no product data, fetch it
+  if (item.x_product_id && !item.product) {
+    fetchProductData(item.x_product_id);
   }
   
   // Show loading state while fetching product data
-  if (cacheKey && fetchingProducts.value.has(cacheKey)) {
+  if (item.x_product_id && fetchingProducts.value.has(item.x_product_id)) {
     return 'Loading...';
   }
   
@@ -580,65 +578,34 @@ const getProductDisplayName = (item) => {
 const productCache = ref(new Map());
 const fetchingProducts = ref(new Set());
 
-const fetchProductData = async (item) => {
-  if (!item || (!item.x_product_id && !item.product_id) || productCache.value.has(item.x_product_id) || fetchingProducts.value.has(item.x_product_id)) {
+const fetchProductData = async (xProductId) => {
+  if (!xProductId || productCache.value.has(xProductId) || fetchingProducts.value.has(xProductId)) {
     return;
   }
   
-  const cacheKey = item.x_product_id || item.product_id;
-  fetchingProducts.value.add(cacheKey);
+  fetchingProducts.value.add(xProductId);
   
   try {
-    let product = null;
-    
-    // Try multiple approaches to fetch product data
-    try {
-      // Approach 1: Try actual product_id first (most reliable)
-      if (item.product_id) {
-        const response1 = await axiosAdmin.get(`products/${item.product_id}`);
-        product = response1.data.data;
-        console.log('Product_id lookup successful:', product);
-      }
-    } catch (error1) {
-      console.log('Product_id lookup failed, trying xid approach');
-      
-      try {
-        // Approach 2: Try direct xid lookup
-        const response2 = await axiosAdmin.get(`products/${item.x_product_id}`);
-        product = response2.data.data;
-        console.log('Direct xid lookup successful:', product);
-      } catch (error2) {
-        console.log('Direct xid lookup failed, trying search approach');
-        
-        // Approach 3: Try search by x_product_id
-        try {
-          const response3 = await axiosAdmin.get(`products?x_product_id=${item.x_product_id}&limit=1`);
-          product = response3.data.data?.[0];
-          console.log('Search by x_product_id successful:', product);
-        } catch (error3) {
-          console.log('All approaches failed');
-        }
-      }
-    }
+    // Use x_product_id parameter to search for product
+    const response = await axiosAdmin.get(`products?x_product_id=${xProductId}&limit=1`);
+    const product = response.data.data?.[0];
     
     if (product && product.name) {
-      productCache.value.set(cacheKey, product.name);
+      productCache.value.set(xProductId, product.name);
       
-      // Update item with product data
-      if (!item.product) {
-        item.product = { name: product.name };
-        // Force reactivity
-        nextTick(() => {
-          item.product = { ...item.product };
+      // Update all items in the order that have this x_product_id
+      if (props.order && props.order.items) {
+        props.order.items.forEach(item => {
+          if (item.x_product_id === xProductId && !item.product) {
+            item.product = { name: product.name };
+          }
         });
       }
-    } else {
-      console.log('No product found for item:', cacheKey);
     }
   } catch (error) {
-    console.error('Failed to fetch product data:', error);
+    console.error('Failed to fetch product data by x_product_id:', error);
   } finally {
-    fetchingProducts.value.delete(cacheKey);
+    fetchingProducts.value.delete(xProductId);
   }
 };
 
@@ -650,14 +617,14 @@ watch(
     
     // Fetch product data for items that have x_product_id but no product object
     newOrder.items.forEach(item => {
-      const cacheKey = item.x_product_id || item.product_id;
-      if ((item.x_product_id || item.product_id) && !item.product && !productCache.value.has(cacheKey)) {
-        fetchProductData(item);
+      if (item.x_product_id && !item.product && !productCache.value.has(item.x_product_id)) {
+        fetchProductData(item.x_product_id);
       }
     });
   },
   { immediate: true }
 );
+
     const downloadPdf = async () => {
       await nextTick();
 
