@@ -586,24 +586,46 @@ const fetchProductData = async (item) => {
   fetchingProducts.value.add(item.product_id);
   
   try {
+    console.log(`Fetching product data for product_id: ${item.product_id}`);
+    
     // Use actual product_id to fetch product data
     const response = await axiosAdmin.get(`products/${item.product_id}`);
+    console.log(`API response for product_id ${item.product_id}:`, response);
+    
     const product = response.data.data;
     
     if (product && product.name) {
       productCache.value.set(item.product_id, product.name);
+      console.log(`Successfully cached product name for product_id ${item.product_id}: ${product.name}`);
       
       // Update all items in the order that have this product_id
       if (props.order && props.order.items) {
         props.order.items.forEach(orderItem => {
           if (orderItem.product_id === item.product_id && !orderItem.product) {
             orderItem.product = { name: product.name };
+            console.log(`Updated order item with product name: ${product.name}`);
+          }
+        });
+      }
+    } else {
+      console.log(`No product data found for product_id: ${item.product_id}`);
+    }
+  } catch (error) {
+    console.error(`Failed to fetch product data for product_id ${item.product_id}:`, error);
+    console.error('Error details:', error.response?.data || error.message);
+    
+    // Fallback: Try to use item name if available
+    if (item.name) {
+      console.log(`Using fallback item name: ${item.name}`);
+      productCache.value.set(item.product_id, item.name);
+      if (props.order && props.order.items) {
+        props.order.items.forEach(orderItem => {
+          if (orderItem.product_id === item.product_id && !orderItem.product) {
+            orderItem.product = { name: item.name };
           }
         });
       }
     }
-  } catch (error) {
-    console.error('Failed to fetch product data by product_id:', error);
   } finally {
     fetchingProducts.value.delete(item.product_id);
   }
