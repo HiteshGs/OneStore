@@ -743,6 +743,31 @@
                 return $item->tax_rate ?? '0';
             }
         }
+
+        // 8. Helper for Item Name (robust product name resolution)
+        if (!function_exists('getItemName')) {
+            function getItemName($item) {
+                // Try to get product name from relationship
+                if ($item->product && !empty($item->product->name)) {
+                    return $item->product->name;
+                }
+                
+                // If product relationship exists but name is empty, try to reload
+                if ($item->product_id) {
+                    try {
+                        $product = \App\Models\Product::find($item->product_id);
+                        if ($product && !empty($product->name)) {
+                            return $product->name;
+                        }
+                    } catch (\Exception $e) {
+                        // Log error if needed, but continue with fallback
+                    }
+                }
+                
+                // Fallback to product ID
+                return 'Product ID: ' . ($item->product_id ?? 'N/A');
+            }
+        }
     @endphp
 
     <div class="invoice-box invoice-root a4-invoice">
@@ -889,13 +914,7 @@
                         <!-- Item name + custom fields -->
                         <td>
                             <div class="item-name">
-                                @if($item->product && $item->product->name)
-                                    {{ $item->product->name }}
-                                @elseif($item->product)
-                                    {{ 'Product ID: ' . ($item->product->id ?? $item->product_id ?? 'N/A') }}
-                                @else
-                                    {{ 'Product Name Not Available (ID: ' . ($item->product_id ?? 'N/A') . ')' }}
-                                @endif
+                                {{ getItemName($item) }}
                             </div>
                             {{-- Custom fields logic from Vue component is omitted as it requires complex data structure not guaranteed in Blade context --}}
                         </td>

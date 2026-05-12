@@ -9,6 +9,7 @@ ApiRoute::group(['namespace' => 'App\Http\Controllers\Api'], function () {
 
     ApiRoute::get('all-langs', ['as' => 'api.extra.all-langs', 'uses' => 'AuthController@allEnabledLangs']);
     ApiRoute::get('pdf/{uniqueId?}/{lang?}', ['as' => 'api.extra.pdf', 'uses' => 'AuthController@pdf']);
+    ApiRoute::get('invoice-data/{uniqueId?}/{lang?}', ['as' => 'api.extra.invoice-data', 'uses' => 'AuthController@getInvoiceData']);
     ApiRoute::get('send-mail/{xid}/{lang?}', ['as' => 'api.extra.send-mail', 'uses' => 'AuthController@sendMail']);
     ApiRoute::get('lang-trans', ['as' => 'api.extra.lang-trans', 'uses' => 'AuthController@langTrans']);
     ApiRoute::post('change-theme-mode', ['as' => 'api.extra.change-theme-mode', 'uses' => 'AuthController@changeThemeMode']);

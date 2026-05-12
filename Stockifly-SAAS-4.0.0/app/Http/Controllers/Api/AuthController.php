@@ -202,10 +202,55 @@ class AuthController extends ApiBaseController
             ->where('unique_id', $uniqueId)
             ->first();
 
+        // Ensure all items have products loaded - fix for missing product names
+        if ($order && $order->items) {
+            foreach ($order->items as $item) {
+                if (!$item->product && $item->product_id) {
+                    try {
+                        // Manually load missing product
+                        $product = \App\Models\Product::find($item->product_id);
+                        if ($product) {
+                            $item->product = $product;
+                        } else {
+                            // Create a dummy product object to prevent errors
+                            $item->product = (object)[
+                                'id' => $item->product_id,
+                                'name' => 'Product ID: ' . $item->product_id,
+                                'item_code' => null
+                            ];
+                        }
+                    } catch (\Exception $e) {
+                        // Create fallback product object on any error
+                        $item->product = (object)[
+                            'id' => $item->product_id,
+                            'name' => 'Product ID: ' . ($item->product_id ?? 'N/A'),
+                            'item_code' => null
+                        ];
+                    }
+                }
+            }
+        }
+
         $lang = Lang::where('key', $langKey)->first();
         if (!$lang) {
             $lang = Lang::where('key', 'en')->first();
         }
+        
+        // Final validation: ensure all items have product data
+        if ($order && $order->items) {
+            foreach ($order->items as $item) {
+                // Double-check that product object has name
+                if (!$item->product || !isset($item->product->name)) {
+                    if (!isset($item->product)) {
+                        $item->product = (object)[];
+                    }
+                    if (!isset($item->product->name)) {
+                        $item->product->name = 'Product ID: ' . ($item->product_id ?? 'N/A');
+                    }
+                }
+            }
+        }
+        
         $items = $order->items;
         // foreach ($items as $product) {
         //     $productId = $product->product_id;
@@ -240,6 +285,61 @@ class AuthController extends ApiBaseController
         $pdf = PDF::loadView('pdf', $pdfData);
 
         return ['pdf' => $pdf, 'order' => $order];
+    }
+
+    public function getInvoiceData($uniqueId, $langKey = "en")
+    {
+        $order = Order::with(['warehouse', 'user', 'items', 'items.product', 'items.unit', 'orderPayments:id,order_id,payment_id,amount', 'orderPayments.payment:id,payment_mode_id', 'orderPayments.payment.paymentMode:id,name'])
+            ->where('unique_id', $uniqueId)
+            ->first();
+
+        if (!$order) {
+            throw new ApiException('Order not found');
+        }
+
+        // Ensure all items have products loaded - fix for missing product names
+        if ($order && $order->items) {
+            foreach ($order->items as $item) {
+                if (!$item->product && $item->product_id) {
+                    try {
+                        // Manually load missing product
+                        $product = \App\Models\Product::find($item->product_id);
+                        if ($product) {
+                            $item->product = $product;
+                        } else {
+                            // Create a dummy product object to prevent errors
+                            $item->product = (object)[
+                                'id' => $item->product_id,
+                                'name' => 'Product ID: ' . $item->product_id,
+                                'item_code' => null
+                            ];
+                        }
+                    } catch (\Exception $e) {
+                        // Create fallback product object on any error
+                        $item->product = (object)[
+                            'id' => $item->product_id,
+                            'name' => 'Product ID: ' . ($item->product_id ?? 'N/A'),
+                            'item_code' => null
+                        ];
+                    }
+                }
+            }
+        }
+
+        // Return comprehensive data structure with multiple keys for frontend compatibility
+        return ApiResponse::make('Invoice data fetched successfully', [
+            'order' => $order,
+            'items' => $order->items ?? [],
+            'order_items' => $order->items ?? [], // Alternative key for frontend
+            'details' => $order->items ?? [], // Alternative key for frontend
+            'products' => $order->items ?? [], // Alternative key for frontend
+            'sale_items' => $order->items ?? [], // Alternative key for frontend
+            'product_items' => $order->items ?? [], // Alternative key for frontend
+            'warehouse' => $order->warehouse,
+            'customer' => $order->user,
+            'staff_member' => \App\Models\StaffMember::find($order->staff_user_id),
+            'company' => \App\Models\Company::with('currency')->find($order->company_id)
+        ]);
     }
 
     public function pdf($uniqueId, $langKey = "en")
