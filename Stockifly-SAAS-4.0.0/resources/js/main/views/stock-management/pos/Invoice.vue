@@ -558,8 +558,8 @@ const getProductDisplayName = (item) => {
   }
   
   // If we have x_product_id but no product data, fetch it
-  if (item.x_product_id && !item.product) {
-    fetchProductData(item.x_product_id);
+  if (item.x_product_id && !item.product && !fetchingProducts.value.has(item.x_product_id)) {
+    fetchProductData(item);
   }
   
   // Show loading state while fetching product data
@@ -578,34 +578,64 @@ const getProductDisplayName = (item) => {
 const productCache = ref(new Map());
 const fetchingProducts = ref(new Set());
 
-const fetchProductData = async (xProductId) => {
-  if (!xProductId || productCache.value.has(xProductId) || fetchingProducts.value.has(xProductId)) {
+const fetchProductData = async (item) => {
+  if (!item || !item.x_product_id || productCache.value.has(item.x_product_id) || fetchingProducts.value.has(item.x_product_id)) {
     return;
   }
   
-  fetchingProducts.value.add(xProductId);
+  fetchingProducts.value.add(item.x_product_id);
   
   try {
-    // Use x_product_id parameter to search for product
-    const response = await axiosAdmin.get(`products?x_product_id=${xProductId}&limit=1`);
-    const product = response.data.data?.[0];
+    let product = null;
     
-    if (product && product.name) {
-      productCache.value.set(xProductId, product.name);
+    // Try multiple approaches to fetch product data
+    try {
+      // Approach 1: Try direct xid lookup
+      const response1 = await axiosAdmin.get(`products/${item.x_product_id}`);
+      product = response1.data.data;
+      console.log('Direct xid lookup successful:', product);
+    } catch (error1) {
+      console.log('Direct xid lookup failed, trying search approach');
       
-      // Update all items in the order that have this x_product_id
-      if (props.order && props.order.items) {
-        props.order.items.forEach(item => {
-          if (item.x_product_id === xProductId && !item.product) {
-            item.product = { name: product.name };
+      // Approach 2: Try search by x_product_id
+      try {
+        const response2 = await axiosAdmin.get(`products?x_product_id=${item.x_product_id}&limit=1`);
+        product = response2.data.data?.[0];
+        console.log('Search by x_product_id successful:', product);
+      } catch (error2) {
+        console.log('Search by x_product_id failed, trying product_id lookup');
+        
+        // Approach 3: If we have product_id, try that
+        if (item.product_id) {
+          try {
+            const response3 = await axiosAdmin.get(`products/${item.product_id}`);
+            product = response3.data.data;
+            console.log('Product_id lookup successful:', product);
+          } catch (error3) {
+            console.log('All approaches failed');
           }
-        });
+        }
       }
     }
+    
+    if (product && product.name) {
+      productCache.value.set(item.x_product_id, product.name);
+      
+      // Update the item with product data
+      if (!item.product) {
+        item.product = { name: product.name };
+        // Force reactivity
+        nextTick(() => {
+          item.product = { ...item.product };
+        });
+      }
+    } else {
+      console.log('No product found for item:', item.x_product_id);
+    }
   } catch (error) {
-    console.error('Failed to fetch product data by x_product_id:', error);
+    console.error('Failed to fetch product data:', error);
   } finally {
-    fetchingProducts.value.delete(xProductId);
+    fetchingProducts.value.delete(item.x_product_id);
   }
 };
 
@@ -618,7 +648,7 @@ watch(
     // Fetch product data for items that have x_product_id but no product object
     newOrder.items.forEach(item => {
       if (item.x_product_id && !item.product && !productCache.value.has(item.x_product_id)) {
-        fetchProductData(item.x_product_id);
+        fetchProductData(item);
       }
     });
   },
