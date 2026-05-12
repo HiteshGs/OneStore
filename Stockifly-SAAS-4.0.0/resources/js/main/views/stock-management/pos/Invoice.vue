@@ -145,11 +145,11 @@
 
             <tbody>
               <!-- FIXED ROW TABLE USING paddedItems -->
-              <tr
-                :class="['item-row', item.__blank ? 'blank-row' : '']"
-                v-for="(item, index) in paddedItems"
-                :key="item.xid || index"
-              >
+             <tr
+  class="item-row"
+  v-for="(item, index) in order.items"
+  :key="item.xid || index"
+>
                 <!-- Sr No -->
                 <td class="center">
                   {{ item.__blank ? '' : index + 1 }}
@@ -934,7 +934,7 @@ const generatedByName = computed(() => {
             ${inlineStyles}
             @media print {
               @page {
-                margin: 0.1cm;
+                margin: 0.2cm;
                 size: A4;
               }
               body {
@@ -943,7 +943,7 @@ const generatedByName = computed(() => {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
                 background: #fff !important;
-                font-size: 4px !important;
+                font-size: 6px !important;
               }
               * {
                 -webkit-print-color-adjust: exact !important;
@@ -1076,7 +1076,7 @@ const generatedByName = computed(() => {
       const items = Array.isArray(props.order?.items)
         ? props.order.items
         : [];
-      const MIN_ROWS = 96; // Fixed 96 rows for A4 format to accommodate up to 96 items
+      const MIN_ROWS = 40; // Fixed 40 rows for A4 format to accommodate up to 40 items
       const blanksToAdd = Math.max(0, MIN_ROWS - items.length);
 
       const blankRows = Array.from(
@@ -1318,12 +1318,12 @@ const generatedByName = computed(() => {
 .items-table td {
   border: 1px solid #000;
   border-width: 1px;
-  padding: 0.2px; /* minimal padding to maximize space */
-  font-size: 4px; /* further reduced font size for 96 rows */
+  padding: 0.5px; /* minimal padding to maximize space */
+  font-size: 6px; /* further reduced font size for 40 rows */
   font-weight: 500;
   vertical-align: middle;
-  height: 6px; /* minimal height for 96 rows */
-  line-height: 0.8;
+  height: 8px; /* minimal height for 40 rows */
+  line-height: 0.9;
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
@@ -1335,17 +1335,17 @@ const generatedByName = computed(() => {
 .items-table th {
   text-align: center;
   font-weight: 700;
-  font-size: 4px; /* matched with table cell font size */
-  padding: 0.2px; /* minimal padding */
+  font-size: 6px; /* matched with table cell font size */
+  padding: 0.5px; /* minimal padding */
   border: 1px solid #000;
   background: #ffffff; /* Set to white for print consistency */
-  height: 6px; /* matched with table cell height */
-  line-height: 0.8;
+  height: 8px; /* matched with table cell height */
+  line-height: 0.9;
 }
 .item-name {
   font-weight: 500;
-  font-size: 3px; /* further reduced to fit 96 rows */
-  line-height: 0.8;
+  font-size: 5px; /* further reduced to fit 40 rows */
+  line-height: 0.9;
 }
 .item-custom-fields {
   margin-top: 1px;
@@ -1357,11 +1357,11 @@ const generatedByName = computed(() => {
 }
 
 .item-row td {
-  height: 6px; /* matched with table cell height */
+  height: 8px; /* matched with table cell height */
   vertical-align: middle;
 }
 .item-row.blank-row td {
-  height: 6px; /* matched with table cell height */
+  height: 8px; /* matched with table cell height */
   border: 0.5px solid #000;
   vertical-align: middle;
 }
@@ -1592,7 +1592,7 @@ const generatedByName = computed(() => {
 /* PRINT */
 @media print {
   @page {
-    margin: 0.1cm;
+    margin: 0.2cm;
     size: A4;
   }
 
@@ -1602,7 +1602,7 @@ const generatedByName = computed(() => {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
     background: #fff !important;
-    font-size: 4px !important;
+    font-size: 6px !important;
   }
 
   * {
@@ -1636,7 +1636,7 @@ const generatedByName = computed(() => {
     border-width: 1px !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
-    font-size: 4px !important;
+    font-size: 6px !important;
   }
 
   .invoice-header {
