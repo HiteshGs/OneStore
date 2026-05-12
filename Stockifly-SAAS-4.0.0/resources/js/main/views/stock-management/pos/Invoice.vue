@@ -415,8 +415,7 @@ import common from '../../../../common/composable/common';
 import BarcodeGenerator from '../../../../common/components/barcode/BarcodeGenerator.vue';
 import QRcodeGenerator from '../../../../common/components/barcode/QRcodeGenerator.vue';
 import { notification } from 'ant-design-vue';
-import { useI18n } from 'vue-i18n';
-import html2pdf from 'html2pdf.js';
+import { useI18n } from 'vue-i18n'; 
 
 const posInvoiceCssUrl = window.config.pos_invoice_css;
 const ENTRY_PERSON_KEY = 'pos_entry_person_name';
