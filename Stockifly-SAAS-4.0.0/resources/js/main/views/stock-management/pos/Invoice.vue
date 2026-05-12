@@ -1070,7 +1070,7 @@ const generatedByName = computed(() => {
       const items = Array.isArray(props.order?.items)
         ? props.order.items
         : [];
-      const MIN_ROWS = 20; // Fixed 20 rows for A4 format
+      const MIN_ROWS = 50; // Fixed 50 rows for A4 format to accommodate up to 50 items
       const blanksToAdd = Math.max(0, MIN_ROWS - items.length);
 
       const blankRows = Array.from(
@@ -1311,11 +1311,11 @@ const generatedByName = computed(() => {
 .items-table td {
   border: 1px solid #000;
   border-width: 1px;
-  padding: 4px; /* reduced padding so more rows fit */
-  font-size: 10px;
+  padding: 2px; /* further reduced padding to fit 50 rows */
+  font-size: 9px; /* reduced font size to fit more content */
   font-weight: 500;
   vertical-align: middle;
-  height: 20px; /* reduced from 25px */
+  height: 12px; /* significantly reduced height to fit 50 rows */
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
@@ -1327,15 +1327,16 @@ const generatedByName = computed(() => {
 .items-table th {
   text-align: center;
   font-weight: 700;
-  font-size: 10px;
-  padding: 7px;
+  font-size: 9px; /* matched with table cell font size */
+  padding: 3px; /* reduced padding to match cell height */
   border: 1px solid #000;
   background: #ffffff; /* Set to white for print consistency */
+  height: 12px; /* matched with table cell height */
 }
 .item-name {
   font-weight: 500;
-  font-size: 10px;
-  line-height: 1.2;
+  font-size: 8px; /* reduced to fit smaller cells */
+  line-height: 1.1;
 }
 .item-custom-fields {
   margin-top: 1px;
@@ -1347,11 +1348,11 @@ const generatedByName = computed(() => {
 }
 
 .item-row td {
-  height: 22px; /* reduced from 30px */
+  height: 12px; /* matched with table cell height */
   vertical-align: middle;
 }
 .item-row.blank-row td {
-  height: 22px; /* reduced from 30px */
+  height: 12px; /* matched with table cell height */
   border: 0.5px solid #000;
   vertical-align: middle;
 }
