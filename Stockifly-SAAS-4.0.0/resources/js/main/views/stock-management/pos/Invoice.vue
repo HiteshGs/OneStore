@@ -934,7 +934,7 @@ const generatedByName = computed(() => {
             ${inlineStyles}
             @media print {
               @page {
-                margin: 0.5cm;
+                margin: 0.1cm;
                 size: A4;
               }
               body {
@@ -943,10 +943,22 @@ const generatedByName = computed(() => {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
                 background: #fff !important;
+                font-size: 4px !important;
               }
               * {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
+                font-size: inherit !important;
+              }
+              .items-table {
+                page-break-inside: auto !important;
+              }
+              .items-table tr {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+              }
+              .tax-invoice-items {
+                page-break-inside: auto !important;
               }
             }
             @media screen {
@@ -965,27 +977,21 @@ const generatedByName = computed(() => {
 
       iframeDoc.close();
 
-      // Wait for content to load, then print
+          // Wait for content to load, then print
       iframe.onload = () => {
         setTimeout(() => {
-          // Add onafterprint event handler to refresh page after successful print
-          iframe.contentWindow.onafterprint = function() {
-            // Remove iframe
-            document.body.removeChild(iframe);
-            // Refresh the current page to show new page
-            window.location.reload();
-          };
+          iframe.contentWindow.focus();
           
-          // Fallback: Set a timeout to refresh if onafterprint doesn't work
+          // Print the iframe content
+          iframe.contentWindow.print();
+          
+          // Clean up after print
           setTimeout(() => {
             if (document.body.contains(iframe)) {
               document.body.removeChild(iframe);
-              window.location.reload();
             }
-          }, 3000); // 3 seconds fallback
-          
-          iframe.contentWindow.print();
-        }, 500);
+          }, 1000);
+        }, 100);
       };
     };
 
@@ -1070,7 +1076,7 @@ const generatedByName = computed(() => {
       const items = Array.isArray(props.order?.items)
         ? props.order.items
         : [];
-      const MIN_ROWS = 35; // Fixed 35 rows for A4 format to accommodate up to 35 items
+      const MIN_ROWS = 96; // Fixed 96 rows for A4 format to accommodate up to 96 items
       const blanksToAdd = Math.max(0, MIN_ROWS - items.length);
 
       const blankRows = Array.from(
@@ -1139,12 +1145,12 @@ const generatedByName = computed(() => {
 .invoice-header {
   text-align: center;
   border-bottom: 1px solid #000 !important;
-  padding-bottom: 10px;
+  padding-bottom: 2px; /* further reduced from 5px */
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 1px; /* further reduced from 4px */
 }
 .invoice-logo {
   width: 3%;
@@ -1159,7 +1165,7 @@ const generatedByName = computed(() => {
 }
 .tax-invoice-title {
   margin: 0 0 1px 0;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   text-decoration: none;
@@ -1167,23 +1173,23 @@ const generatedByName = computed(() => {
 }
 .store-name {
   margin: 0 0 2px 0;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
 }
 .store-address {
-  margin: 4px 0;
-  font-size: 10px;
+  margin: 2px 0;
+  font-size: 9px;
 }
 .store-contact-line {
-  margin: 4px 0;
-  font-size: 11px;
+  margin: 2px 0;
+  font-size: 10px;
   font-weight: 700;
   color: #000;
 }
 .store-gstin-line {
-  margin: 4px 0 0 0;
-  font-size: 11px;
+  margin: 2px 0 0 0;
+  font-size: 10px;
   font-weight: 700;
   color: #000;
   letter-spacing: 0.5px;
@@ -1204,7 +1210,7 @@ const generatedByName = computed(() => {
 }
 .invoice-header-contact .store-contact-line {
   margin: 0;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: bold;
   color: #000;
 }
@@ -1214,8 +1220,8 @@ const generatedByName = computed(() => {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin: 20px 0 6px;
-  padding-bottom: 6px;
+  margin: 2px 0 1px; /* further reduced from 10px 0 3px */
+  padding-bottom: 1px; /* further reduced from 3px */
   /*border-bottom: 1px solid #000;*/
   page-break-inside: avoid;
 }
@@ -1226,19 +1232,19 @@ const generatedByName = computed(() => {
 }
 .address-line {
   font-weight: 500;
-  margin-top: 2px;
+  margin-top: 1px;
   white-space: pre-line;
 }
 
 .bill-party-right {
   width: 40%;
-  margin-right: 8px;
+  margin-right: 4px;
 }
 
 /* Invoice Details Table */
 .invoice-details-table-print-safe {
   border-collapse: collapse;
-  font-size: 10px;
+  font-size: 8px;
   background: #ffffff;
   border: 1px solid #000;
   min-width: 280px;
@@ -1247,9 +1253,10 @@ const generatedByName = computed(() => {
 }
 .invoice-details-table-print-safe th,
 .invoice-details-table-print-safe td {
-  padding: 7px;
+  padding: 1px; /* further reduced from 4px */
   border: 1px solid #000;
   background: #ffffff;
+  font-size: 6px; /* reduced font size */
 }
 .invoice-details-table-print-safe .meta-label {
   font-weight: 600;
@@ -1300,7 +1307,7 @@ const generatedByName = computed(() => {
 
 /* Items table */
 .tax-invoice-items {
-  margin-top: 8px;
+  margin-top: 1px; /* further reduced from 2px */
 }
 .items-table {
   width: 100%;
@@ -1311,11 +1318,12 @@ const generatedByName = computed(() => {
 .items-table td {
   border: 1px solid #000;
   border-width: 1px;
-  padding: 2px; /* further reduced padding to fit 50 rows */
-  font-size: 9px; /* reduced font size to fit more content */
+  padding: 0.2px; /* minimal padding to maximize space */
+  font-size: 4px; /* further reduced font size for 96 rows */
   font-weight: 500;
   vertical-align: middle;
-  height: 12px; /* significantly reduced height to fit 50 rows */
+  height: 6px; /* minimal height for 96 rows */
+  line-height: 0.8;
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
@@ -1327,16 +1335,17 @@ const generatedByName = computed(() => {
 .items-table th {
   text-align: center;
   font-weight: 700;
-  font-size: 9px; /* matched with table cell font size */
-  padding: 3px; /* reduced padding to match cell height */
+  font-size: 4px; /* matched with table cell font size */
+  padding: 0.2px; /* minimal padding */
   border: 1px solid #000;
   background: #ffffff; /* Set to white for print consistency */
-  height: 12px; /* matched with table cell height */
+  height: 6px; /* matched with table cell height */
+  line-height: 0.8;
 }
 .item-name {
   font-weight: 500;
-  font-size: 8px; /* reduced to fit smaller cells */
-  line-height: 1.1;
+  font-size: 3px; /* further reduced to fit 96 rows */
+  line-height: 0.8;
 }
 .item-custom-fields {
   margin-top: 1px;
@@ -1348,11 +1357,11 @@ const generatedByName = computed(() => {
 }
 
 .item-row td {
-  height: 12px; /* matched with table cell height */
+  height: 6px; /* matched with table cell height */
   vertical-align: middle;
 }
 .item-row.blank-row td {
-  height: 12px; /* matched with table cell height */
+  height: 6px; /* matched with table cell height */
   border: 0.5px solid #000;
   vertical-align: middle;
 }
@@ -1366,7 +1375,7 @@ const generatedByName = computed(() => {
 
 /* FINAL TOTALS BOX */
 .final-totals-box {
-  margin: 4px 0 4px 0;
+  margin: 1px 0 1px 0; /* further reduced from 2px */
   border: 0px solid #000;
   background: #fff;
 }
@@ -1424,7 +1433,7 @@ const generatedByName = computed(() => {
 
 /* Bottom section: Bank + Terms + Sign */
 .bottom-section {
-  margin-top: 4px;
+  margin-top: 1px; /* further reduced from 2px */
   font-size: 13px;
   page-break-inside: avoid;
 }
@@ -1583,7 +1592,7 @@ const generatedByName = computed(() => {
 /* PRINT */
 @media print {
   @page {
-    margin: 0.5cm;
+    margin: 0.1cm;
     size: A4;
   }
 
@@ -1593,21 +1602,41 @@ const generatedByName = computed(() => {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
     background: #fff !important;
+    font-size: 4px !important;
   }
 
   * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+    font-size: inherit !important;
   }
 
   .invoice-header,
-  .bill-party-row,
-  .tax-invoice-items,
-  .final-totals-box,
-  .bottom-section,
-  .bank-details-box,
-  .bottom-boxes-row {
+  .bill-party-row {
     page-break-inside: avoid;
+  }
+
+  .tax-invoice-items {
+    page-break-inside: auto !important;
+  }
+  
+  .items-table {
+    page-break-inside: auto !important;
+  }
+  
+  .items-table tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .items-table,
+  .items-table th,
+  .items-table td {
+    border: 1px solid #000 !important;
+    border-width: 1px !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    font-size: 4px !important;
   }
 
   .invoice-header {
@@ -1641,9 +1670,17 @@ const generatedByName = computed(() => {
     border: 0px solid #000 !important;
   }
 
+  .final-totals-box,
+  .bottom-section,
+  .bank-details-box,
+  .bottom-boxes-row {
+    page-break-inside: avoid;
+  }
+  
   .final-totals-box .items-table td {
-    border: 0px solid #000 !important;
-    border-width: 0.5px !important;
+    font-size: 6px !important;
+    height: 12px !important;
+    padding: 2px !important;
   }
 
   .net-amount-label {
