@@ -244,7 +244,7 @@
                   colspan="3"
                   style="text-align: left;"
                 >
-                  {{ formatAmountCurrency(order.total) }}
+                  {{ formatAmountCurrency(finalNetAmount) }}
                 </td>
               </tr>
 
@@ -416,7 +416,7 @@ import BarcodeGenerator from '../../../../common/components/barcode/BarcodeGener
 import QRcodeGenerator from '../../../../common/components/barcode/QRcodeGenerator.vue';
 import { notification } from 'ant-design-vue';
 import { useI18n } from 'vue-i18n';
-// import html2pdf from 'html2pdf.js';
+import html2pdf from 'html2pdf.js';
 
 const posInvoiceCssUrl = window.config.pos_invoice_css;
 const ENTRY_PERSON_KEY = 'pos_entry_person_name';
@@ -474,53 +474,68 @@ export default defineComponent({
 
     // Debug
     watch(
-      () => props.order,
-      (o) => {
-        if (!o) return;
-      },
-      { immediate: true }
+  () => props.order,
+  (o) => {
+    if (!o) return;
+
+    console.log(
+      'POS Invoice Order:',
+      JSON.parse(JSON.stringify(o))
     );
 
-    const hsnMap = computed(() => {
-      try {
-        const raw = localStorage.getItem(PRODUCT_HSN_MAP_KEY);
-        return raw ? JSON.parse(raw) : {};
-      } catch (e) {
-        return {};
-      }
-    });
+    console.log(
+      'Entry Person Name:',
+      o.entry_person_name || '(not provided)'
+    );
 
-    const resolveHSN = (item) => {
-      if (!item || item.__blank) return '';
+    if (Array.isArray(o.items)) {
+      console.log(
+        'POS Invoice Order Items:',
+        JSON.parse(JSON.stringify(o.items))
+      );
+    }
+  },
+  { immediate: true }
+);
 
-      // 1️⃣ Direct HSN on item
-      if (item.hsn || item.hsn_code) {
-        return item.hsn || item.hsn_code;
-      }
+const hsnMap = computed(() => {
+  try {
+    const raw = localStorage.getItem(PRODUCT_HSN_MAP_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    return {};
+  }
+});
+const resolveHSN = (item) => {
+  if (!item || item.__blank) return '';
 
-      // 2️⃣ HSN on product object
-      if (item.product) {
-        if (item.product.hsn || item.product.hsn_code) {
-          return item.product.hsn || item.product.hsn_code;
-        }
-      }
+  // 1️⃣ Direct HSN on item
+  if (item.hsn || item.hsn_code) {
+    return item.hsn || item.hsn_code;
+  }
 
-      // 3️⃣ Resolve product ID SAFELY
-      const productId =
-        item.x_product_id ||
-        item.product?.xid ||
-        item.product_id ||
-        item.xid; // last fallback (safe)
+  // 2️⃣ HSN on product object
+  if (item.product) {
+    if (item.product.hsn || item.product.hsn_code) {
+      return item.product.hsn || item.product.hsn_code;
+    }
+  }
 
-      // 4️⃣ Lookup from localStorage map
-      if (productId && hsnMap.value[String(productId)]) {
-        return hsnMap.value[String(productId)];
-      }
+  // 3️⃣ Resolve product ID SAFELY
+  const productId =
+    item.x_product_id ||
+    item.product?.xid ||
+    item.product_id ||
+    item.xid; // last fallback (safe)
 
-      // 5️⃣ Final fallback
-      return '-';
-    };
+  // 4️⃣ Lookup from localStorage map
+  if (productId && hsnMap.value[String(productId)]) {
+    return hsnMap.value[String(productId)];
+  }
 
+  // 5️⃣ Final fallback
+  return '-';
+};
     const downloadPdf = async () => {
       await nextTick();
 
@@ -672,27 +687,10 @@ const generatedByName = computed(() => {
 
     const isIntraState = computed(() => customerState.value === 'Gujarat');
 
-    // Helper to get the correct items array from order
-    const getOrderItems = () => {
-      if (!props.order) return [];
-      
-      // Check all possible keys in order of preference
-      const possibleKeys = ['items', 'order_items', 'details', 'products', 'sale_items', 'product_items'];
-      
-      for (const key of possibleKeys) {
-        if (Array.isArray(props.order[key]) && props.order[key].length > 0) {
-          return props.order[key];
-        }
-      }
-      
-      return [];
-    };
-
     const totalTaxAmount = computed(() => {
-      const items = getOrderItems();
-      if (!Array.isArray(items)) return 0;
+      if (!props.order?.items || !Array.isArray(props.order.items)) return 0;
 
-      return items.reduce((sum, item) => {
+      return props.order.items.reduce((sum, item) => {
         return sum + Number(item.total_tax || 0);
       }, 0);
     });
@@ -899,24 +897,36 @@ const generatedByName = computed(() => {
     };
 
    const getGrossAmount = (order) => {
-  const items = getOrderItems();
-  if (!Array.isArray(items)) return 0;
+  if (!order?.items || !Array.isArray(order.items)) return 0;
 
-  return items.reduce((sum, item) => {
+  return order.items.reduce((sum, item) => {
     const subtotal = Number(item.subtotal || 0);
-    const tax = Number(item.total_tax || item.tax_amount || 0);
+    const tax = Number(item.total_tax ?? item.tax_amount ?? 0);
 
-    return sum + (subtotal - tax);
+    return sum + subtotal;
   }, 0);
 };
 
+const getItemTax = (item) => {
+  return Number(item.total_tax ?? item.tax_amount ?? 0);
+};
+
+const finalNetAmount = computed(() => {
+  return (
+    getGrossAmount(props.order) +
+    computedSGST.value +
+    computedCGST.value +
+    computedIGST.value
+  );
+});
+
+
 
     const gstSummary = computed(() => {
-      const items = getOrderItems();
-      if (!Array.isArray(items)) return [];
+      if (!props.order?.items || !Array.isArray(props.order.items)) return [];
 
       const summary = {};
-      items.forEach(item => {
+      props.order.items.forEach(item => {
         const rate = getTaxRate(item);
         if (rate) {
           if (!summary[rate]) {
@@ -960,7 +970,9 @@ const generatedByName = computed(() => {
     });
 
     const paddedItems = computed(() => {
-      const items = getOrderItems();
+      const items = Array.isArray(props.order?.items)
+        ? props.order.items
+        : [];
       const MIN_ROWS = 20; // Fixed 20 rows for A4 format
       const blanksToAdd = Math.max(0, MIN_ROWS - items.length);
 
