@@ -562,6 +562,11 @@ const getProductDisplayName = (item) => {
     fetchProductData(item.x_product_id);
   }
   
+  // Show loading state while fetching product data
+  if (item.x_product_id && fetchingProducts.value.has(item.x_product_id)) {
+    return 'Loading...';
+  }
+  
   // Last resort - show item ID or generic placeholder
   if (item.xid) {
     return `Product ID: ${item.xid}`;
