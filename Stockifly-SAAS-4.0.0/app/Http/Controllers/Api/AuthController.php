@@ -202,31 +202,23 @@ class AuthController extends ApiBaseController
             ->where('unique_id', $uniqueId)
             ->first();
 
-        // Ensure all items have products loaded - fix for missing product names
+        // FIX MISSING PRODUCT RELATION
         if ($order && $order->items) {
             foreach ($order->items as $item) {
                 if (!$item->product && $item->product_id) {
-                    try {
-                        // Manually load missing product
-                        $product = \App\Models\Product::find($item->product_id);
-                        if ($product) {
-                            $item->product = $product;
-                        } else {
-                            // Create a dummy product object to prevent errors
-                            $item->product = (object)[
-                                'id' => $item->product_id,
-                                'name' => 'Product ID: ' . $item->product_id,
-                                'item_code' => null
-                            ];
-                        }
-                    } catch (\Exception $e) {
-                        // Create fallback product object on any error
-                        $item->product = (object)[
+                    $product = \App\Models\Product::find($item->product_id);
+
+                    // Fallback product object
+                    if (!$product) {
+                        $product = new \App\Models\Product([
                             'id' => $item->product_id,
-                            'name' => 'Product ID: ' . ($item->product_id ?? 'N/A'),
+                            'name' => 'Product ID: ' . $item->product_id,
                             'item_code' => null
-                        ];
+                        ]);
                     }
+
+                    // IMPORTANT FIX
+                    $item->setRelation('product', $product);
                 }
             }
         }
@@ -270,16 +262,23 @@ class AuthController extends ApiBaseController
         $staffMember = StaffMember::withoutGlobalScope(CompanyScope::class)->find($order->staff_user_id);
         $customer = Customer::withoutGlobalScope(CompanyScope::class)->find($order->user_id);
 
+        // Use the same comprehensive data structure as getInvoiceData for consistency
         $pdfData = [
             'orderStatusText' => $orderStatusText,
             'paymentStatusText' => $paymentStatusText,
             'order' => $order,
+            'items' => $order->items ?? [],
+            'order_items' => $order->items ?? [], // Alternative key for frontend
+            'details' => $order->items ?? [], // Alternative key for frontend
+            'products' => $order->items ?? [], // Alternative key for frontend
+            'sale_items' => $order->items ?? [], // Alternative key for frontend
+            'product_items' => $order->items ?? [], // Alternative key for frontend
+            'warehouse' => $warehouse,
+            'customer' => $customer,
+            'staffMember' => $staffMember,
             'company' => Company::with('currency')->find($order->company_id),
             'dateTimeFormat' => 'd-m-Y',
-            'traslations' => $invoiceTranslation,
-            'warehouse' => $warehouse,
-            'staffMember' => $staffMember,
-            'customer' =>  $customer
+            'traslations' => $invoiceTranslation
         ];
 
         $pdf = PDF::loadView('pdf', $pdfData);
