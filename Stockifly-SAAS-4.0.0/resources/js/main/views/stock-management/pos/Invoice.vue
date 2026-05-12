@@ -157,8 +157,10 @@
 
                 <!-- Item name + custom fields -->
                 <td>
-                  <div class="item-name">
-                    {{ item.__blank ? '' : item.product?.name }}
+                  <div class="item-name" v-if="!item.__blank">
+                    {{ getProductDisplayName(item) }}
+                  </div>
+                  <div class="item-name" v-else>
                   </div>
 
                   <div
@@ -535,6 +537,32 @@ const resolveHSN = (item) => {
 
   // 5️⃣ Final fallback
   return '-';
+};
+
+const getProductDisplayName = (item) => {
+  if (!item) return '';
+  
+  // Try to get product name from product relationship
+  if (item.product && item.product.name) {
+    return item.product.name;
+  }
+  
+  // Fallback to item name if available
+  if (item.name) {
+    return item.name;
+  }
+  
+  // Fallback to product name directly on item
+  if (item.product_name) {
+    return item.product_name;
+  }
+  
+  // Last resort - show item ID or generic placeholder
+  if (item.xid) {
+    return `Product ID: ${item.xid}`;
+  }
+  
+  return 'Unknown Product';
 };
     const downloadPdf = async () => {
       await nextTick();
@@ -1015,6 +1043,7 @@ const generatedByName = computed(() => {
       dueAmount,
       generatedByName,
       resolveHSN,
+      getProductDisplayName,
     };
   },
 });
