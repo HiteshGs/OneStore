@@ -557,6 +557,11 @@ const getProductDisplayName = (item) => {
     return item.product_name;
   }
   
+  // If we have x_product_id but no product data, fetch it
+  if (item.x_product_id && !item.product) {
+    fetchProductData(item.x_product_id);
+  }
+  
   // Last resort - show item ID or generic placeholder
   if (item.xid) {
     return `Product ID: ${item.xid}`;
@@ -564,6 +569,55 @@ const getProductDisplayName = (item) => {
   
   return 'Unknown Product';
 };
+
+const productCache = ref(new Map());
+const fetchingProducts = ref(new Set());
+
+const fetchProductData = async (xProductId) => {
+  if (!xProductId || productCache.value.has(xProductId) || fetchingProducts.value.has(xProductId)) {
+    return;
+  }
+  
+  fetchingProducts.value.add(xProductId);
+  
+  try {
+    const response = await axiosAdmin.get(`products/${xProductId}`);
+    const product = response.data.data;
+    
+    if (product && product.name) {
+      productCache.value.set(xProductId, product.name);
+      
+      // Update all items in the order that have this x_product_id
+      if (props.order && props.order.items) {
+        props.order.items.forEach(item => {
+          if (item.x_product_id === xProductId && !item.product) {
+            item.product = { name: product.name };
+          }
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Failed to fetch product data:', error);
+  } finally {
+    fetchingProducts.value.delete(xProductId);
+  }
+};
+
+// Watch for order changes and fetch missing product data
+watch(
+  () => props.order,
+  (newOrder) => {
+    if (!newOrder || !newOrder.items) return;
+    
+    // Fetch product data for items that have x_product_id but no product object
+    newOrder.items.forEach(item => {
+      if (item.x_product_id && !item.product && !productCache.value.has(item.x_product_id)) {
+        fetchProductData(item.x_product_id);
+      }
+    });
+  },
+  { immediate: true }
+);
     const downloadPdf = async () => {
       await nextTick();
 
@@ -1044,6 +1098,9 @@ const generatedByName = computed(() => {
       generatedByName,
       resolveHSN,
       getProductDisplayName,
+      productCache,
+      fetchProductData,
+      fetchingProducts,
     };
   },
 });
