@@ -514,7 +514,7 @@ const resolveHSN = (item) => {
     return item.hsn || item.hsn_code;
   }
 
-  // 2️⃣ Stored product_hsn_code on item (from database)
+  // 2️⃣ Stored product_hsn_code on item (from database - fallback for deleted products)
   if (item.product_hsn_code) {
     return item.product_hsn_code;
   }

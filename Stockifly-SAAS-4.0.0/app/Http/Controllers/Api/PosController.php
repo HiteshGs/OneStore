@@ -194,6 +194,15 @@ class PosController extends ApiBaseController
                 $item->product_image = $item->product->image;
                 $item->product_hsn_code = $item->product->hsn_code ?? null;
                 $item->save();
+            } elseif ($item->product_id && !$item->product_name) {
+                // If product was deleted but we still have product_id, try to get from Product model
+                $product = Product::withTrashed()->find($item->product_id);
+                if ($product) {
+                    $item->product_name = $product->name;
+                    $item->product_image = $product->image;
+                    $item->product_hsn_code = $product->hsn_code ?? null;
+                    $item->save();
+                }
             }
         }
 
@@ -235,7 +244,7 @@ class PosController extends ApiBaseController
         Common::updateOrderAmount($order->id);
 
         $savedOrder = Order::select('id', 'unique_id', 'invoice_number', 'user_id', 'staff_user_id', 'order_date', 'discount', 'shipping', 'tax_amount', 'subtotal', 'total', 'paid_amount', 'due_amount', 'total_items', 'total_quantity')
-            ->with(['user:id,name,email', 'items:id,order_id,product_id,unit_id,unit_price,subtotal,quantity,mrp,total_tax,single_unit_price,tax_rate,tax_type', 'items.product:id,name,image,hsn_code,product_type', 'items.unit:id,name,short_name', 'items.product.details:id,product_id,warehouse_id,current_stock', 'orderPayments:id,order_id,payment_id,amount', 'orderPayments.payment:id,payment_mode_id', 'orderPayments.payment.paymentMode:id,name', 'staffMember:id,name'])
+            ->with(['user:id,name,email', 'items:id,order_id,product_id,unit_id,unit_price,subtotal,quantity,mrp,total_tax,single_unit_price,tax_rate,tax_type,product_name,product_image,product_hsn_code', 'items.product:id,name,image,hsn_code,product_type', 'items.unit:id,name,short_name', 'items.product.details:id,product_id,warehouse_id,current_stock', 'orderPayments:id,order_id,payment_id,amount', 'orderPayments.payment:id,payment_mode_id', 'orderPayments.payment.paymentMode:id,name', 'staffMember:id,name'])
             ->find($order->id);
 
         $totalMrp = 0;

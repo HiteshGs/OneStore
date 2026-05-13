@@ -627,6 +627,12 @@ class Common
                 $orderItem->tax_type = $productItem->tax_type;
                 $orderItem->subtotal = $productItem->subtotal;
                 $orderItem->single_unit_price = $productItem->single_unit_price;
+                
+                // Store product details to preserve data even if product is deleted
+                $orderItem->product_name = isset($productItem->name) ? $productItem->name : null;
+                $orderItem->product_image = isset($productItem->image) ? $productItem->image : null;
+                $orderItem->product_hsn_code = isset($productItem->hsn_code) ? $productItem->hsn_code : null;
+                
                 $orderItem->save();
 
                 // Inserting sub taxes
