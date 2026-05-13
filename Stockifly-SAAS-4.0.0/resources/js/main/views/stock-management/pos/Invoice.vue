@@ -478,22 +478,51 @@ export default defineComponent({
       async (newOrder) => {
         if (!newOrder || !newOrder.items) return;
 
+        console.log('🔍 Invoice: Checking order items for missing products...');
+        console.log('📦 Total items:', newOrder.items.length);
+
         // For each item that has null product, fetch product data
         for (const item of newOrder.items) {
           if (!item.product && item.x_product_id) {
+            console.log(`⚠️ Item missing product data:`, {
+              x_product_id: item.x_product_id,
+              quantity: item.quantity,
+              unit_price: item.unit_price
+            });
+            
             try {
+              console.log(`🔄 Fetching product: ${item.x_product_id}...`);
+              
               // Fetch product by xid
               const response = await axiosAdmin.get(`products/${item.x_product_id}`);
+              
               if (response.data && response.data.product) {
                 // Assign product data to item
                 item.product = response.data.product;
+                
+                console.log(`✅ Product fetched successfully:`, {
+                  x_product_id: item.x_product_id,
+                  name: item.product.name,
+                  hsn_code: item.product.hsn_code || 'N/A'
+                });
+              } else {
+                console.log(`⚠️ Product API returned empty data for: ${item.x_product_id}`);
               }
             } catch (error) {
-              console.error(`Failed to fetch product ${item.x_product_id}:`, error);
+              console.error(`❌ Failed to fetch product ${item.x_product_id}:`, error);
               // Keep product as null, will show fallback
             }
+          } else if (item.product) {
+            console.log(`✓ Item already has product:`, {
+              x_product_id: item.x_product_id,
+              name: item.product.name
+            });
+          } else {
+            console.log(`⚠️ Item has no x_product_id:`, item);
           }
         }
+
+        console.log('✅ Invoice: Finished checking all items');
       },
       { immediate: true, deep: true }
     );
