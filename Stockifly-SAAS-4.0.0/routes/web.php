@@ -72,7 +72,6 @@ ApiRoute::group(['namespace' => 'App\Http\Controllers\Api'], function () {
             ApiRoute::post('pos/products', ['as' => 'api.pos.products', 'uses' => 'PosController@posProducts']);
             ApiRoute::post('pos/payment', ['as' => 'api.pos.payment', 'uses' => 'PosController@addPosPayment']);
             ApiRoute::post('pos/save', ['as' => 'api.pos.save', 'uses' => 'PosController@savePosPayments']);
-            ApiRoute::get('pos/order/{xid}', ['as' => 'api.pos.order', 'uses' => 'PosController@getOrderForInvoice']);
             ApiRoute::post('product-warehouse-stock', ['as' => 'api.products.product-warehouse-stock', 'uses' => 'ProductController@getWarehouseStock']);
 
             ApiRoute::get('stock-alerts', ['as' => 'api.orders.items', 'uses' => 'AuthController@stockAlerts']);
