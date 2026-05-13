@@ -478,53 +478,62 @@ export default defineComponent({
       async (newOrder) => {
         if (!newOrder || !newOrder.items) return;
 
-        console.log('🔍 Invoice: Checking order items for missing products...');
-        console.log('📦 Total items:', newOrder.items.length);
-
-        // For each item that has null product, fetch product data
-        for (const item of newOrder.items) {
+        // Collect all missing product IDs
+        const missingProductIds = [];
+        newOrder.items.forEach(item => {
           if (!item.product && item.x_product_id) {
-            console.log(`⚠️ Item missing product data:`, {
-              x_product_id: item.x_product_id,
-              quantity: item.quantity,
-              unit_price: item.unit_price
-            });
-            
-            try {
-              console.log(`🔄 Fetching product: ${item.x_product_id}...`);
-              
-              // Fetch product by xid
-              const response = await axiosAdmin.get(`products/${item.x_product_id}`);
-              
-              if (response.data && response.data.product) {
-                // Assign product data to item
-                item.product = response.data.product;
-                
-                console.log(`✅ Product fetched successfully:`, {
-                  x_product_id: item.x_product_id,
-                  name: item.product.name,
-                  hsn_code: item.product.hsn_code || 'N/A'
-                });
-              } else {
-                console.log(`⚠️ Product API returned empty data for: ${item.x_product_id}`);
-              }
-            } catch (error) {
-              console.error(`❌ Failed to fetch product ${item.x_product_id}:`, error);
-              // Keep product as null, will show fallback
-            }
-          } else if (item.product) {
-            console.log(`✓ Item already has product:`, {
-              x_product_id: item.x_product_id,
-              name: item.product.name
-            });
-          } else {
-            console.log(`⚠️ Item has no x_product_id:`, item);
+            missingProductIds.push(item.x_product_id);
           }
+        });
+
+        if (missingProductIds.length === 0) {
+          console.log('✅ All products already loaded');
+          return;
         }
 
-        console.log('✅ Invoice: Finished checking all items');
+        console.log(`🔄 Fetching ${missingProductIds.length} missing products...`);
+
+        // Fetch all missing products in parallel
+        const fetchPromises = missingProductIds.map(async (productId) => {
+          try {
+            const response = await axiosAdmin.get(`products/${productId}`);
+            return {
+              productId,
+              success: true,
+              data: response.data?.product || null
+            };
+          } catch (error) {
+            console.error(`Failed to fetch ${productId}:`, error.message);
+            return {
+              productId,
+              success: false,
+              data: null
+            };
+          }
+        });
+
+        // Wait for all fetches to complete
+        const results = await Promise.all(fetchPromises);
+
+        // Create a map of productId -> product data
+        const productMap = {};
+        results.forEach(result => {
+          if (result.success && result.data) {
+            productMap[result.productId] = result.data;
+          }
+        });
+
+        // Assign fetched products to items
+        newOrder.items.forEach(item => {
+          if (!item.product && item.x_product_id && productMap[item.x_product_id]) {
+            item.product = productMap[item.x_product_id];
+          }
+        });
+
+        const successCount = Object.keys(productMap).length;
+        console.log(`✅ Successfully fetched ${successCount}/${missingProductIds.length} products`);
       },
-      { immediate: true, deep: true }
+      { immediate: true }
     );
 
     // Debug
