@@ -486,21 +486,24 @@ export default defineComponent({
         try {
           const response = await axiosAdmin.get(`pos/invoice/${invoiceNumber}`);
           
-          if (response.data && response.data.order) {
+          console.log(`📦 API Response:`, response.data);
+          console.log(`📊 Items received from API: ${response.data?.order?.items?.length || 0}`);
+          console.log(`📋 Props order items before replacement: ${props.order?.items?.length || 0}`);
+          
+          if (response.data && response.data.order && response.data.order.items) {
             completeOrderData.value = response.data;
             
-            // Merge complete data with props.order
-            if (props.order && props.order.items) {
-              props.order.items.forEach((item, index) => {
-                if (completeOrderData.value.order.items[index]) {
-                  // Assign complete product data
-                  item.product = completeOrderData.value.order.items[index].product;
-                  item.unit = completeOrderData.value.order.items[index].unit;
-                }
-              });
+            // REPLACE props.order.items with complete data from API
+            if (props.order) {
+              console.log(`🔀 Replacing ${props.order.items?.length || 0} items with ${completeOrderData.value.order.items.length} complete items`);
+              
+              // Replace the entire items array
+              props.order.items = completeOrderData.value.order.items;
+              
+              console.log(`✅ After replacement, props.order.items.length: ${props.order.items.length}`);
             }
             
-            console.log(`✅ Invoice data loaded successfully`);
+            console.log(`✅ Invoice data loaded successfully - Total items: ${props.order.items.length}`);
           }
         } catch (error) {
           console.error(`❌ Failed to fetch invoice data:`, error);
@@ -1003,6 +1006,9 @@ const generatedByName = computed(() => {
       const items = Array.isArray(props.order?.items)
         ? props.order.items
         : [];
+      
+      console.log(`🎯 paddedItems computed - Total items: ${items.length}`);
+      
       const MIN_ROWS = 20; // Fixed 20 rows for A4 format
       const blanksToAdd = Math.max(0, MIN_ROWS - items.length);
 
@@ -1014,7 +1020,10 @@ const generatedByName = computed(() => {
         }),
       );
 
-      return [...items, ...blankRows];
+      const result = [...items, ...blankRows];
+      console.log(`📄 paddedItems result - Total rows (items + blanks): ${result.length}`);
+      
+      return result;
     });
 
     const paidAmount = computed(() => {

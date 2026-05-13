@@ -300,6 +300,8 @@ class PosController extends ApiBaseController
                 )
                 ->get();
 
+            \Log::info("📊 getInvoiceData - Invoice: {$invoiceNumber}, Total rows from DB: " . $orderData->count());
+
             if ($orderData->isEmpty()) {
                 throw new ApiException('Order not found');
             }
@@ -370,6 +372,8 @@ class PosController extends ApiBaseController
                     'tax_percentage' => $row->tax_percentage
                 ];
             }
+
+            \Log::info("✅ getInvoiceData - Response items count: " . count($response['order']['items']));
 
             return ApiResponse::make('Invoice data fetched successfully', $response);
 
