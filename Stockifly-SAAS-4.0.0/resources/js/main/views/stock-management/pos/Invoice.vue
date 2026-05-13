@@ -465,6 +465,8 @@ export default defineComponent({
 
     const isSending = ref(false);
     const isVerified = ref('');
+    const completeOrderData = ref(null);
+    const isLoadingInvoice = ref(false);
 
     onMounted(() => {
       axiosAdmin.get('verified-email').then(response => {
@@ -472,66 +474,39 @@ export default defineComponent({
       });
     });
 
-    // Enrich order items with product data when order changes
+    // Fetch complete invoice data when order changes
     watch(
-      () => props.order,
-      async (newOrder) => {
-        if (!newOrder || !newOrder.items) return;
+      () => props.order?.invoice_number,
+      async (invoiceNumber) => {
+        if (!invoiceNumber) return;
 
-        // Collect all missing product IDs
-        const missingProductIds = [];
-        newOrder.items.forEach(item => {
-          if (!item.product && item.x_product_id) {
-            missingProductIds.push(item.x_product_id);
+        console.log(`🔄 Fetching complete invoice data for: ${invoiceNumber}`);
+        isLoadingInvoice.value = true;
+
+        try {
+          const response = await axiosAdmin.get(`pos/invoice/${invoiceNumber}`);
+          
+          if (response.data && response.data.order) {
+            completeOrderData.value = response.data;
+            
+            // Merge complete data with props.order
+            if (props.order && props.order.items) {
+              props.order.items.forEach((item, index) => {
+                if (completeOrderData.value.order.items[index]) {
+                  // Assign complete product data
+                  item.product = completeOrderData.value.order.items[index].product;
+                  item.unit = completeOrderData.value.order.items[index].unit;
+                }
+              });
+            }
+            
+            console.log(`✅ Invoice data loaded successfully`);
           }
-        });
-
-        if (missingProductIds.length === 0) {
-          console.log('✅ All products already loaded');
-          return;
+        } catch (error) {
+          console.error(`❌ Failed to fetch invoice data:`, error);
+        } finally {
+          isLoadingInvoice.value = false;
         }
-
-        console.log(`🔄 Fetching ${missingProductIds.length} missing products...`);
-
-        // Fetch all missing products in parallel
-        const fetchPromises = missingProductIds.map(async (productId) => {
-          try {
-            const response = await axiosAdmin.get(`products/${productId}`);
-            return {
-              productId,
-              success: true,
-              data: response.data?.product || null
-            };
-          } catch (error) {
-            console.error(`Failed to fetch ${productId}:`, error.message);
-            return {
-              productId,
-              success: false,
-              data: null
-            };
-          }
-        });
-
-        // Wait for all fetches to complete
-        const results = await Promise.all(fetchPromises);
-
-        // Create a map of productId -> product data
-        const productMap = {};
-        results.forEach(result => {
-          if (result.success && result.data) {
-            productMap[result.productId] = result.data;
-          }
-        });
-
-        // Assign fetched products to items
-        newOrder.items.forEach(item => {
-          if (!item.product && item.x_product_id && productMap[item.x_product_id]) {
-            item.product = productMap[item.x_product_id];
-          }
-        });
-
-        const successCount = Object.keys(productMap).length;
-        console.log(`✅ Successfully fetched ${successCount}/${missingProductIds.length} products`);
       },
       { immediate: true }
     );
