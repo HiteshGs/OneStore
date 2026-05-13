@@ -465,6 +465,8 @@ export default defineComponent({
 
     const isSending = ref(false);
     const isVerified = ref('');
+    const loadedOrder = ref(null);
+    const isLoadingOrder = ref(false);
 
     onMounted(() => {
       axiosAdmin.get('verified-email').then(response => {
@@ -472,9 +474,56 @@ export default defineComponent({
       });
     });
 
+    // Fetch complete order data when order xid changes
+    watch(
+      () => props.order?.xid,
+      (newXid) => {
+        if (newXid && props.visible) {
+          fetchCompleteOrderData(newXid);
+        }
+      },
+      { immediate: true }
+    );
+
+    // Also fetch when modal becomes visible
+    watch(
+      () => props.visible,
+      (isVisible) => {
+        if (isVisible && props.order?.xid) {
+          fetchCompleteOrderData(props.order.xid);
+        }
+      }
+    );
+
+    const fetchCompleteOrderData = async (xid) => {
+      if (!xid) return;
+      
+      isLoadingOrder.value = true;
+      try {
+        const response = await axiosAdmin.get(`pos/order/${xid}`);
+        if (response.data && response.data.order) {
+          loadedOrder.value = response.data.order;
+          console.log('Loaded complete order data:', loadedOrder.value);
+        }
+      } catch (error) {
+        console.error('Error fetching order data:', error);
+        notification.error({
+          message: 'Error',
+          description: 'Failed to load complete order data',
+        });
+      } finally {
+        isLoadingOrder.value = false;
+      }
+    };
+
+    // Use loaded order if available, otherwise fall back to props
+    const currentOrder = computed(() => {
+      return loadedOrder.value || props.order;
+    });
+
     // Debug
     watch(
-  () => props.order,
+  () => currentOrder.value,
   (o) => {
     if (!o) return;
 
@@ -1020,6 +1069,8 @@ const generatedByName = computed(() => {
       dueAmount,
       generatedByName,
       resolveHSN,
+      order: currentOrder,
+      isLoadingOrder,
     };
   },
 });
