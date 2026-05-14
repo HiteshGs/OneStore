@@ -144,6 +144,34 @@ class PosController extends ApiBaseController
         $oldOrderId = "";
         $posDefaultStatus = $warehouse->default_pos_order_status;
 
+        // Debug logging
+        \Log::info('📥 POS Save Request:', [
+            'details' => $orderDetails,
+            'all_payments' => $request->input('all_payments'),
+            'product_items_count' => count($request->input('product_items', [])),
+        ]);
+
+        // Validate required fields in details
+        if (!$orderDetails) {
+            \Log::error('❌ Missing order details');
+            throw new ApiException('Order details are required');
+        }
+
+        $requiredFields = ['subtotal', 'tax_amount', 'discount', 'shipping'];
+        foreach ($requiredFields as $field) {
+            if (!isset($orderDetails[$field])) {
+                \Log::error("❌ Missing required field in details: {$field}");
+                throw new ApiException("Missing required field: {$field}");
+            }
+        }
+
+        // Validate product_items
+        $productItems = $request->input('product_items', []);
+        if (!is_array($productItems) || count($productItems) == 0) {
+            \Log::error('❌ Missing or empty product_items');
+            throw new ApiException('At least one product item is required');
+        }
+
         $allPayments = $request->input('all_payments', []);
         if (!is_array($allPayments)) {
             $allPayments = [];

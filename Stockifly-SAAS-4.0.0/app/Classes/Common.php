@@ -589,6 +589,17 @@ class Common
             foreach ($productItems as $productItem) {
                 $productItem = (object) $productItem;
 
+                // Debug logging
+                \Log::info('📦 Processing product item:', [
+                    'xid' => $productItem->xid ?? 'MISSING',
+                    'item_id' => $productItem->item_id ?? 'NOT SET',
+                    'quantity' => $productItem->quantity ?? 'MISSING',
+                    'unit_price' => $productItem->unit_price ?? 'MISSING',
+                    'x_unit_id' => $productItem->x_unit_id ?? 'NOT SET',
+                    'tax_rate' => $productItem->tax_rate ?? 'MISSING',
+                    'subtotal' => $productItem->subtotal ?? 'MISSING',
+                ]);
+
                 if ($productItem->item_id == '' || $productItem->item_id == null) {
                     $orderItem = new OrderItem();
                     $stockHistoryQuantity = $productItem->quantity;

@@ -279,6 +279,33 @@ export default {
         : localStorage.removeItem(PRODUCT_HSN_MAP_KEY);
 
       // ✅ API CALL
+      console.log("📤 Sending data to pos/save:", {
+        all_payments: allPaymentRecords.value,
+        product_items_count: props.selectedProducts.length,
+        details: props.data,
+        entry_person_name: localStorage.getItem(ENTRY_PERSON_KEY) || null,
+      });
+
+      // Validate required fields in details
+      if (!props.data || typeof props.data !== 'object') {
+        console.error('❌ Invalid details object');
+        return;
+      }
+
+      const requiredDetailFields = ['subtotal', 'tax_amount', 'discount', 'shipping'];
+      const missingFields = requiredDetailFields.filter(field => props.data[field] === undefined || props.data[field] === null);
+      
+      if (missingFields.length > 0) {
+        console.error('❌ Missing required fields in details:', missingFields);
+        return;
+      }
+
+      // Validate product_items
+      if (!props.selectedProducts || props.selectedProducts.length === 0) {
+        console.error('❌ No products selected');
+        return;
+      }
+
       addEditRequestAdmin({
         url: "pos/save",
         data: {
