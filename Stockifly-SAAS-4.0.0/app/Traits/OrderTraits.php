@@ -80,7 +80,7 @@ trait OrderTraits
             $selectProductIds = [];
             $sn = 1;
 
-            $allOrderIteams = OrderItem::with(['product:id,name,image,hsn_code,product_type', 'unit:id,name,short_name'])->where('order_id', $id)->get();
+            $allOrderIteams = OrderItem::with('product')->where('order_id', $id)->get();
 
             foreach ($allOrderIteams as $allOrderIteam) {
 
@@ -100,9 +100,9 @@ trait OrderTraits
                     'sn'    =>  $sn,
                     'xid'    =>  Common::getHashFromId($allOrderIteam->product_id),
                     'item_id'    =>  $allOrderIteam->xid,
-                    'name'    =>  $allOrderIteam->product ? $allOrderIteam->product->name : ($allOrderIteam->product_name ?: 'Product Not Found'),
-                    'image'    =>  $allOrderIteam->product ? $allOrderIteam->product->image : $allOrderIteam->product_image,
-                    'image_url'    =>  $allOrderIteam->product ? $allOrderIteam->product->image_url : null,
+                    'name'    =>  $allOrderIteam->product->name,
+                    'image'    =>  $allOrderIteam->product->image,
+                    'image_url'    =>  $allOrderIteam->product->image_url,
                     'x_tax_id'    =>   Common::getHashFromId($allOrderIteam->tax_id),
                     'discount_rate'    =>  $allOrderIteam->discount_rate,
                     'total_discount'    =>  $allOrderIteam->total_discount,
@@ -117,7 +117,7 @@ trait OrderTraits
                     'unit'    =>  $unit,
                     'stock_quantity' => $maxQuantity,
                     'unit_short_name' => $unit && $unit->short_name ? $unit->short_name : '',
-                    'product_type' => $allOrderIteam->product ? $allOrderIteam->product->product_type : null,
+                    'product_type' => $allOrderIteam->product->product_type,
                 ];
 
                 $selectProductIds[] = Common::getHashFromId($allOrderIteam->product_id);

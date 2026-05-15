@@ -1,3 +1,4 @@
+
 <?php
 
 namespace App\Http\Controllers\Api;
@@ -144,6 +145,34 @@ class PosController extends ApiBaseController
         $oldOrderId = "";
         $posDefaultStatus = $warehouse->default_pos_order_status;
 
+        // Debug logging
+        \Log::info('📥 POS Save Request:', [
+            'details' => $orderDetails,
+            'all_payments' => $request->input('all_payments'),
+            'product_items_count' => count($request->input('product_items', [])),
+        ]);
+
+        // Validate required fields in details
+        if (!$orderDetails) {
+            \Log::error('❌ Missing order details');
+            throw new ApiException('Order details are required');
+        }
+
+        $requiredFields = ['subtotal', 'tax_amount', 'discount', 'shipping'];
+        foreach ($requiredFields as $field) {
+            if (!isset($orderDetails[$field])) {
+                \Log::error("❌ Missing required field in details: {$field}");
+                throw new ApiException("Missing required field: {$field}");
+            }
+        }
+
+        // Validate product_items
+        $productItems = $request->input('product_items', []);
+        if (!is_array($productItems) || count($productItems) == 0) {
+            \Log::error('❌ Missing or empty product_items');
+            throw new ApiException('At least one product item is required');
+        }
+
         $allPayments = $request->input('all_payments', []);
         if (!is_array($allPayments)) {
             $allPayments = [];
@@ -225,7 +254,7 @@ class PosController extends ApiBaseController
         Common::updateOrderAmount($order->id);
 
         $savedOrder = Order::select('id', 'unique_id', 'invoice_number', 'user_id', 'staff_user_id', 'order_date', 'discount', 'shipping', 'tax_amount', 'subtotal', 'total', 'paid_amount', 'due_amount', 'total_items', 'total_quantity')
-            ->with(['user:id,name,email', 'items:id,order_id,product_id,unit_id,unit_price,subtotal,quantity,mrp,total_tax','items.product', 'items.product:id,name', 'items.unit:id,name,short_name', 'orderPayments:id,order_id,payment_id,amount', 'orderPayments.payment:id,payment_mode_id', 'orderPayments.payment.paymentMode:id,name', 'staffMember:id,name'])
+            ->with(['user:id,name,email', 'items:id,order_id,product_id,unit_id,unit_price,subtotal,quantity,mrp,total_tax,single_unit_price,tax_rate,tax_type,product_name,product_image,product_hsn_code', 'items.product:id,name,image,hsn_code,product_type', 'items.unit:id,name,short_name', 'items.product.details:id,product_id,warehouse_id,current_stock', 'orderPayments:id,order_id,payment_id,amount', 'orderPayments.payment:id,payment_mode_id', 'orderPayments.payment.paymentMode:id,name', 'staffMember:id,name'])
             ->find($order->id);
 
         $totalMrp = 0;
@@ -245,5 +274,141 @@ class PosController extends ApiBaseController
         return ApiResponse::make('POS Data Saved', [
             'order' => $savedOrder,
         ]);
+    }
+
+    public function getInvoiceData($invoiceNumber)
+    {
+        try {
+            // Get order with complete product details using the SQL query
+            $orderData = \DB::table('orders as o')
+                ->join('order_items as oi', 'o.id', '=', 'oi.order_id')
+                ->leftJoin('products as p', 'oi.product_id', '=', 'p.id')
+                ->leftJoin('product_details as pd', function($join) {
+                    $join->on('p.id', '=', 'pd.product_id')
+                         ->on('pd.warehouse_id', '=', 'o.warehouse_id');
+                })
+                ->leftJoin('categories as c', 'p.category_id', '=', 'c.id')
+                ->leftJoin('brands as b', 'p.brand_id', '=', 'b.id')
+                ->leftJoin('units as u', 'oi.unit_id', '=', 'u.id')
+                ->leftJoin('taxes as t', 'oi.tax_id', '=', 't.id')
+                ->where('o.invoice_number', $invoiceNumber)
+                ->select(
+                    'o.id as order_id',
+                    'o.invoice_number',
+                    'o.order_date',
+                    'o.total',
+                    'o.subtotal',
+                    'o.tax_amount',
+                    'o.discount',
+                    'o.shipping',
+                    'o.paid_amount',
+                    'o.due_amount',
+                    'oi.id as order_item_id',
+                    'oi.quantity',
+                    'oi.unit_price',
+                    'oi.single_unit_price',
+                    'oi.tax_rate',
+                    'oi.tax_type',
+                    'oi.total_tax',
+                    'oi.subtotal as item_subtotal',
+                    'oi.mrp',
+                    'p.id as product_id',
+                    'p.name as product_name',
+                    'p.item_code',
+                    'p.slug',
+                    'p.hsn_code',
+                    'p.description',
+                    'pd.current_stock',
+                    'pd.sales_price',
+                    'pd.purchase_price',
+                    'c.name as category_name',
+                    'b.name as brand_name',
+                    'u.name as unit_name',
+                    'u.short_name as unit_short_name',
+                    't.rate as tax_percentage'
+                )
+                ->get();
+
+            \Log::info("📊 getInvoiceData - Invoice: {$invoiceNumber}, Total rows from DB: " . $orderData->count());
+
+            if ($orderData->isEmpty()) {
+                throw new ApiException('Order not found');
+            }
+
+            // Get order basic info
+            $firstRow = $orderData->first();
+            
+            // Get additional order details
+            $order = Order::where('invoice_number', $invoiceNumber)->first();
+            
+            if (!$order) {
+                throw new ApiException('Order not found');
+            }
+
+            // Format the response
+            $response = [
+                'order' => [
+                    'id' => $order->id,
+                    'xid' => $order->xid,
+                    'invoice_number' => $firstRow->invoice_number,
+                    'order_date' => $firstRow->order_date,
+                    'total' => $firstRow->total,
+                    'subtotal' => $firstRow->subtotal,
+                    'tax_amount' => $firstRow->tax_amount,
+                    'discount' => $firstRow->discount,
+                    'shipping' => $firstRow->shipping,
+                    'paid_amount' => $firstRow->paid_amount,
+                    'due_amount' => $firstRow->due_amount,
+                    'items' => []
+                ],
+                'warehouse' => $order->warehouse,
+                'user' => $order->user,
+                'staff_member' => $order->staffMember,
+                'order_payments' => $order->orderPayments()->with(['payment', 'payment.paymentMode'])->get()
+            ];
+
+            // Group items
+            foreach ($orderData as $row) {
+                $response['order']['items'][] = [
+                    'id' => $row->order_item_id,
+                    'quantity' => $row->quantity,
+                    'unit_price' => $row->unit_price,
+                    'single_unit_price' => $row->single_unit_price,
+                    'tax_rate' => $row->tax_rate,
+                    'tax_type' => $row->tax_type,
+                    'total_tax' => $row->total_tax,
+                    'subtotal' => $row->item_subtotal,
+                    'mrp' => $row->mrp,
+                    'product' => [
+                        'id' => $row->product_id,
+                        'name' => $row->product_name,
+                        'item_code' => $row->item_code,
+                        'slug' => $row->slug,
+                        'hsn_code' => $row->hsn_code,
+                        'description' => $row->description,
+                        'category_name' => $row->category_name,
+                        'brand_name' => $row->brand_name,
+                    ],
+                    'unit' => [
+                        'name' => $row->unit_name,
+                        'short_name' => $row->unit_short_name,
+                    ],
+                    'product_details' => [
+                        'current_stock' => $row->current_stock,
+                        'sales_price' => $row->sales_price,
+                        'purchase_price' => $row->purchase_price,
+                    ],
+                    'tax_percentage' => $row->tax_percentage
+                ];
+            }
+
+            \Log::info("✅ getInvoiceData - Response items count: " . count($response['order']['items']));
+
+            return ApiResponse::make('Invoice data fetched successfully', $response);
+
+        } catch (\Exception $e) {
+            \Log::error('Error in getInvoiceData: ' . $e->getMessage());
+            throw new ApiException('Failed to fetch invoice data: ' . $e->getMessage());
+        }
     }
 }
