@@ -836,7 +836,7 @@ const generatedByName = computed(() => {
       // Get all styles from the document
       const allStyles = Array.from(document.styleSheets)
         .map(styleSheet => {
-          try {
+        try {
             return Array.from(styleSheet.cssRules).map(rule => rule.cssText).join('\n');
           } catch (e) {
             return '';
