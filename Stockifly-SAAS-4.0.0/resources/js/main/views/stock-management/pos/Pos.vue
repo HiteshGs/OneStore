@@ -1103,21 +1103,67 @@ const handleCustomerChange = (selectedCustomerId) => {
     formData.value.user_id = selectedCustomerId;
 };
         // This will get customer data from localStorage when the page loads
-        const getCustomerFromLocalStorage = () => {
+       const getCustomerFromLocalStorage = () => {
     const storedCustomer = localStorage.getItem('pos_selected_customer');
+
     if (storedCustomer) {
         const customer = JSON.parse(storedCustomer);
-        formData.value.user_id = customer.xid; // Set the user ID
-        console.log('Customer loaded from storage on init:', customer);
+        // Check if customer exists in current list
+        const exists = customers.value.find(c => c.xid === customer.xid);
+
+        if (exists) {
+            formData.value.user_id = customer.xid;
+            console.log('Loaded last selected customer:', customer);
+        } else {
+            // If not found, fallback to Walk In Customer
+            setWalkInCustomerDefault();
+        }
+    } else {
+        // No previous selection, default to Walk In Customer
+        setWalkInCustomerDefault();
     }
 };
 
-onMounted(async () => {
-    await getPreFetchData();
+// Set default Walk In Customer
+const setWalkInCustomerDefault = () => {
+    // Try to find a predefined "Walk In Customer" in the list
+    const walkIn = customers.value.find(c => c.name.toLowerCase() === 'walk in customer');
 
-    // Load customer from localStorage using the dedicated function
-    getCustomerFromLocalStorage();
+    if (walkIn) {
+        formData.value.user_id = walkIn.xid;
+        localStorage.setItem('pos_selected_customer', JSON.stringify(walkIn));
+        console.log('Defaulted to Walk In Customer:', walkIn);
+    } else {
+        // If no Walk In Customer exists in list, leave user_id as null
+        formData.value.user_id = null;
+        console.log('No Walk In Customer found; user_id is null');
+    }
+};
+
+// When customer changes
+const handleCustomerChange = (selectedCustomerId) => {
+    if (!selectedCustomerId) {
+        setWalkInCustomerDefault();
+        return;
+    }
+
+    const selectedCustomer = customers.value.find(c => c.xid === selectedCustomerId);
+    if (selectedCustomer) {
+        localStorage.setItem('pos_selected_customer', JSON.stringify(selectedCustomer));
+        formData.value.user_id = selectedCustomerId;
+        console.log('Customer selected:', selectedCustomer);
+    } else {
+        // fallback in case selected ID not in list
+        setWalkInCustomerDefault();
+    }
+};
+
+// On mounted
+onMounted(async () => {
+    await getPreFetchData(); // fetch customers and other prefetch data
+    getCustomerFromLocalStorage(); // load default customer
 });
+
         const reFetchProducts = () => {
             axiosAdmin
                 .post("pos/products", {
