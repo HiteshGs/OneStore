@@ -143,51 +143,30 @@ class PosController extends ApiBaseController
     $oldOrderId = "";
     $posDefaultStatus = $warehouse->default_pos_order_status;
 
-    // Debug logging
-    \Log::info('📥 POS Save Request:', [
-        'details' => $orderDetails,
-        'all_payments' => $request->input('all_payments'),
-        'product_items_count' => count($request->input('product_items', [])),
-    ]);
-
-    // Validate required fields in details
-    if (!$orderDetails) {
-        \Log::error('❌ Missing order details');
+    // ✅ VALIDATE orderDetails exists
+    if (!$orderDetails || !is_array($orderDetails)) {
+        \Log::error('❌ Invalid or missing order details', ['details' => $orderDetails]);
         throw new ApiException('Order details are required');
     }
 
-    // ✅ IMPROVED VALIDATION WITH BETTER ERROR MESSAGES
+    // ✅ VALIDATE required fields
     $requiredFields = ['subtotal', 'tax_amount', 'discount', 'shipping'];
-    $missingFields = [];
-    
     foreach ($requiredFields as $field) {
-        if (!isset($orderDetails[$field]) || $orderDetails[$field] === null) {
-            $missingFields[] = $field;
+        if (!isset($orderDetails[$field])) {
+            \Log::error("❌ Missing field: {$field}", ['details' => $orderDetails]);
+            throw new ApiException("Missing required field: {$field}");
         }
     }
-    
-    if (!empty($missingFields)) {
-        \Log::error("❌ Missing required fields in details", [
-            'missing_fields' => $missingFields,
-            'received_details' => $orderDetails
-        ]);
-        throw new ApiException("Missing required fields in details: " . implode(', ', $missingFields));
+
+    // ✅ CONVERT XIDs TO DATABASE IDs
+    $userId = null;
+    if (isset($orderDetails['user_id']) && $orderDetails['user_id']) {
+        $userId = $this->getIdFromHash($orderDetails['user_id']);
     }
 
-    // ✅ VALIDATE SUBTOTAL IS GREATER THAN 0
-    if ($orderDetails['subtotal'] <= 0) {
-        \Log::error('❌ Invalid subtotal', ['subtotal' => $orderDetails['subtotal']]);
-        throw new ApiException('Subtotal must be greater than 0');
-    }
-
-    // Validate product_items
-    $productItems = $request->input('product_items', []);
-    if (!is_array($productItems) || count($productItems) == 0) {
-        \Log::error('❌ Missing or empty product_items', [
-            'is_array' => is_array($productItems),
-            'count' => is_array($productItems) ? count($productItems) : 'N/A'
-        ]);
-        throw new ApiException('At least one product item is required');
+    $taxId = null;
+    if (isset($orderDetails['tax_id']) && $orderDetails['tax_id']) {
+        $taxId = $this->getIdFromHash($orderDetails['tax_id']);
     }
 
     $allPayments = $request->input('all_payments', []);
@@ -207,7 +186,7 @@ class PosController extends ApiBaseController
         }
     }
 
-    // ✅ CREATE THE ORDER - THIS WAS MISSING!
+    // ✅ CREATE ORDER WITH CONVERTED IDs
     $order = new Order();
     $order->order_type = "sales";
     $order->invoice_type = "pos";
@@ -215,8 +194,8 @@ class PosController extends ApiBaseController
     $order->invoice_number = "";
     $order->order_date = Carbon::now();
     $order->warehouse_id = $warehouse->id;
-    $order->user_id = isset($orderDetails['user_id']) ? $orderDetails['user_id'] : null;
-    $order->tax_id = isset($orderDetails['tax_id']) ? $orderDetails['tax_id'] : null;
+    $order->user_id = $userId;  // ✅ Using converted ID
+    $order->tax_id = $taxId;    // ✅ Using converted ID
     $order->tax_rate = $orderDetails['tax_rate'] ?? 0;
     $order->tax_amount = $orderDetails['tax_amount'];
     $order->discount = $orderDetails['discount'];
@@ -237,7 +216,6 @@ class PosController extends ApiBaseController
     // Updating Warehouse History
     Common::updateWarehouseHistory('order', $order, "add_edit");
 
-    // ✅ NOW SAVE PAYMENTS (order exists now)
     $allPayments = $request->input('all_payments', []);
     if (!is_array($allPayments)) {
         $allPayments = [];
@@ -245,14 +223,17 @@ class PosController extends ApiBaseController
 
     foreach ($allPayments as $allPayment) {
         // Save Order Payment
-        if ($allPayment['amount'] > 0 && $allPayment['payment_mode_id'] != '') {
+        if (isset($allPayment['amount']) && $allPayment['amount'] > 0 && isset($allPayment['payment_mode_id']) && $allPayment['payment_mode_id'] != '') {
+            // ✅ CONVERT payment_mode_id XID to ID
+            $paymentModeId = $this->getIdFromHash($allPayment['payment_mode_id']);
+            
             $payment = new Payment();
             $payment->warehouse_id = $warehouse->id;
             $payment->payment_type = "in";
             $payment->date = Carbon::now();
             $payment->amount = $allPayment['amount'];
             $payment->paid_amount = $allPayment['amount'];
-            $payment->payment_mode_id = $allPayment['payment_mode_id'];
+            $payment->payment_mode_id = $paymentModeId;  // ✅ Using converted ID
             $payment->notes = $allPayment['notes'] ?? '';
             $payment->user_id = $order->user_id;
             $payment->save();
@@ -294,7 +275,6 @@ class PosController extends ApiBaseController
         'order' => $savedOrder,
     ]);
 }
-
     public function getInvoiceData($invoiceNumber)
     {
         try {
