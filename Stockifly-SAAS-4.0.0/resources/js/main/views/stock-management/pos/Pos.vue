@@ -1071,37 +1071,40 @@ export default {
         // For mobile Design
         const showMobileCart = ref(false);
 const handleCustomerChange = (selectedCustomerId) => {
-    // If no customer selected (cleared), remove from storage
     if (!selectedCustomerId) {
-        localStorage.removeItem('pos_selected_customer');
-        formData.value.user_id = null;
+        setWalkInCustomerDefault();
         return;
     }
 
-    // Find the selected customer
-    const selectedCustomer = customers.value.find(
-        customer => customer.xid === selectedCustomerId
-    );
-
+    const selectedCustomer = customers.value.find(c => c.xid === selectedCustomerId);
     if (selectedCustomer) {
-        // Save only what you need
-        const customerToSave = {
-            xid: selectedCustomer.xid,
-            name: selectedCustomer.name,
-            phone: selectedCustomer.phone || '',
-            email: selectedCustomer.email || '',
-            address: selectedCustomer.address || ''
-        };
-
-        // Save to localStorage
-        localStorage.setItem('pos_selected_customer', JSON.stringify(customerToSave));
-
-        console.log('Customer saved:', customerToSave); // Optional: for debugging
+        localStorage.setItem('pos_selected_customer', JSON.stringify(selectedCustomer));
+        formData.value.user_id = selectedCustomerId;
+        console.log('Customer selected:', selectedCustomer);
+    } else {
+        // fallback in case selected ID not in list
+        setWalkInCustomerDefault();
     }
-
-    // Always update the form
-    formData.value.user_id = selectedCustomerId;
 };
+
+
+
+const setWalkInCustomerDefault = () => {
+    // Try to find a predefined "Walk In Customer" in the list
+    const walkIn = customers.value.find(c => c.name.toLowerCase() === 'walk in customer');
+
+    if (walkIn) {
+        formData.value.user_id = walkIn.xid;
+        localStorage.setItem('pos_selected_customer', JSON.stringify(walkIn));
+        console.log('Defaulted to Walk In Customer:', walkIn);
+    } else {
+        // If no Walk In Customer exists in list, leave user_id as null
+        formData.value.user_id = null;
+        console.log('No Walk In Customer found; user_id is null');
+    }
+};
+
+
         // This will get customer data from localStorage when the page loads
        const getCustomerFromLocalStorage = () => {
     const storedCustomer = localStorage.getItem('pos_selected_customer');
@@ -1124,46 +1127,12 @@ const handleCustomerChange = (selectedCustomerId) => {
     }
 };
 
-// Set default Walk In Customer
-const setWalkInCustomerDefault = () => {
-    // Try to find a predefined "Walk In Customer" in the list
-    const walkIn = customers.value.find(c => c.name.toLowerCase() === 'walk in customer');
-
-    if (walkIn) {
-        formData.value.user_id = walkIn.xid;
-        localStorage.setItem('pos_selected_customer', JSON.stringify(walkIn));
-        console.log('Defaulted to Walk In Customer:', walkIn);
-    } else {
-        // If no Walk In Customer exists in list, leave user_id as null
-        formData.value.user_id = null;
-        console.log('No Walk In Customer found; user_id is null');
-    }
-};
-
-// When customer changes
-const handleCustomerChange = (selectedCustomerId) => {
-    if (!selectedCustomerId) {
-        setWalkInCustomerDefault();
-        return;
-    }
-
-    const selectedCustomer = customers.value.find(c => c.xid === selectedCustomerId);
-    if (selectedCustomer) {
-        localStorage.setItem('pos_selected_customer', JSON.stringify(selectedCustomer));
-        formData.value.user_id = selectedCustomerId;
-        console.log('Customer selected:', selectedCustomer);
-    } else {
-        // fallback in case selected ID not in list
-        setWalkInCustomerDefault();
-    }
-};
-
-// On mounted
 onMounted(async () => {
-    await getPreFetchData(); // fetch customers and other prefetch data
-    getCustomerFromLocalStorage(); // load default customer
-});
+    await getPreFetchData();
 
+    // Load customer from localStorage using the dedicated function
+    getCustomerFromLocalStorage();
+});
         const reFetchProducts = () => {
             axiosAdmin
                 .post("pos/products", {
