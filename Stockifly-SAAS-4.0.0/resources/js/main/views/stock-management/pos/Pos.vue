@@ -1095,7 +1095,6 @@ const setWalkInCustomerDefault = () => {
 
     if (walkIn) {
         formData.value.user_id = walkIn.xid;
-        localStorage.setItem('pos_selected_customer', JSON.stringify(walkIn));
         console.log('Defaulted to Walk In Customer:', walkIn);
     } else {
         // If no Walk In Customer exists in list, leave user_id as null
@@ -1103,6 +1102,8 @@ const setWalkInCustomerDefault = () => {
         console.log('No Walk In Customer found; user_id is null');
     }
 };
+
+
 
 
         // This will get customer data from localStorage when the page loads
@@ -1118,7 +1119,7 @@ const setWalkInCustomerDefault = () => {
             formData.value.user_id = customer.xid;
             console.log('Loaded last selected customer:', customer);
         } else {
-            // If not found, fallback to Walk In Customer
+            // Fallback to Walk In Customer
             setWalkInCustomerDefault();
         }
     } else {
@@ -1127,12 +1128,12 @@ const setWalkInCustomerDefault = () => {
     }
 };
 
-onMounted(async () => {
-    await getPreFetchData();
 
-    // Load customer from localStorage using the dedicated function
-    getCustomerFromLocalStorage();
+onMounted(async () => {
+    await getPreFetchData(); // Fetch customers and other prefetch data
+    getCustomerFromLocalStorage(); // Automatically select last customer if found
 });
+
         const reFetchProducts = () => {
             axiosAdmin
                 .post("pos/products", {
