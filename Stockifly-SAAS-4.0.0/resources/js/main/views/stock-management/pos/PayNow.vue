@@ -265,82 +265,108 @@ export default {
       showAddForm.value = false;
     };
 
-    const completeOrderAndEmitPrint = () => {
-      // ✅ STORE HSN MAP LOCALLY
-      const hsnMap = {};
-      props.selectedProducts.forEach(p => {
-        if (p.xid && p.hsn_code) {
-          hsnMap[p.xid] = p.hsn_code;
-        }
-      });
+   const completeOrderAndEmitPrint = () => {
+  // ✅ VALIDATE DETAILS OBJECT
+  if (!props.data || typeof props.data !== 'object') {
+    console.error('❌ Invalid details object:', props.data);
+    return;
+  }
 
-      Object.keys(hsnMap).length
-        ? localStorage.setItem(PRODUCT_HSN_MAP_KEY, JSON.stringify(hsnMap))
-        : localStorage.removeItem(PRODUCT_HSN_MAP_KEY);
+  // ✅ ENSURE ALL REQUIRED FIELDS HAVE VALUES (default to 0 if missing)
+  const details = {
+    subtotal: Number(props.data.subtotal) || 0,
+    tax_amount: Number(props.data.tax_amount) || 0,
+    discount: Number(props.data.discount) || 0,
+    shipping: Number(props.data.shipping) || 0,
+    tax_rate: Number(props.data.tax_rate) || 0,
+    user_id: props.data.user_id || null,
+    tax_id: props.data.tax_id || null,
+  };
 
-      // ✅ API CALL
-      console.log("📤 Sending data to pos/save:", {
-        all_payments: allPaymentRecords.value,
-        product_items_count: props.selectedProducts.length,
-        details: props.data,
-        entry_person_name: localStorage.getItem(ENTRY_PERSON_KEY) || null,
-      });
+  // ✅ VALIDATE THAT SUBTOTAL IS NOT ZERO
+  if (details.subtotal <= 0) {
+    console.error('❌ Subtotal must be greater than 0');
+    return;
+  }
 
-      // Validate required fields in details
-      if (!props.data || typeof props.data !== 'object') {
-        console.error('❌ Invalid details object');
-        return;
+  // ✅ VALIDATE PRODUCT ITEMS
+  if (!props.selectedProducts || props.selectedProducts.length === 0) {
+    console.error('❌ No products selected');
+    return;
+  }
+
+  // ✅ STORE HSN MAP LOCALLY
+  const hsnMap = {};
+  props.selectedProducts.forEach(p => {
+    if (p.xid && p.hsn_code) {
+      hsnMap[p.xid] = p.hsn_code;
+    }
+  });
+
+  Object.keys(hsnMap).length
+    ? localStorage.setItem(PRODUCT_HSN_MAP_KEY, JSON.stringify(hsnMap))
+    : localStorage.removeItem(PRODUCT_HSN_MAP_KEY);
+
+  // ✅ PREPARE PRODUCT ITEMS WITH ALL REQUIRED FIELDS
+  const productItems = props.selectedProducts.map(p => ({
+    xid: p.xid,
+    name: p.name,
+    quantity: Number(p.quantity) || 1,
+    unit_price: Number(p.unit_price) || 0,
+    single_unit_price: Number(p.single_unit_price) || 0,
+    subtotal: Number(p.subtotal) || 0,
+    tax_rate: Number(p.tax_rate) || 0,
+    tax_type: p.tax_type || 'exclusive',
+    total_tax: Number(p.total_tax) || 0,
+    discount_rate: Number(p.discount_rate) || 0,
+    total_discount: Number(p.total_discount) || 0,
+    hsn_code: p.hsn_code || null,
+    x_tax_id: p.x_tax_id || null,
+    x_unit_id: p.x_unit_id || null,
+    product_type: p.product_type || 'product',
+  }));
+
+  // ✅ API CALL WITH VALIDATED DATA
+  console.log("📤 Sending validated data to pos/save:", {
+    all_payments: allPaymentRecords.value,
+    product_items_count: productItems.length,
+    details: details,
+    entry_person_name: localStorage.getItem(ENTRY_PERSON_KEY) || null,
+  });
+
+  addEditRequestAdmin({
+    url: "pos/save",
+    data: {
+      all_payments: allPaymentRecords.value,
+      product_items: productItems,
+      details: details,
+      entry_person_name: localStorage.getItem(ENTRY_PERSON_KEY) || null,
+      print_pref: { size: selectedPrintSize.value },
+    },
+    success: res => {
+      // Check if retail invoice is selected
+      if (selectedPrintSize.value === "retail") {
+        dmartOrderData.value = res.order;
+        dmartDescription.value = "";
+        dmartInvoiceVisible.value = true;
+        printModalVisible.value = false;
+        
+        emit("success", { ...res.order, isRetailInvoice: true });
+      } else {
+        emit("success", res.order);
+        emit("print", {
+          order: res.order,
+          size: selectedPrintSize.value,
+          autoOpen: autoOpenPrint.value,
+        });
       }
-
-      const requiredDetailFields = ['subtotal', 'tax_amount', 'discount', 'shipping'];
-      const missingFields = requiredDetailFields.filter(field => props.data[field] === undefined || props.data[field] === null);
-      
-      if (missingFields.length > 0) {
-        console.error('❌ Missing required fields in details:', missingFields);
-        return;
-      }
-
-      // Validate product_items
-      if (!props.selectedProducts || props.selectedProducts.length === 0) {
-        console.error('❌ No products selected');
-        return;
-      }
-
-      addEditRequestAdmin({
-        url: "pos/save",
-        data: {
-          all_payments: allPaymentRecords.value,
-          product_items: props.selectedProducts.map(p => ({
-            ...p,
-            hsn_code: p.hsn_code || null,
-          })),
-          details: props.data,
-          entry_person_name: localStorage.getItem(ENTRY_PERSON_KEY) || null,
-          print_pref: { size: selectedPrintSize.value },
-        },
-        success: res => {
-          // Check if retail invoice is selected
-          if (selectedPrintSize.value === "retail") {
-            // Show retail invoice modal instead of regular print
-            dmartOrderData.value = res.order;
-            dmartDescription.value = "";
-            dmartInvoiceVisible.value = true;
-            printModalVisible.value = false;
-            
-            // Emit success but with a flag to prevent regular print modal
-            emit("success", { ...res.order, isRetailInvoice: true });
-          } else {
-            // Regular print flow
-            emit("success", res.order);
-            emit("print", {
-              order: res.order,
-              size: selectedPrintSize.value,
-              autoOpen: autoOpenPrint.value,
-            });
-          }
-        },
-      });
-    };
+    },
+    error: (err) => {
+      console.error("❌ API Error:", err);
+      // Optional: Show error message to user
+    }
+  });
+};
 
     const onDmartInvoiceSuccess = () => {
       dmartInvoiceVisible.value = false;

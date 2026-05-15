@@ -135,93 +135,67 @@ class PosController extends ApiBaseController
     }
 
     public function savePosPayments()
-    {
+{
+    $request = request();
+    $loggedInUser = user();
+    $warehouse = warehouse();
+    $orderDetails = $request->details;
+    $oldOrderId = "";
+    $posDefaultStatus = $warehouse->default_pos_order_status;
 
-        $request = request();
-        $loggedInUser = user();
-        $warehouse = warehouse();
-        $orderDetails = $request->details;
-        $oldOrderId = "";
-        $posDefaultStatus = $warehouse->default_pos_order_status;
+    // Debug logging
+    \Log::info('📥 POS Save Request:', [
+        'details' => $orderDetails,
+        'all_payments' => $request->input('all_payments'),
+        'product_items_count' => count($request->input('product_items', [])),
+    ]);
 
-        // Debug logging
-        \Log::info('📥 POS Save Request:', [
-            'details' => $orderDetails,
-            'all_payments' => $request->input('all_payments'),
-            'product_items_count' => count($request->input('product_items', [])),
+    // Validate required fields in details
+    if (!$orderDetails) {
+        \Log::error('❌ Missing order details');
+        throw new ApiException('Order details are required');
+    }
+
+    // ✅ IMPROVED VALIDATION WITH BETTER ERROR MESSAGES
+    $requiredFields = ['subtotal', 'tax_amount', 'discount', 'shipping'];
+    $missingFields = [];
+    
+    foreach ($requiredFields as $field) {
+        if (!isset($orderDetails[$field]) || $orderDetails[$field] === null) {
+            $missingFields[] = $field;
+        }
+    }
+    
+    if (!empty($missingFields)) {
+        \Log::error("❌ Missing required fields in details", [
+            'missing_fields' => $missingFields,
+            'received_details' => $orderDetails
         ]);
+        throw new ApiException("Missing required fields in details: " . implode(', ', $missingFields));
+    }
 
-        // Validate required fields in details
-        if (!$orderDetails) {
-            \Log::error('❌ Missing order details');
-            throw new ApiException('Order details are required');
-        }
+    // ✅ VALIDATE SUBTOTAL IS GREATER THAN 0
+    if ($orderDetails['subtotal'] <= 0) {
+        \Log::error('❌ Invalid subtotal', ['subtotal' => $orderDetails['subtotal']]);
+        throw new ApiException('Subtotal must be greater than 0');
+    }
 
-        $requiredFields = ['subtotal', 'tax_amount', 'discount', 'shipping'];
-        foreach ($requiredFields as $field) {
-            if (!isset($orderDetails[$field])) {
-                \Log::error("❌ Missing required field in details: {$field}");
-                throw new ApiException("Missing required field: {$field}");
-            }
-        }
+    // Validate product_items
+    $productItems = $request->input('product_items', []);
+    if (!is_array($productItems) || count($productItems) == 0) {
+        \Log::error('❌ Missing or empty product_items', [
+            'is_array' => is_array($productItems),
+            'count' => is_array($productItems) ? count($productItems) : 'N/A'
+        ]);
+        throw new ApiException('At least one product item is required');
+    }
 
-        // Validate product_items
-        $productItems = $request->input('product_items', []);
-        if (!is_array($productItems) || count($productItems) == 0) {
-            \Log::error('❌ Missing or empty product_items');
-            throw new ApiException('At least one product item is required');
-        }
+    // Rest of your existing code...
+    $allPayments = $request->input('all_payments', []);
+    if (!is_array($allPayments)) {
+        $allPayments = [];
+    }
 
-        $allPayments = $request->input('all_payments', []);
-        if (!is_array($allPayments)) {
-            $allPayments = [];
-        }
-
-        if ($request->has('all_payments') && count($request->all_payments) > 0) {
-            $allPayments = collect($request->all_payments);
-
-            $total = $allPayments->sum(function ($item) {
-                return $item['amount'];
-            });
-
-            if ($total > $orderDetails['subtotal']) {
-                throw new ApiException('Paid amount should be less than or equal to Grand Total');
-            }
-        }
-
-        $order = new Order();
-        $order->order_type = "sales";
-        $order->invoice_type = "pos";
-        $order->unique_id = Common::generateOrderUniqueId();
-        $order->invoice_number = "";
-        $order->order_date = Carbon::now();
-        $order->warehouse_id = $warehouse->id;
-        $order->user_id = isset($orderDetails['user_id']) ? $orderDetails['user_id'] : null;
-        $order->tax_id = isset($orderDetails['tax_id']) ? $orderDetails['tax_id'] : null;
-        $order->tax_rate = $orderDetails['tax_rate'];
-        $order->tax_amount = $orderDetails['tax_amount'];
-        $order->discount = $orderDetails['discount'];
-        $order->shipping = $orderDetails['shipping'];
-        $order->subtotal = 0;
-        $order->total = $orderDetails['subtotal'];
-        $order->paid_amount = 0;
-        $order->due_amount = $order->total;
-        $order->order_status = $posDefaultStatus;
-        $order->staff_user_id = $loggedInUser->id;
-        $order->save();
-
-        $order->invoice_number = Common::getTransactionNumber($order->order_type, $order->id);
-        $order->save();
-
-        Common::storeAndUpdateOrder($order, $oldOrderId);
-
-        // Updating Warehouse History
-        Common::updateWarehouseHistory('order', $order, "add_edit");
-
-        $allPayments = $request->input('all_payments', []);
-        if (!is_array($allPayments)) {
-            $allPayments = [];
-        }
 
         foreach ($allPayments as $allPayment) {
             // Save Order Payment
