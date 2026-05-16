@@ -17,6 +17,7 @@ use App\Models\Role;
 use Carbon\Carbon;
 use Examyou\RestAPI\ApiResponse;
 use Examyou\RestAPI\Exceptions\ApiException;
+use Illuminate\Support\Facades\DB;
 
 class PosController extends ApiBaseController
 {
@@ -243,10 +244,94 @@ class PosController extends ApiBaseController
         $savedOrder->saving_on_mrp = $savingOnMrp;
         $savedOrder->saving_percentage = $saving_percentage;
         $savedOrder->total_tax_on_items = $totalTax + $savedOrder->tax_amount;
+        $savedOrder->setRelation('items', $this->getInvoiceItemsByInvoiceNumber($savedOrder->invoice_number));
 
         return ApiResponse::make('POS Data Saved', [
             'order' => $savedOrder,
         ]);
+    }
+
+    private function getInvoiceItemsByInvoiceNumber($invoiceNumber)
+    {
+        return DB::table('orders as o')
+            ->join('order_items as oi', 'o.id', '=', 'oi.order_id')
+            ->leftJoin('products as p', 'oi.product_id', '=', 'p.id')
+            ->leftJoin('product_details as pd', function ($join) {
+                $join->on('p.id', '=', 'pd.product_id')
+                    ->on('pd.warehouse_id', '=', 'o.warehouse_id');
+            })
+            ->leftJoin('categories as c', 'p.category_id', '=', 'c.id')
+            ->leftJoin('brands as b', 'p.brand_id', '=', 'b.id')
+            ->leftJoin('units as u', 'oi.unit_id', '=', 'u.id')
+            ->leftJoin('taxes as t', 'oi.tax_id', '=', 't.id')
+            ->where('o.invoice_number', $invoiceNumber)
+            ->orderBy('oi.id')
+            ->select([
+                'oi.id as order_item_id',
+                'oi.quantity',
+                'oi.unit_price',
+                'oi.single_unit_price',
+                'oi.tax_rate',
+                'oi.tax_type',
+                'oi.total_tax',
+                'oi.subtotal',
+                'oi.mrp',
+                'p.id as product_id',
+                'p.name as product_name',
+                'p.item_code',
+                'p.slug',
+                'p.hsn_code',
+                'p.description',
+                'pd.current_stock',
+                'pd.sales_price',
+                'pd.purchase_price',
+                'c.name as category_name',
+                'b.name as brand_name',
+                'u.id as unit_id',
+                'u.name as unit_name',
+                'u.short_name as unit_short_name',
+                't.id as tax_id',
+                't.rate as tax_percentage',
+            ])
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'xid' => Common::getHashFromId($item->order_item_id),
+                    'item_id' => Common::getHashFromId($item->order_item_id),
+                    'quantity' => (float) $item->quantity,
+                    'unit_price' => (float) $item->unit_price,
+                    'single_unit_price' => (float) $item->single_unit_price,
+                    'tax_rate' => $item->tax_rate !== null ? (float) $item->tax_rate : (float) ($item->tax_percentage ?? 0),
+                    'tax_type' => $item->tax_type,
+                    'total_tax' => (float) $item->total_tax,
+                    'subtotal' => (float) $item->subtotal,
+                    'mrp' => (float) $item->mrp,
+                    'product_name' => $item->product_name,
+                    'name' => $item->product_name,
+                    'item_code' => $item->item_code,
+                    'hsn_code' => $item->hsn_code,
+                    'x_product_id' => $item->product_id ? Common::getHashFromId($item->product_id) : null,
+                    'x_unit_id' => $item->unit_id ? Common::getHashFromId($item->unit_id) : null,
+                    'x_tax_id' => $item->tax_id ? Common::getHashFromId($item->tax_id) : null,
+                    'unit' => [
+                        'name' => $item->unit_name,
+                        'short_name' => $item->unit_short_name,
+                    ],
+                    'product' => [
+                        'xid' => $item->product_id ? Common::getHashFromId($item->product_id) : null,
+                        'name' => $item->product_name,
+                        'item_code' => $item->item_code,
+                        'slug' => $item->slug,
+                        'hsn_code' => $item->hsn_code,
+                        'description' => $item->description,
+                        'current_stock' => $item->current_stock,
+                        'sales_price' => $item->sales_price,
+                        'purchase_price' => $item->purchase_price,
+                        'category_name' => $item->category_name,
+                        'brand_name' => $item->brand_name,
+                    ],
+                ];
+            });
     }
 
     public function getStaffMembers()
