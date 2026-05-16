@@ -158,7 +158,7 @@
                 <!-- Item name + custom fields -->
                 <td>
                   <div class="item-name">
-                    {{ item.__blank ? '' : item.product?.name }}
+                    {{ item.__blank ? '' : resolveItemName(item) }}
                   </div>
 
                   <div
@@ -955,10 +955,45 @@ const generatedByName = computed(() => {
       };
     });
 
+    const resolveItemName = item => {
+      if (!item || item.__blank) return '';
+
+      return (
+        item.product?.name ||
+        item.product_name ||
+        item.name ||
+        item.item_name ||
+        item.product?.item_code ||
+        item.item_code ||
+        ''
+      );
+    };
+
+    const invoiceItems = computed(() => {
+      if (!Array.isArray(props.order?.items)) return [];
+
+      return props.order.items.filter(item => {
+        if (!item || item.__blank) return false;
+
+        const hasName = resolveItemName(item).trim() !== '';
+        const hasProductId = Boolean(
+          item.product_id ||
+            item.x_product_id ||
+            item.xid ||
+            item.product?.xid ||
+            item.product?.id,
+        );
+        const hasAmountOrQty =
+          Number(item.quantity || 0) > 0 ||
+          Number(item.subtotal || 0) > 0 ||
+          Number(item.unit_price || 0) > 0;
+
+        return hasName || (hasProductId && hasAmountOrQty);
+      });
+    });
+
     const paddedItems = computed(() => {
-      const items = Array.isArray(props.order?.items)
-        ? props.order.items
-        : [];
+      const items = invoiceItems.value;
       const MIN_ROWS = 20; // Fixed 20 rows for A4 format
       const blanksToAdd = Math.max(0, MIN_ROWS - items.length);
 
@@ -1011,6 +1046,7 @@ const generatedByName = computed(() => {
       posSelectedCustomer,
       finalCustomerAddress,
       paddedItems,
+      resolveItemName,
       paidAmount,
       dueAmount,
       generatedByName,

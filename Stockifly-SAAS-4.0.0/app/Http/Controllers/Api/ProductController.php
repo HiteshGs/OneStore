@@ -364,7 +364,7 @@ class ProductController extends ApiBaseController
         $orderType = $request->order_type;
         $warehouseId = $warehouse->id;
 
-        $products = Product::select('products.id', 'products.name', 'products.image', 'products.unit_id', 'products.product_type')
+        $products = Product::select('products.id', 'products.name', 'products.item_code', 'products.hsn_code', 'products.image', 'products.unit_id', 'products.product_type')
             ->where(function ($query) use ($searchTerm) {
                 $query->where(DB::raw('LOWER(products.name)'), 'LIKE', "%$searchTerm%")
                     ->orWhere(DB::raw('LOWER(products.item_code)'), 'LIKE', "%$searchTerm%")
@@ -389,7 +389,14 @@ class ProductController extends ApiBaseController
         $products = $products->where(function ($query) {
             $query->where('products.product_type', 'single')
                 ->orWhere('products.product_type', 'service');
-        })->take(8)->get();
+        });
+
+        $limit = (int) $request->input('limit', 8);
+        if ($limit > 0) {
+            $products = $products->take(min($limit, 10000));
+        }
+
+        $products = $products->get();
 
         $allProducs = [];
 
@@ -442,6 +449,8 @@ class ProductController extends ApiBaseController
                     'item_id'    =>  '',
                     'xid'    =>  $product->xid,
                     'name'    =>  $product->name,
+                    'item_code'    =>  $product->item_code,
+                    'hsn_code'    =>  $product->hsn_code,
                     'image'    =>  $product->image,
                     'image_url'    =>  $product->image_url,
                     'discount_rate'    =>  0,
