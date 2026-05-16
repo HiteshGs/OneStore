@@ -835,32 +835,39 @@ img {
                     @endif
                 </p>
             </div>
-           @if($warehouse->logo_url)
+          @if($warehouse->logo_url)
+
 @php
-$logoPath = public_path($warehouse->logo_url);
-$logoType = pathinfo($logoPath, PATHINFO_EXTENSION);
-$logoBase64 = '';
+    $logoBase64 = '';
 
-if(file_exists($logoPath)){
-    $logoData = file_get_contents($logoPath);
+    $logoPath = public_path($warehouse->logo_url);
 
-    if($logoData){
+    if (file_exists($logoPath)) {
+
         $logoType = pathinfo($logoPath, PATHINFO_EXTENSION);
 
-        $logoBase64 =
-            'data:image/' .
-            $logoType .
-            ';base64,' .
-            base64_encode($logoData);
+        $logoData = file_get_contents($logoPath);
+
+        if ($logoData) {
+
+            $logoBase64 =
+                'data:image/' .
+                $logoType .
+                ';base64,' .
+                base64_encode($logoData);
+        }
     }
-}$logoBase64 = 'data:image/' . $logoType . ';base64,' . base64_encode($logoData);
 @endphp
 
+@if($logoBase64)
 <img
     class="invoice-logo"
     src="{{ $logoBase64 }}"
     alt="{{ $warehouse->name }}"
-/>@endif
+/>
+@endif
+
+@endif
         </div>
 
         <!-- BILL TO + INVOICE DETAILS - REFACTORED TO USE TABLE FOR LAYOUT -->
