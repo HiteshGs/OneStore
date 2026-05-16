@@ -675,6 +675,29 @@
                 top: 0 !important;
                 text-align: right !important;
             }
+                @font-face {
+        font-family: 'GujaratiFont';
+        src: url("{{ public_path('installer/fonts/Noto_Sans_Gujarati/static/NotoSansGujarati-Regular.ttf') }}") format('truetype');
+        font-weight: normal;
+        font-style: normal;
+    }
+body {
+        font-family: 'GujaratiFont', sans-serif;
+    }
+
+    * {
+    box-sizing: border-box;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+img {
+    max-width: 100%;
+    display: block;
+}
         }
     </style>
 </head>
@@ -792,9 +815,13 @@
                     @endif
                 </p>
             </div>
-            @if($warehouse->logo_url)
-            <img class="invoice-logo" src="{{ asset($warehouse->logo_url) }}" alt="{{ $warehouse->name }}" />
-            @endif
+           @if($warehouse->logo_url)
+<img
+    class="invoice-logo"
+    src="{{ public_path($warehouse->logo_url) }}"
+    alt="{{ $warehouse->name }}"
+/>
+@endif
         </div>
 
         <!-- BILL TO + INVOICE DETAILS - REFACTORED TO USE TABLE FOR LAYOUT -->
@@ -920,14 +947,13 @@
                     <!-- Add blank rows to make it 20 rows total -->
                     @for($i = 0; $i < $blankRows; $i++)
                     <tr class="item-row blank-row">
-                        <td class="center"></td>
-                        <td></td>
-                        <td class="center"></td>
-                        <td class="center"></td>
-                        <td class="right"></td>
-                        <td class="center"></td>
-                        <td class="right"></td>
-                    </tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+</tr>
                     @endfor
                 </tbody>
             </table>
