@@ -465,6 +465,9 @@ export default defineComponent({
 
     const isSending = ref(false);
     const isVerified = ref('');
+    const hydratedInvoiceNumber = ref('');
+    const hydratedInvoiceItems = ref([]);
+    const isHydratingInvoiceItems = ref(false);
 
     onMounted(() => {
       axiosAdmin.get('verified-email').then(response => {
@@ -536,6 +539,41 @@ const resolveHSN = (item) => {
   // 5️⃣ Final fallback
   return '-';
 };
+
+    const hydrateInvoiceItems = async invoiceNumber => {
+      if (
+        !invoiceNumber ||
+        isHydratingInvoiceItems.value ||
+        hydratedInvoiceNumber.value === invoiceNumber
+      ) {
+        return;
+      }
+
+      isHydratingInvoiceItems.value = true;
+
+      try {
+        const response = await axiosAdmin.post('pos/invoice-items', {
+          invoice_number: invoiceNumber,
+        });
+        const items = response.data?.items || [];
+
+        if (Array.isArray(items) && items.length) {
+          hydratedInvoiceNumber.value = invoiceNumber;
+          hydratedInvoiceItems.value = items;
+          console.log(
+            `POS Invoice hydrated ${items.length} item rows for invoice ${invoiceNumber}`,
+            items,
+          );
+        }
+      } catch (error) {
+        console.error(
+          `Failed to hydrate POS invoice items for invoice ${invoiceNumber}`,
+          error,
+        );
+      } finally {
+        isHydratingInvoiceItems.value = false;
+      }
+    };
     const downloadPdf = async () => {
       await nextTick();
 
@@ -974,9 +1012,15 @@ const generatedByName = computed(() => {
     };
 
     const invoiceItems = computed(() => {
-      if (!Array.isArray(props.order?.items)) return [];
+      const sourceItems =
+        hydratedInvoiceNumber.value === props.order?.invoice_number &&
+        hydratedInvoiceItems.value.length
+          ? hydratedInvoiceItems.value
+          : props.order?.items;
 
-      return props.order.items.filter(item => {
+      if (!Array.isArray(sourceItems)) return [];
+
+      return sourceItems.filter(item => {
         if (!item || item.__blank) return false;
 
         const hasName = resolveItemName(item).trim() !== '';
@@ -995,6 +1039,19 @@ const generatedByName = computed(() => {
         return hasName || (hasProductId && hasAmountOrQty);
       });
     });
+
+    watch(
+      () => props.order?.invoice_number,
+      invoiceNumber => {
+        hydratedInvoiceNumber.value = '';
+        hydratedInvoiceItems.value = [];
+
+        if (invoiceNumber) {
+          hydrateInvoiceItems(invoiceNumber);
+        }
+      },
+      { immediate: true },
+    );
 
     const missingNameItems = computed(() => {
       return invoiceItems.value
@@ -1024,6 +1081,8 @@ const generatedByName = computed(() => {
           missingItems,
         );
         console.table(missingItems);
+
+        hydrateInvoiceItems(props.order?.invoice_number);
       },
       { immediate: true },
     );

@@ -334,6 +334,19 @@ class PosController extends ApiBaseController
             });
     }
 
+    public function invoiceItems()
+    {
+        $invoiceNumber = request()->input('invoice_number');
+
+        if (!$invoiceNumber) {
+            throw new ApiException('Invoice number is required');
+        }
+
+        return ApiResponse::make('POS invoice items fetched', [
+            'items' => $this->getInvoiceItemsByInvoiceNumber($invoiceNumber),
+        ]);
+    }
+
     public function getStaffMembers()
     {
         $request = request();
