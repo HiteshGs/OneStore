@@ -9,9 +9,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <style>
-        @font-face {
+     @font-face {
     font-family: 'GujaratiFont';
-    src: url("{{ storage_path('fonts/NotoSansGujarati-Regular.ttf') }}") format('truetype');
+    src: url("file://{{ storage_path('fonts/NotoSansGujarati-Regular.ttf') }}") format('truetype');
     font-weight: normal;
     font-style: normal;
 }
@@ -20,6 +20,23 @@ html,
 body {
     font-family: 'GujaratiFont', DejaVu Sans, sans-serif !important;
 }
+table,
+tr,
+td,
+th,
+div,
+span,
+p,
+.item-name,
+.party-line,
+.party-name,
+.store-name,
+.store-address,
+.meta-value,
+.meta-label {
+    font-family: 'GujaratiFont', DejaVu Sans, sans-serif !important;
+}
+
 
 * {
     box-sizing: border-box;
@@ -819,12 +836,31 @@ img {
                 </p>
             </div>
            @if($warehouse->logo_url)
+@php
+$logoPath = public_path($warehouse->logo_url);
+$logoType = pathinfo($logoPath, PATHINFO_EXTENSION);
+$logoBase64 = '';
+
+if(file_exists($logoPath)){
+    $logoData = file_get_contents($logoPath);
+
+    if($logoData){
+        $logoType = pathinfo($logoPath, PATHINFO_EXTENSION);
+
+        $logoBase64 =
+            'data:image/' .
+            $logoType .
+            ';base64,' .
+            base64_encode($logoData);
+    }
+}$logoBase64 = 'data:image/' . $logoType . ';base64,' . base64_encode($logoData);
+@endphp
+
 <img
     class="invoice-logo"
-    src="{{ public_path($warehouse->logo_url) }}"
+    src="{{ $logoBase64 }}"
     alt="{{ $warehouse->name }}"
-/>
-@endif
+/>@endif
         </div>
 
         <!-- BILL TO + INVOICE DETAILS - REFACTORED TO USE TABLE FOR LAYOUT -->
@@ -834,9 +870,12 @@ img {
                     <!-- LEFT: Customer Details -->
                     <div class="bill-party-left">
                         <h4 class="bill-title">Bill To Party</h4>
-                        <p class="party-line party-name">
-                            {{ $order->user->name ?? 'Walk-in Customer' }}
-                        </p>
+                      <p
+    class="party-line party-name"
+    style="font-family: GujaratiFont, DejaVu Sans, sans-serif !important;"
+>
+    {{ $order->user->name ?? 'Walk-in Customer' }}
+</p>
                         @if($order->user->phone)
                         <p class="party-line">
                             Mo: {{ $order->user->phone }}
@@ -918,9 +957,13 @@ img {
 
                         <!-- Item name + custom fields -->
                         <td>
-                            <div class="item-name">
-                                {{ $item->product->name }}
-                            </div>
+                            <div
+    class="item-name"
+    style="font-family: GujaratiFont, DejaVu Sans, sans-serif !important;"
+>
+    {{ $item->product->name }}
+</div>
+
                             {{-- Custom fields logic from Vue component is omitted as it requires complex data structure not guaranteed in Blade context --}}
                         </td>
 
