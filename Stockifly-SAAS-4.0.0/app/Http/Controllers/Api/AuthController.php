@@ -239,6 +239,14 @@ class AuthController extends ApiBaseController
 
         $pdf = PDF::loadView('pdf', $pdfData);
 
+        // Configure DomPDF to embed the Gujarati-capable invoice font.
+        $pdf->setOptions([
+            'defaultFont' => 'GujaratiFont',
+            'fontDir' => storage_path('fonts'),
+            'fontCache' => storage_path('fonts'),
+            'isFontSubsettingEnabled' => true,
+        ]);
+
         return ['pdf' => $pdf, 'order' => $order];
     }
 

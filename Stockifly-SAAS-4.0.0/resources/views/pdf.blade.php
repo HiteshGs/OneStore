@@ -9,10 +9,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <style>
-     @font-face {
+@font-face {
     font-family: 'GujaratiFont';
     src: url('data:font/truetype;charset=utf-8;base64,{{ base64_encode(file_get_contents(storage_path('fonts/NotoSansGujarati-Regular.ttf'))) }}') format('truetype');
-    font-weight: normal;
+    font-weight: 400;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'GujaratiFont';
+    src: url('data:font/truetype;charset=utf-8;base64,{{ base64_encode(file_get_contents(storage_path('fonts/NotoSansGujarati-Regular.ttf'))) }}') format('truetype');
+    font-weight: 500;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'GujaratiFont';
+    src: url('data:font/truetype;charset=utf-8;base64,{{ base64_encode(file_get_contents(storage_path('fonts/NotoSansGujarati-Regular.ttf'))) }}') format('truetype');
+    font-weight: 600;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'GujaratiFont';
+    src: url('data:font/truetype;charset=utf-8;base64,{{ base64_encode(file_get_contents(storage_path('fonts/NotoSansGujarati-Regular.ttf'))) }}') format('truetype');
+    font-weight: 700;
     font-style: normal;
 }
 
