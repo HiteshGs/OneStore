@@ -133,45 +133,53 @@
     </a-row>
 
     <!-- ENTRY PERSON MODAL -->
-    <a-modal
-      :open="entryPersonModalVisible"
-      title="Enter Entry Person Name"
-      :maskClosable="false"
-      :footer="null"
-      @cancel="entryPersonModalVisible = false"
+    <!-- ENTRY PERSON MODAL -->
+<a-modal
+  :open="entryPersonModalVisible"
+  title="Select Entry Person"
+  :maskClosable="false"
+  :footer="null"
+  @cancel="entryPersonModalVisible = false"
+>
+  <div class="entry-person-wrapper">
+    <label class="entry-person-label">
+      Staff Member
+    </label>
+
+    <a-select
+      v-model:value="selectedStaffMember"
+      placeholder="Select staff member"
+      allowClear
+      showSearch
+      class="entry-person-select"
+      :filter-option="(input, option) => {
+        return option.label.toLowerCase().indexOf(input.toLowerCase()) >= 0;
+      }"
     >
-      <a-select
-        v-model:value="selectedStaffMember"
-        placeholder="Select staff member (optional)"
-        allowClear
-        showSearch
-        :filter-option="(input, option) => {
-          return option.label.toLowerCase().indexOf(input.toLowerCase()) >= 0;
-        }"
+      <a-select-option
+        v-for="staff in staffMembers"
+        :key="staff.user_id"
+        :value="staff.user_id"
+        :label="staff.user_name"
       >
-        <a-select-option
-          v-for="staff in staffMembers"
-          :key="staff.user_id"
-:value="staff.user_id"
-          :label="staff.user_name"
-        >
-          {{ staff.user_name }}
-        </a-select-option>
-      </a-select>
+        {{ staff.user_name }}
+      </a-select-option>
+    </a-select>
 
-      <a-input
-        v-model:value="entryPersonName"
-        placeholder="Or enter custom name (optional)"
-        style="margin-top: 12px"
-      />
+    <div class="entry-person-footer">
+      <a-button @click="entryPersonModalVisible = false">
+        Cancel
+      </a-button>
 
-      <div style="margin-top: 16px; text-align: right">
-        <a-button @click="entryPersonModalVisible = false">Cancel</a-button>
-        <a-button type="primary" style="margin-left: 8px" @click="confirmEntryPerson">
-          Continue
-        </a-button>
-      </div>
-    </a-modal>
+      <a-button
+        type="primary"
+        @click="confirmEntryPerson"
+      >
+        Continue
+      </a-button>
+    </div>
+  </div>
+</a-modal>
 
     <!-- PRINT MODAL -->
     <a-modal
@@ -307,15 +315,14 @@ export default {
   entryPersonModalVisible.value = true;
 };
 
-   const confirmEntryPerson = () => {
-
+  const confirmEntryPerson = () => {
   const selectedStaff = staffMembers.value.find(
     staff => staff.user_id === selectedStaffMember.value
   );
 
   const value = selectedStaff
     ? selectedStaff.user_name
-    : entryPersonName.value.trim();
+    : "";
 
   value
     ? localStorage.setItem(ENTRY_PERSON_KEY, value)
@@ -447,6 +454,34 @@ export default {
 </script>
 
 <style>
-.mt-20 { margin-top: 20px; }
-.ml-10 { margin-left: 10px; }
+.mt-20 {
+  margin-top: 20px;
+}
+
+.ml-10 {
+  margin-left: 10px;
+}
+
+.entry-person-wrapper {
+  padding-top: 8px;
+}
+
+.entry-person-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #131313;
+  margin-bottom: 8px;
+}
+
+.entry-person-select {
+  width: 100%;
+}
+
+.entry-person-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
 </style>
