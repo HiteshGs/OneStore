@@ -9,6 +9,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <style>
+        @font-face {
+    font-family: 'GujaratiFont';
+    src: url("{{ storage_path('fonts/NotoSansGujarati-Regular.ttf') }}") format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+html,
+body {
+    font-family: 'GujaratiFont', DejaVu Sans, sans-serif !important;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+img {
+    max-width: 100%;
+    display: block;
+}
         .invoice-header {
             text-align: center;
             border-bottom: 1px solid #000 !important;
@@ -675,29 +700,7 @@
                 top: 0 !important;
                 text-align: right !important;
             }
-                @font-face {
-        font-family: 'GujaratiFont';
-        src: url("{{ public_path('installer/fonts/Noto_Sans_Gujarati/static/NotoSansGujarati-Regular.ttf') }}") format('truetype');
-        font-weight: normal;
-        font-style: normal;
-    }
-body {
-        font-family: 'GujaratiFont', sans-serif;
-    }
-
-    * {
-    box-sizing: border-box;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-img {
-    max-width: 100%;
-    display: block;
-}
+                
         }
     </style>
 </head>
