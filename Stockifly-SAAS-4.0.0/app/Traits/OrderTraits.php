@@ -80,6 +80,7 @@ trait OrderTraits
             $selectProductIds = [];
             $sn = 1;
 
+            // Fetch all items without any limit
             $allOrderIteams = OrderItem::with('product')->where('order_id', $id)->get();
 
             foreach ($allOrderIteams as $allOrderIteam) {

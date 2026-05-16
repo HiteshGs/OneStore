@@ -140,9 +140,29 @@
       :footer="null"
       @cancel="entryPersonModalVisible = false"
     >
+      <a-select
+        v-model:value="selectedStaffMember"
+        placeholder="Select staff member (optional)"
+        allowClear
+        showSearch
+        :filter-option="(input, option) => {
+          return option.label.toLowerCase().indexOf(input.toLowerCase()) >= 0;
+        }"
+      >
+        <a-select-option
+          v-for="staff in staffMembers"
+          :key="staff.user_xid"
+          :value="staff"
+          :label="staff.user_name"
+        >
+          {{ staff.user_name }}
+        </a-select-option>
+      </a-select>
+
       <a-input
         v-model:value="entryPersonName"
-        placeholder="Entry person name (optional)"
+        placeholder="Or enter custom name (optional)"
+        style="margin-top: 12px"
       />
 
       <div style="margin-top: 16px; text-align: right">
@@ -226,6 +246,8 @@ export default {
 
     const entryPersonModalVisible = ref(false);
     const entryPersonName = ref("");
+    const staffMembers = ref([]);
+    const selectedStaffMember = ref(null);
 
     const printModalVisible = ref(false);
     const selectedPrintSize = ref("A4");
@@ -243,11 +265,33 @@ export default {
 
     const openEntryPersonDialog = () => {
       entryPersonName.value = localStorage.getItem(ENTRY_PERSON_KEY) || "";
+      selectedStaffMember.value = null;
+      
+      // Get warehouse slug from localStorage
+      const selectedWarehouse = JSON.parse(localStorage.getItem("selected_warehouse") || "{}");
+      const warehouseSlug = selectedWarehouse.slug;
+
+      if (warehouseSlug) {
+        // Fetch staff members
+        axiosAdmin.get(`pos/staff-members?warehouse_slug=${warehouseSlug}`).then(res => {
+          staffMembers.value = res.data.staff_members || [];
+        }).catch(err => {
+          console.error("Failed to fetch staff members:", err);
+          staffMembers.value = [];
+        });
+      } else {
+        staffMembers.value = [];
+      }
+
       entryPersonModalVisible.value = true;
     };
 
     const confirmEntryPerson = () => {
-      const value = entryPersonName.value.trim();
+      // Use selected staff member name if available, otherwise use manual input
+      const value = selectedStaffMember.value 
+        ? selectedStaffMember.value.user_name 
+        : entryPersonName.value.trim();
+      
       value
         ? localStorage.setItem(ENTRY_PERSON_KEY, value)
         : localStorage.removeItem(ENTRY_PERSON_KEY);
@@ -352,6 +396,8 @@ export default {
       formData,
       entryPersonModalVisible,
       entryPersonName,
+      staffMembers,
+      selectedStaffMember,
       printModalVisible,
       selectedPrintSize,
       autoOpenPrint,

@@ -12,6 +12,8 @@ use App\Models\Product;
 use App\Models\Settings;
 use App\Models\Tax;
 use App\Models\Unit;
+use App\Models\User;
+use App\Models\Role;
 use Carbon\Carbon;
 use Examyou\RestAPI\ApiResponse;
 use Examyou\RestAPI\Exceptions\ApiException;
@@ -244,6 +246,36 @@ class PosController extends ApiBaseController
 
         return ApiResponse::make('POS Data Saved', [
             'order' => $savedOrder,
+        ]);
+    }
+
+    public function getStaffMembers()
+    {
+        $request = request();
+        $warehouseSlug = $request->input('warehouse_slug');
+
+        if (!$warehouseSlug) {
+            throw new ApiException('Warehouse slug is required');
+        }
+
+        $staffMembers = User::select(
+            'users.id as user_id',
+            'users.name as user_name',
+            'users.email as user_email',
+            'users.user_type as user_type',
+            'users.xid as user_xid'
+        )
+            ->join('user_warehouse', 'users.id', '=', 'user_warehouse.user_id')
+            ->join('warehouses', 'user_warehouse.warehouse_id', '=', 'warehouses.id')
+            ->leftJoin('role_user', 'users.id', '=', 'role_user.user_id')
+            ->leftJoin('roles', 'role_user.role_id', '=', 'roles.id')
+            ->where('warehouses.slug', '=', $warehouseSlug)
+            ->where('roles.name', 'like', '%sales-person%')
+            ->orderBy('users.name')
+            ->get();
+
+        return ApiResponse::make('Staff members fetched', [
+            'staff_members' => $staffMembers,
         ]);
     }
 }
