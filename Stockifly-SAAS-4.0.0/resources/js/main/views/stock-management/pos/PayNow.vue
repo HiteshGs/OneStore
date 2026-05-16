@@ -151,8 +151,8 @@
       >
         <a-select-option
           v-for="staff in staffMembers"
-          :key="staff.user_xid"
-          :value="staff"
+          :key="staff.user_id"
+:value="staff.user_id"
           :label="staff.user_name"
         >
           {{ staff.user_name }}
@@ -264,41 +264,66 @@ export default {
     });
 
     const openEntryPersonDialog = () => {
-      entryPersonName.value = localStorage.getItem(ENTRY_PERSON_KEY) || "";
-      selectedStaffMember.value = null;
-      
-      // Get warehouse slug from localStorage
-      const selectedWarehouse = JSON.parse(localStorage.getItem("selected_warehouse") || "{}");
-      const warehouseSlug = selectedWarehouse.slug;
 
-      if (warehouseSlug) {
-        // Fetch staff members
-        axiosAdmin.get(`pos/staff-members?warehouse_slug=${warehouseSlug}`).then(res => {
-          staffMembers.value = res.data.staff_members || [];
-        }).catch(err => {
-          console.error("Failed to fetch staff members:", err);
-          staffMembers.value = [];
-        });
-      } else {
+  const savedName = localStorage.getItem(ENTRY_PERSON_KEY) || "";
+
+  entryPersonName.value = savedName;
+  selectedStaffMember.value = null;
+
+  const selectedWarehouse = JSON.parse(
+    localStorage.getItem("selected_warehouse") || "{}"
+  );
+
+  const warehouseSlug = selectedWarehouse.slug;
+
+  if (warehouseSlug) {
+
+    axiosAdmin
+      .get(`pos/staff-members?warehouse_slug=${warehouseSlug}`)
+      .then(res => {
+
+        staffMembers.value = res.data.staff_members || [];
+
+        // Auto-select previous selected staff
+        const matchedStaff = staffMembers.value.find(
+          staff => staff.user_name === savedName
+        );
+
+        if (matchedStaff) {
+          selectedStaffMember.value = matchedStaff.user_id;
+          entryPersonName.value = "";
+        }
+
+      })
+      .catch(err => {
+        console.error("Failed to fetch staff members:", err);
         staffMembers.value = [];
-      }
+      });
 
-      entryPersonModalVisible.value = true;
-    };
+  } else {
+    staffMembers.value = [];
+  }
 
-    const confirmEntryPerson = () => {
-      // Use selected staff member name if available, otherwise use manual input
-      const value = selectedStaffMember.value 
-        ? selectedStaffMember.value.user_name 
-        : entryPersonName.value.trim();
-      
-      value
-        ? localStorage.setItem(ENTRY_PERSON_KEY, value)
-        : localStorage.removeItem(ENTRY_PERSON_KEY);
+  entryPersonModalVisible.value = true;
+};
 
-      entryPersonModalVisible.value = false;
-      printModalVisible.value = true;
-    };
+   const confirmEntryPerson = () => {
+
+  const selectedStaff = staffMembers.value.find(
+    staff => staff.user_id === selectedStaffMember.value
+  );
+
+  const value = selectedStaff
+    ? selectedStaff.user_name
+    : entryPersonName.value.trim();
+
+  value
+    ? localStorage.setItem(ENTRY_PERSON_KEY, value)
+    : localStorage.removeItem(ENTRY_PERSON_KEY);
+
+  entryPersonModalVisible.value = false;
+  printModalVisible.value = true;
+};
 
     const onSubmit = () => {
       allPaymentRecords.value.push({

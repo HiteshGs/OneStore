@@ -260,12 +260,11 @@ class PosController extends ApiBaseController
 
         try {
             $staffMembers = User::select(
-                'users.id as user_id',
-                'users.name as user_name',
-                'users.email as user_email',
-                'users.user_type as user_type',
-                'users.xid as user_xid'
-            )
+    'users.id as user_id',
+    'users.name as user_name',
+    'users.email as user_email',
+    'users.user_type as user_type'
+)
                 ->join('user_warehouse', 'users.id', '=', 'user_warehouse.user_id')
                 ->join('warehouses', 'user_warehouse.warehouse_id', '=', 'warehouses.id')
                 ->leftJoin('role_user', 'users.id', '=', 'role_user.user_id')
