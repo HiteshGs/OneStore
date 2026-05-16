@@ -158,7 +158,7 @@
                 <!-- Item name + custom fields -->
                 <td>
                   <div class="item-name">
-                    {{ item.__blank ? '' : resolveItemName(item) }}
+                    {{ item.__blank ? '' : displayItemName(item) }}
                   </div>
 
                   <div
@@ -969,6 +969,10 @@ const generatedByName = computed(() => {
       );
     };
 
+    const displayItemName = item => {
+      return resolveItemName(item) || 'Missing item name';
+    };
+
     const invoiceItems = computed(() => {
       if (!Array.isArray(props.order?.items)) return [];
 
@@ -991,6 +995,38 @@ const generatedByName = computed(() => {
         return hasName || (hasProductId && hasAmountOrQty);
       });
     });
+
+    const missingNameItems = computed(() => {
+      return invoiceItems.value
+        .map((item, index) => ({ item, index }))
+        .filter(({ item }) => resolveItemName(item).trim() === '')
+        .map(({ item, index }) => ({
+          row_no: index + 1,
+          invoice_number: props.order?.invoice_number || '',
+          xid: item.xid || '',
+          item_id: item.item_id || '',
+          product_id: item.product_id || item.x_product_id || item.product?.xid || item.product?.id || '',
+          item_code: item.item_code || item.product?.item_code || '',
+          product_name: item.product_name || item.product?.name || item.name || '',
+          quantity: item.quantity || '',
+          unit_price: item.unit_price || '',
+          subtotal: item.subtotal || '',
+        }));
+    });
+
+    watch(
+      missingNameItems,
+      missingItems => {
+        if (!missingItems.length) return;
+
+        console.warn(
+          `POS Invoice missing item names for invoice ${props.order?.invoice_number || ''}:`,
+          missingItems,
+        );
+        console.table(missingItems);
+      },
+      { immediate: true },
+    );
 
     const paddedItems = computed(() => {
       const items = invoiceItems.value;
@@ -1047,6 +1083,7 @@ const generatedByName = computed(() => {
       finalCustomerAddress,
       paddedItems,
       resolveItemName,
+      displayItemName,
       paidAmount,
       dueAmount,
       generatedByName,
