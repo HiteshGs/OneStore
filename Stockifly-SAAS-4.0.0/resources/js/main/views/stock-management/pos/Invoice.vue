@@ -468,6 +468,7 @@ export default defineComponent({
     const hydratedInvoiceNumber = ref('');
     const hydratedInvoiceItems = ref([]);
     const isHydratingInvoiceItems = ref(false);
+    const generatedByUserName = ref('');
 
     onMounted(() => {
       axiosAdmin.get('verified-email').then(response => {
@@ -657,38 +658,103 @@ const resolveHSN = (item) => {
       }
     });
 
-const generatedByName = computed(() => {
-  // 1️⃣ From order (best case)
-  if (
-    props.order?.entry_person_name &&
-    typeof props.order.entry_person_name === 'string' &&
-    props.order.entry_person_name.trim()
-  ) {
-    return props.order.entry_person_name.trim();
-  }
+    const generatedByName = computed(() => {
+      const staffMemberName =
+        props.order?.staff_member?.name ||
+        props.order?.staffMember?.name ||
+        props.order?.staff_user?.name ||
+        props.order?.staffUser?.name ||
+        props.order?.generated_by?.name;
 
-  // 2️⃣ From localStorage (POS fallback)
-  const storedEntryPerson = localStorage.getItem(ENTRY_PERSON_KEY);
-  if (
-    storedEntryPerson &&
-    typeof storedEntryPerson === 'string' &&
-    storedEntryPerson.trim()
-  ) {
-    return storedEntryPerson.trim();
-  }
+      if (
+        staffMemberName &&
+        typeof staffMemberName === 'string' &&
+        staffMemberName.trim()
+      ) {
+        return staffMemberName.trim();
+      }
 
-  // 3️⃣ Logged-in user
-  if (
-    authUser &&
-    typeof authUser.name === 'string' &&
-    authUser.name.trim()
-  ) {
-    return authUser.name.trim();
-  }
+      if (
+        generatedByUserName.value &&
+        typeof generatedByUserName.value === 'string' &&
+        generatedByUserName.value.trim()
+      ) {
+        return generatedByUserName.value.trim();
+      }
 
-  // 4️⃣ Final fallback
-  return 'Admin';
-});
+      if (
+        props.order?.entry_person_name &&
+        typeof props.order.entry_person_name === 'string' &&
+        props.order.entry_person_name.trim()
+      ) {
+        return props.order.entry_person_name.trim();
+      }
+
+      const storedEntryPerson = localStorage.getItem(ENTRY_PERSON_KEY);
+      if (
+        storedEntryPerson &&
+        typeof storedEntryPerson === 'string' &&
+        storedEntryPerson.trim()
+      ) {
+        return storedEntryPerson.trim();
+      }
+
+      if (
+        authUser &&
+        typeof authUser.name === 'string' &&
+        authUser.name.trim()
+      ) {
+        return authUser.name.trim();
+      }
+
+      return 'Admin';
+    });
+
+    const fetchGeneratedByUser = async order => {
+      const staffUserXid =
+        order?.x_staff_user_id ||
+        order?.staff_member?.xid ||
+        order?.staffMember?.xid ||
+        order?.staff_user?.xid ||
+        order?.staffUser?.xid;
+
+      if (
+        !staffUserXid ||
+        order?.staff_member?.name ||
+        order?.staffMember?.name ||
+        order?.staff_user?.name ||
+        order?.staffUser?.name
+      ) {
+        generatedByUserName.value = '';
+        return;
+      }
+
+      try {
+        const filterString = `id eq "${staffUserXid}"`;
+        const response = await axiosAdmin.get(
+          `users?fields=id,xid,name&filters=${encodeURIComponent(filterString)}&hashable=${staffUserXid}&limit=1`,
+        );
+        const users = Array.isArray(response.data)
+          ? response.data
+          : response.data?.data || [];
+        const user = users[0] || null;
+        generatedByUserName.value = user?.name || '';
+      } catch (error) {
+        generatedByUserName.value = '';
+      }
+    };
+
+    watch(
+      () => props.order,
+      order => {
+        if (order?.xid) {
+          fetchGeneratedByUser(order);
+        } else {
+          generatedByUserName.value = '';
+        }
+      },
+      { immediate: true },
+    );
 
 
     const finalCustomerAddress = computed(() => {
