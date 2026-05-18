@@ -130,10 +130,13 @@
                                                     v-for="product in products"
                                                     :key="product.xid"
                                                     :value="product.xid"
-                                                    :label="product.name"
+                                                    :label="product.item_code ? `${product.name} (${product.item_code})` : product.name"
                                                     :product="product"
                                                 >
                                                     => {{ product.name }}
+                                                    <span v-if="product.item_code">
+                                                        ({{ product.item_code }})
+                                                    </span>
                                                 </a-select-option>
                                             </a-select>
                                         </span>
@@ -533,10 +536,13 @@
                             v-for="product in products"
                             :key="product.xid"
                             :value="product.xid"
-                            :label="product.name"
+                            :label="product.item_code ? `${product.name} (${product.item_code})` : product.name"
                             :product="product"
                         >
                             => {{ product.name }}
+                            <span v-if="product.item_code">
+                                ({{ product.item_code }})
+                            </span>
                         </a-select-option>
                     </a-select>
                     <a-button

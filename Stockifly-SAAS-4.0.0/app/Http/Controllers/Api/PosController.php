@@ -31,9 +31,10 @@ class PosController extends ApiBaseController
         $products = Product::select(
             'products.id',
             'products.name',
+            'products.item_code',
             'products.image',
             'products.product_type',
-                'products.hsn_code', // ✅ ADD THIS
+            'products.hsn_code',
 
             'product_details.sales_price',
             'products.unit_id',
@@ -103,9 +104,10 @@ class PosController extends ApiBaseController
                 'item_id'    =>  '',
                 'xid'    =>  $product->xid,
                 'name'    =>  $product->name,
+                'item_code'    =>  $product->item_code,
                 'image'    =>  $product->image,
                 'image_url'    =>  $product->image_url,
-                    'hsn_code' => $product->hsn_code,
+                'hsn_code' => $product->hsn_code,
 
                 'discount_rate'    =>  0,
                 'total_discount'    =>  0,
