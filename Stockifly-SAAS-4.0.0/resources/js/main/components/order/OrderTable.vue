@@ -894,7 +894,8 @@ export default {
                     user_id: tableFilter.user_id
                         ? tableFilter.user_id
                         : undefined,
-                    warehouse_id: tableFilter.warehouse_id
+                    warehouse_id: tableFilter.warehouse_id &&
+                        tableFilter.transfer_type != "received"
                         ? tableFilter.warehouse_id
                         : undefined,
                 },
@@ -1174,13 +1175,31 @@ export default {
                 });
         };
 
-        watch(props, (newVal, oldVal) => {
-            // Reset Selected Rows
-            resetSelectedRows();
+        watch(
+            () => [props.orderType, props.perPageItems],
+            (newVal, oldVal) => {
+                // Reset Selected Rows
+                resetSelectedRows();
 
-            initialSetup();
-            restSelectedItem();
-        });
+                initialSetup();
+                restSelectedItem();
+            }
+        );
+
+        watch(
+            () => props.filters,
+            (newVal, oldVal) => {
+            // Reset Selected Rows
+                resetSelectedRows();
+
+                datatableVariables.table.pagination.current = 1;
+                datatableVariables.table.pagination.currentPage = 1;
+                datatableVariables.currentPage.value = 1;
+                setUrlData();
+                restSelectedItem();
+            },
+            { deep: true }
+        );
 
         watch(selectedWarehouse, (newVal, oldVal) => {
             resetSelectedRows();

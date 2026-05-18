@@ -168,16 +168,16 @@ const common = () => {
     };
 
     const calculateOrderFilterString = (filters) => {
-        var filterString = "";
+        const filterParts = [];
 
         if (
             filters.payment_status != undefined &&
             filters.payment_status != "all"
         ) {
             if (filters.payment_status == "pending") {
-                filterString += `(payment_status eq "${filters.payment_status}" or payment_status eq "partially_paid" or payment_status eq "unpaid")`;
+                filterParts.push(`(payment_status eq "${filters.payment_status}" or payment_status eq "partially_paid" or payment_status eq "unpaid")`);
             } else {
-                filterString += `payment_status eq "${filters.payment_status}"`;
+                filterParts.push(`payment_status eq "${filters.payment_status}"`);
             }
         }
 
@@ -188,18 +188,18 @@ const common = () => {
         ) {
             if (orderType.value == 'online-orders') {
                 if (filters.order_status == 'cancelled') {
-                    filterString += `cancelled eq 1`;
+                    filterParts.push(`cancelled eq 1`);
                 } else if (filters.order_status == 'pending') {
-                    filterString += `((order_status eq "ordered" or order_status eq "confirmed" or order_status eq "processing" or order_status eq "shipping") and cancelled ne 1)`;
+                    filterParts.push(`((order_status eq "ordered" or order_status eq "confirmed" or order_status eq "processing" or order_status eq "shipping") and cancelled ne 1)`);
                 } else {
-                    filterString += `(order_status eq "${filters.order_status}" and cancelled ne 1)`;
+                    filterParts.push(`(order_status eq "${filters.order_status}" and cancelled ne 1)`);
                 }
             } else {
-                filterString += `order_status eq "${filters.order_status}"`;
+                filterParts.push(`order_status eq "${filters.order_status}"`);
             }
         }
 
-        return filterString;
+        return filterParts.join(" and ");
     }
 
     const calculateFilterString = (filters) => {
