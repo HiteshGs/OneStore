@@ -367,8 +367,8 @@ class ProductController extends ApiBaseController
         $products = Product::select('products.id', 'products.name', 'products.item_code', 'products.hsn_code', 'products.image', 'products.unit_id', 'products.product_type')
             ->where(function ($query) use ($searchTerm) {
                 $query->where(DB::raw('LOWER(products.name)'), 'LIKE', "%$searchTerm%")
-                    ->orWhere(DB::raw('LOWER(products.item_code)'), 'LIKE', "%$searchTerm%")
-                    ->orWhere(DB::raw('LOWER(products.parent_item_code)'), 'LIKE', "%$searchTerm%");
+                    ->orWhere(DB::raw('LOWER(products.item_code)'), 'LIKE', "$searchTerm%")
+                    ->orWhere(DB::raw('LOWER(products.parent_item_code)'), 'LIKE', "$searchTerm%");
             });
 
         if ($warehouse->products_visibility == 'warehouse') {

@@ -1194,7 +1194,7 @@ onMounted(async () => {
                     
                     return productName.includes(searchLower) || 
                            productBarcode.includes(searchLower) || 
-                           productCode.includes(searchLower);
+                           productCode.startsWith(searchLower);
                 });
                 
                 state.products = filtered;
