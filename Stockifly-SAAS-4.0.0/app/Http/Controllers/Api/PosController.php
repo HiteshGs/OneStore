@@ -148,6 +148,18 @@ class PosController extends ApiBaseController
         $orderDetails = $request->details;
         $oldOrderId = "";
         $posDefaultStatus = $warehouse->default_pos_order_status;
+        $selectedStaffUserId = $request->input('staff_user_id');
+        $staffUserId = $loggedInUser->id;
+
+        if ($selectedStaffUserId) {
+            $selectedStaffUser = User::where('id', $selectedStaffUserId)
+                ->where('user_type', 'staff_members')
+                ->first();
+
+            if ($selectedStaffUser) {
+                $staffUserId = $selectedStaffUser->id;
+            }
+        }
 
         $allPayments = $request->input('all_payments', []);
         if (!is_array($allPayments)) {
@@ -184,7 +196,7 @@ class PosController extends ApiBaseController
         $order->paid_amount = 0;
         $order->due_amount = $order->total;
         $order->order_status = $posDefaultStatus;
-        $order->staff_user_id = $loggedInUser->id;
+        $order->staff_user_id = $staffUserId;
         $order->save();
 
         $order->invoice_number = Common::getTransactionNumber($order->order_type, $order->id);
@@ -232,6 +244,13 @@ class PosController extends ApiBaseController
         $savedOrder = Order::select('id', 'unique_id', 'invoice_number', 'user_id', 'staff_user_id', 'order_date', 'discount', 'shipping', 'tax_amount', 'subtotal', 'total', 'paid_amount', 'due_amount', 'total_items', 'total_quantity')
             ->with(['user:id,name,email', 'items:id,order_id,product_id,unit_id,unit_price,subtotal,quantity,mrp,total_tax', 'items.product:id,name,item_code,hsn_code', 'items.unit:id,name,short_name', 'orderPayments:id,order_id,payment_id,amount', 'orderPayments.payment:id,payment_mode_id', 'orderPayments.payment.paymentMode:id,name', 'staffMember:id,name'])
             ->find($order->id);
+
+        if ($savedOrder && $savedOrder->staffMember) {
+            $savedOrder->setAttribute('generated_by', [
+                'xid' => $savedOrder->staffMember->xid,
+                'name' => $savedOrder->staffMember->name,
+            ]);
+        }
 
         $totalMrp = 0;
         $totalTax = 0;

@@ -768,6 +768,13 @@ export default {
         const posView = (order) => {
             var totalMrp = 0;
             var totalTax = 0;
+            const generatedBy =
+                order.staff_member ||
+                order.staffMember ||
+                order.staff_user ||
+                order.staffUser ||
+                null;
+
             forEach(order.items, (item) => {
                 totalMrp += item.quantity * item.mrp;
                 totalTax += item.total_tax;
@@ -780,6 +787,7 @@ export default {
 
             printInvoiceOrder.value = {
                 ...order,
+                generated_by: generatedBy,
                 saving_on_mrp: savingOnMrp,
                 saving_percentage: savingPercentage,
                 total_tax_on_items: totalTaxOnItems,

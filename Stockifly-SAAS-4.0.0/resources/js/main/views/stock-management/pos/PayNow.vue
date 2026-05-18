@@ -364,6 +364,7 @@ export default {
             hsn_code: p.hsn_code || null,
           })),
           details: props.data,
+          staff_user_id: selectedStaffMember.value || null,
           entry_person_name: localStorage.getItem(ENTRY_PERSON_KEY) || null,
           print_pref: { size: selectedPrintSize.value },
         },
