@@ -73,7 +73,7 @@ const fields = () => {
             "default-walkin-customer"
         );
 
-        Promise.all([
+        return Promise.all([
             taxesPromise,
             customersPromise,
             productsPromise,
@@ -95,10 +95,12 @@ const fields = () => {
                 brands.value = brandsResponse.data;
                 productLists.value = productResponse.data.products;
 
-                var defaultWalkInCustomer = find(customers.value, [
-                    "xid",
-                    defaultWalkinCustomerResponse.data.customer.xid,
-                ]);
+                const defaultCustomerXid =
+                    defaultWalkinCustomerResponse.data.customer &&
+                    defaultWalkinCustomerResponse.data.customer.xid;
+                var defaultWalkInCustomer = defaultCustomerXid
+                    ? find(customers.value, ["xid", defaultCustomerXid])
+                    : null;
                 if (defaultWalkInCustomer) {
                     posDefaultCustomer.value = defaultWalkInCustomer;
                     // Only set default customer if no customer is already selected

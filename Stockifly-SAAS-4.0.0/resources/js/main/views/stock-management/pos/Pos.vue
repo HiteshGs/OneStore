@@ -17,13 +17,15 @@
                                 :placeholder="$t('user.walk_in_customer')"
                                 style="width: 100%"
                                 optionFilterProp="title"
+                                option-label-prop="label"
                                 show-search
                                 @change="handleCustomerChange"
                             >
                                 <a-select-option
                                     v-for="customer in customers"
                                     :key="customer.xid"
-                                    :title="customer.name"
+                                    :title="customerSearchText(customer)"
+                                    :label="customer.name"
                                     :value="customer.xid"
                                 >
                                     {{ customer.name }}
@@ -61,13 +63,15 @@
                                                 :placeholder="$t('user.walk_in_customer')"
                                                 style="width: 100%"
                                                 optionFilterProp="title"
+                                                option-label-prop="label"
                                                 show-search
                                                 @change="handleCustomerChange"
                                             >
                                                 <a-select-option
                                                     v-for="customer in customers"
                                                     :key="customer.xid"
-                                                    :title="customer.name"
+                                                    :title="customerSearchText(customer)"
+                                                    :label="customer.name"
                                                     :value="customer.xid"
                                                 >
                                                     {{ customer.name }}
@@ -1038,7 +1042,6 @@ export default {
             formData,
             customerUrl,
             getPreFetchData,
-            posDefaultCustomer,
         } = fields();
         console.log("customers",customers); // This assumes 'customers' is a reactive reference
 
@@ -1076,9 +1079,32 @@ export default {
 
         // For mobile Design
         const showMobileCart = ref(false);
+        const customerSearchText = (customer) => {
+            return [
+                customer.name,
+                customer.email,
+                customer.phone,
+                customer.mobile,
+            ]
+                .filter(Boolean)
+                .join(" ");
+        };
+
+        const findWalkInCustomer = () => {
+            return customers.value.find((customer) => {
+                const customerName = (customer.name || "").toLowerCase().trim();
+                const customerEmail = (customer.email || "").toLowerCase().trim();
+
+                return (
+                    customerName == "walk in customer" ||
+                    customerEmail == "walkin@email.com"
+                );
+            });
+        };
+
 const handleCustomerChange = (selectedCustomerId) => {
     if (!selectedCustomerId) {
-        setWalkInCustomerDefault();
+        setDefaultCustomer();
         return;
     }
 
@@ -1089,55 +1115,59 @@ const handleCustomerChange = (selectedCustomerId) => {
         console.log('Customer selected:', selectedCustomer);
     } else {
         // fallback in case selected ID not in list
-        setWalkInCustomerDefault();
+        setDefaultCustomer();
     }
 };
 
 
 
 const setWalkInCustomerDefault = () => {
-    // Try to find a predefined "Walk In Customer" in the list
-    const walkIn = customers.value.find(c => c.name.toLowerCase() === 'walk in customer');
+    const walkIn = findWalkInCustomer();
 
     if (walkIn) {
         formData.value.user_id = walkIn.xid;
         console.log('Defaulted to Walk In Customer:', walkIn);
-    } else {
-        // If no Walk In Customer exists in list, leave user_id as null
-        formData.value.user_id = null;
-        console.log('No Walk In Customer found; user_id is null');
+        return true;
     }
+
+    return false;
 };
 
+const setDefaultCustomer = () => {
+    if (setWalkInCustomerDefault()) {
+        return;
+    }
 
-
-
-        // This will get customer data from localStorage when the page loads
-       const getCustomerFromLocalStorage = () => {
     const storedCustomer = localStorage.getItem('pos_selected_customer');
 
     if (storedCustomer) {
-        const customer = JSON.parse(storedCustomer);
-        // Check if customer exists in current list
-        const exists = customers.value.find(c => c.xid === customer.xid);
+        try {
+            const customer = JSON.parse(storedCustomer);
+            const existingCustomer = customers.value.find(c => c.xid === customer.xid);
 
-        if (exists) {
-            formData.value.user_id = customer.xid;
-            console.log('Loaded last selected customer:', customer);
-        } else {
-            // Fallback to Walk In Customer
-            setWalkInCustomerDefault();
+            if (existingCustomer) {
+                formData.value.user_id = existingCustomer.xid;
+                console.log('Loaded last selected customer:', existingCustomer);
+                return;
+            }
+        } catch (error) {
+            localStorage.removeItem('pos_selected_customer');
         }
+    }
+
+    const firstCustomer = customers.value[0];
+    if (firstCustomer) {
+        formData.value.user_id = firstCustomer.xid;
+        console.log('Defaulted to first customer:', firstCustomer);
     } else {
-        // No previous selection, default to Walk In Customer
-        setWalkInCustomerDefault();
+        formData.value.user_id = null;
+        console.log('No customer found; user_id is null');
     }
 };
 
-
 onMounted(async () => {
     await getPreFetchData(); // Fetch customers and other prefetch data
-    getCustomerFromLocalStorage(); // Automatically select last customer if found
+    setDefaultCustomer();
 });
 
         const reFetchProducts = () => {
@@ -1578,15 +1608,7 @@ const getRowTaxAmount = (record) => {
 
         const payNowSuccess = (invoiceOrder) => {
             resetPos();
-
-            var walkInCustomerId =
-                posDefaultCustomer.value && posDefaultCustomer.value.xid
-                    ? posDefaultCustomer.value.xid
-                    : undefined;
-            formData.value = {
-                ...formData.value,
-                user_id: walkInCustomerId,
-            };
+            setDefaultCustomer();
 
             reFetchProducts();
             payNowVisible.value = false;
@@ -1605,6 +1627,7 @@ const getRowTaxAmount = (record) => {
             brands,
             productLists,
             formData,
+            customerSearchText,
             reFetchProducts,
             selectSaleProduct,
 
