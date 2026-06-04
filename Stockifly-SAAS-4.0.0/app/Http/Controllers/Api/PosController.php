@@ -94,6 +94,7 @@ class PosController extends ApiBaseController
         $limit = (int) $request->input('limit', 25);
         $limit = $limit > 0 ? min($limit, 100) : 25;
         $offset = max((int) $request->input('offset', 0), 0);
+        $total = (clone $products)->count();
 
         $products = $products
             ->orderBy('products.name')
@@ -158,6 +159,7 @@ class PosController extends ApiBaseController
             'products' => $allProducs,
             'limit' => $limit,
             'offset' => $offset,
+            'total' => $total,
             'has_more' => count($allProducs) == $limit,
         ];
 

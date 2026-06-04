@@ -494,14 +494,16 @@
                             <ProductCardNew :product="item" />
                         </a-col>
                     </a-row>
-                    <a-row v-if="productListHasMore" class="mt-10">
+                    <a-row v-if="productListTotal > productBrowseLimit" class="mt-10">
                         <a-col :span="24" class="text-center">
-                            <a-button
-                                :loading="productListFetching"
-                                @click="loadMoreProductLists"
-                            >
-                                Load more
-                            </a-button>
+                            <a-pagination
+                                v-model:current="productListPage"
+                                :total="productListTotal"
+                                :page-size="productBrowseLimit"
+                                :show-size-changer="false"
+                                :disabled="productListFetching"
+                                @change="changeProductListPage"
+                            />
                         </a-col>
                     </a-row>
                     <a-row v-if="productLists.length == 0 && !productListFetching">
@@ -623,14 +625,16 @@
                                 <ProductCardNew :product="item" />
                             </a-col>
                         </a-row>
-                        <a-row v-if="productListHasMore" class="mt-10">
+                        <a-row v-if="productListTotal > productBrowseLimit" class="mt-10">
                             <a-col :span="24" class="text-center">
-                                <a-button
-                                    :loading="productListFetching"
-                                    @click="loadMoreProductLists"
-                                >
-                                    Load more
-                                </a-button>
+                                <a-pagination
+                                    v-model:current="productListPage"
+                                    :total="productListTotal"
+                                    :page-size="productBrowseLimit"
+                                    :show-size-changer="false"
+                                    :disabled="productListFetching"
+                                    @change="changeProductListPage"
+                                />
                             </a-col>
                         </a-row>
                     </div>
@@ -1078,7 +1082,8 @@ export default {
             products: [],
             productHasMore: false,
             productListFetching: false,
-            productListHasMore: false,
+            productListPage: 1,
+            productListTotal: 0,
         });
         const {
             formatAmount,
@@ -1196,8 +1201,7 @@ onMounted(async () => {
     reFetchProducts();
 });
 
-        const productBrowseLimit = 25;
-        const productBrowseOffset = ref(0);
+        const productBrowseLimit = 24;
         const productSearchLimit = 25;
         const productSearchOffset = ref(0);
         const activeProductSearchRequest = ref(0);
@@ -1223,41 +1227,45 @@ onMounted(async () => {
         };
 
         const reFetchProducts = () => {
-            productBrowseOffset.value = 0;
-            productLists.value = [];
-            loadMoreProductLists();
+            changeProductListPage(1);
         };
 
-        const loadMoreProductLists = () => {
+        const loadProductListPage = (page = state.productListPage) => {
             if (state.productListFetching) {
                 return;
             }
 
             state.productListFetching = true;
+            const currentPage = page || 1;
+            const offset = (currentPage - 1) * productBrowseLimit;
 
             axiosAdmin
                 .post("pos/products", {
                     brand_id: formData.value.brand_id,
                     category_id: formData.value.category_id,
                     limit: productBrowseLimit,
-                    offset: productBrowseOffset.value,
+                    offset,
                 })
                 .then((productResponse) => {
                     const nextProducts = getProductsFromResponse(productResponse);
-                    productLists.value =
-                        productBrowseOffset.value == 0
-                            ? nextProducts
-                            : [...productLists.value, ...nextProducts];
-                    productBrowseOffset.value = productLists.value.length;
-                    state.productListHasMore =
-                        nextProducts.length == productBrowseLimit;
+                    productLists.value = nextProducts;
+                    state.productListPage = currentPage;
+                    state.productListTotal =
+                        productResponse.data?.data?.total ||
+                        productResponse.data?.total ||
+                        nextProducts.length;
                 })
                 .catch(() => {
-                    state.productListHasMore = false;
+                    productLists.value = [];
+                    state.productListTotal = 0;
                 })
                 .finally(() => {
                     state.productListFetching = false;
                 });
+        };
+
+        const changeProductListPage = (page) => {
+            loadProductListPage(page);
         };
 
         const fetchProducts = debounce((value) => {
@@ -1712,7 +1720,8 @@ handleCustomerChange,
             ...toRefs(state),
             fetchProducts,
             loadMoreProducts,
-            loadMoreProductLists,
+            changeProductListPage,
+            productBrowseLimit,
             searchValueSelected,
             selectedProducts,
             orderItemColumns,
