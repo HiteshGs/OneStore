@@ -118,6 +118,7 @@
                                                 "
                                                 option-label-prop="label"
                                                 @focus="products = []"
+                                                @popupScroll="loadMoreProducts"
                                                 @select="searchValueSelected"
                                                 @inputKeyDown="inputValueChanged"
                                             >
@@ -493,7 +494,17 @@
                             <ProductCardNew :product="item" />
                         </a-col>
                     </a-row>
-                    <a-row v-else>
+                    <a-row v-if="productListHasMore" class="mt-10">
+                        <a-col :span="24" class="text-center">
+                            <a-button
+                                :loading="productListFetching"
+                                @click="loadMoreProductLists"
+                            >
+                                Load more
+                            </a-button>
+                        </a-col>
+                    </a-row>
+                    <a-row v-if="productLists.length == 0 && !productListFetching">
                         <a-col :span="24">
                             <a-result
                                 :title="$t('stock.no_product_found')"
@@ -527,6 +538,7 @@
                         "
                         option-label-prop="label"
                         @focus="products = []"
+                        @popupScroll="loadMoreProducts"
                         @select="searchValueSelected"
                         @inputKeyDown="inputValueChanged"
                     >
@@ -609,6 +621,16 @@
                                 @click="selectSaleProduct(item)"
                             >
                                 <ProductCardNew :product="item" />
+                            </a-col>
+                        </a-row>
+                        <a-row v-if="productListHasMore" class="mt-10">
+                            <a-col :span="24" class="text-center">
+                                <a-button
+                                    :loading="productListFetching"
+                                    @click="loadMoreProductLists"
+                                >
+                                    Load more
+                                </a-button>
                             </a-col>
                         </a-row>
                     </div>
@@ -1054,6 +1076,9 @@ export default {
             orderSearchTerm: undefined,
             productFetching: false,
             products: [],
+            productHasMore: false,
+            productListFetching: false,
+            productListHasMore: false,
         });
         const {
             formatAmount,
@@ -1168,110 +1193,151 @@ const setDefaultCustomer = () => {
 onMounted(async () => {
     await getPreFetchData(); // Fetch customers and other prefetch data
     setDefaultCustomer();
+    reFetchProducts();
 });
 
+        const productBrowseLimit = 25;
+        const productBrowseOffset = ref(0);
+        const productSearchLimit = 25;
+        const productSearchOffset = ref(0);
+        const activeProductSearchRequest = ref(0);
+
+        const getProductsFromResponse = (response) => {
+            if (Array.isArray(response.data)) {
+                return response.data;
+            }
+
+            if (Array.isArray(response.data?.products)) {
+                return response.data.products;
+            }
+
+            if (Array.isArray(response.data?.data)) {
+                return response.data.data;
+            }
+
+            if (Array.isArray(response.data?.data?.products)) {
+                return response.data.data.products;
+            }
+
+            return [];
+        };
+
         const reFetchProducts = () => {
+            productBrowseOffset.value = 0;
+            productLists.value = [];
+            loadMoreProductLists();
+        };
+
+        const loadMoreProductLists = () => {
+            if (state.productListFetching) {
+                return;
+            }
+
+            state.productListFetching = true;
+
             axiosAdmin
                 .post("pos/products", {
                     brand_id: formData.value.brand_id,
                     category_id: formData.value.category_id,
+                    limit: productBrowseLimit,
+                    offset: productBrowseOffset.value,
                 })
                 .then((productResponse) => {
-                    productLists.value = productResponse.data.products;
+                    const nextProducts = getProductsFromResponse(productResponse);
+                    productLists.value =
+                        productBrowseOffset.value == 0
+                            ? nextProducts
+                            : [...productLists.value, ...nextProducts];
+                    productBrowseOffset.value = productLists.value.length;
+                    state.productListHasMore =
+                        nextProducts.length == productBrowseLimit;
+                })
+                .catch(() => {
+                    state.productListHasMore = false;
+                })
+                .finally(() => {
+                    state.productListFetching = false;
                 });
         };
 
         const fetchProducts = debounce((value) => {
-            // Use client-side filtering like product manager
-            state.orderSearchTerm = value;
-            if (value && value.trim() !== '') {
-                // Filter products from productLists based on search term
-                const filtered = productLists.value.filter((product) => {
-                    const searchLower = value.toLowerCase().trim();
-                    const productName = (product.name || '').toLowerCase();
-                    const productBarcode = (product.barcode_symbology || '').toLowerCase();
-                    const productCode = (product.item_code || '').toLowerCase();
-                    
-                    return productName.includes(searchLower) || 
-                           productBarcode.includes(searchLower) || 
-                           productCode.startsWith(searchLower);
-                });
-                
-                state.products = filtered;
-                console.log('Client-side filtered products:', filtered.length);
-            } else {
-                state.products = [];
-            }
+            fetchAllSearchedProduct(value, true, false);
         }, 300);
 
-        const fetchAllSearchedProduct = (value) => {
-            state.products = [];
+        const fetchAllSearchedProduct = (value, reset = true, selectSingle = false) => {
+            state.orderSearchTerm = value;
 
-            if (value != "") {
-                state.productFetching = true;
-                let url = `search-product`;
+            if (!value || value.trim() == "") {
+                productSearchOffset.value = 0;
+                state.products = [];
+                state.productHasMore = false;
+                return;
+            }
 
-                console.log('Searching for products:', value); // Debug log
-                console.log('Current selected product IDs:', selectedProductIds.value); // Debug log
+            if (reset) {
+                productSearchOffset.value = 0;
+                state.products = [];
+            }
 
-                axiosAdmin
-                    .post(url, {
-                        order_type: "sales",
-                        search_term: value,
-                        products: selectedProductIds.value,
-                        limit: 0, // No limit; fetch all matching products
-                    })
-                    .then((response) => {
-                        console.log('=== SEARCH API DEBUG ==='); // Debug log
-                        console.log('Search term:', value); // Debug log
-                        console.log('Full response:', response); // Debug log
-                        console.log('Response status:', response.status); // Debug log
-                        console.log('Response headers:', response.headers); // Debug log
-                        
-                        // Check different response structures
-                        if (response.data) {
-                            console.log('Response.data type:', typeof response.data);
-                            console.log('Response.data is array:', Array.isArray(response.data));
-                            console.log('Response.data length:', response.data ? response.data.length : 'undefined');
-                            
-                            if (response.data.data && Array.isArray(response.data.data)) {
-                                console.log('Paginated response - data.data length:', response.data.data.length);
-                                state.products = response.data.data;
-                            } else if (Array.isArray(response.data)) {
-                                console.log('Direct array response - length:', response.data.length);
-                                console.log('First 5 products:', response.data.slice(0, 5));
-                                
-                                if (response.data.length == 1) {
-                                    searchValueSelected("", { product: response.data[0] });
-                                } else {
-                                    state.products = response.data;
-                                }
-                            } else if (response.data.products && Array.isArray(response.data.products)) {
-                                console.log('Nested products array - length:', response.data.products.length);
-                                state.products = response.data.products;
-                            } else {
-                                console.log('Unknown response structure');
-                                console.log('Available keys:', Object.keys(response.data));
-                                state.products = [];
-                            }
-                        } else {
-                            console.log('No response.data');
-                            state.products = [];
-                        }
+            state.productFetching = true;
+            const requestId = activeProductSearchRequest.value + 1;
+            activeProductSearchRequest.value = requestId;
 
+            axiosAdmin
+                .post("pos/products", {
+                    brand_id: formData.value.brand_id,
+                    category_id: formData.value.category_id,
+                    search_term: value,
+                    products: selectedProductIds.value,
+                    limit: productSearchLimit,
+                    offset: productSearchOffset.value,
+                })
+                .then((response) => {
+                    if (requestId != activeProductSearchRequest.value) {
+                        return;
+                    }
+
+                    const searchedProducts = getProductsFromResponse(response);
+
+                    if (selectSingle && reset && searchedProducts.length == 1) {
+                        searchValueSelected("", { product: searchedProducts[0] });
+                        state.productHasMore = false;
+                        return;
+                    }
+
+                    state.products = reset
+                        ? searchedProducts
+                        : [...state.products, ...searchedProducts];
+                    productSearchOffset.value = state.products.length;
+                    state.productHasMore = searchedProducts.length == productSearchLimit;
+                })
+                .catch(() => {
+                    if (requestId == activeProductSearchRequest.value) {
+                        state.products = reset ? [] : state.products;
+                        state.productHasMore = false;
+                    }
+                })
+                .finally(() => {
+                    if (requestId == activeProductSearchRequest.value) {
                         state.productFetching = false;
-                    })
-                    .catch((error) => {
-                        console.error('Search error:', error);
-                        state.productFetching = false;
-                    });
+                    }
+                });
+        };
+
+        const loadMoreProducts = (event) => {
+            const target = event.target;
+            const reachedBottom =
+                target.scrollTop + target.offsetHeight >= target.scrollHeight - 20;
+
+            if (reachedBottom && state.productHasMore && !state.productFetching) {
+                fetchAllSearchedProduct(state.orderSearchTerm, false, false);
             }
         };
 
         const inputValueChanged = (keydownEvent) => {
             nextTick(() => {
                 if (keydownEvent.keyCode == 13) {
-                    fetchAllSearchedProduct(keydownEvent.target.value);
+                    fetchAllSearchedProduct(keydownEvent.target.value, true, true);
                 }
             });
         };
@@ -1645,6 +1711,8 @@ handleCustomerChange,
             permsArray,
             ...toRefs(state),
             fetchProducts,
+            loadMoreProducts,
+            loadMoreProductLists,
             searchValueSelected,
             selectedProducts,
             orderItemColumns,

@@ -65,10 +65,6 @@ const fields = () => {
         const customersPromise = axiosAdmin.get(customerUrl);
         const categoriesPromise = axiosAdmin.get("categories?limit=10000");
         const brandsPromise = axiosAdmin.get("brands?limit=10000");
-        const productsPromise = axiosAdmin.post("pos/products", {
-            brand_id: formData.value.brand_id,
-            category_id: formData.value.category_id,
-        });
         const defaultWalkinCustomerPromise = axiosAdmin.get(
             "default-walkin-customer"
         );
@@ -76,7 +72,6 @@ const fields = () => {
         return Promise.all([
             taxesPromise,
             customersPromise,
-            productsPromise,
             categoriesPromise,
             brandsPromise,
             defaultWalkinCustomerPromise,
@@ -84,7 +79,6 @@ const fields = () => {
             ([
                 taxesResponse,
                 customersResponse,
-                productResponse,
                 caegoriesResponse,
                 brandsResponse,
                 defaultWalkinCustomerResponse,
@@ -93,7 +87,7 @@ const fields = () => {
                 customers.value = customersResponse.data;
                 categories.value = caegoriesResponse.data;
                 brands.value = brandsResponse.data;
-                productLists.value = productResponse.data.products;
+                productLists.value = [];
 
                 const defaultCustomerXid =
                     defaultWalkinCustomerResponse.data.customer &&

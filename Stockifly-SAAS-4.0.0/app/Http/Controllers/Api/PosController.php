@@ -71,8 +71,35 @@ class PosController extends ApiBaseController
             $products = $products->where('brand_id', '=', $brandId);
         }
 
+        if ($request->has('search_term') && trim($request->search_term) != "") {
+            $searchTerm = trim(strtolower($request->search_term));
+            $products = $products->where(function ($query) use ($searchTerm) {
+                $query->where(DB::raw('LOWER(products.name)'), 'LIKE', "%$searchTerm%")
+                    ->orWhere(DB::raw('LOWER(products.item_code)'), 'LIKE', "$searchTerm%")
+                    ->orWhere(DB::raw('LOWER(products.parent_item_code)'), 'LIKE', "$searchTerm%");
+            });
+        }
 
-        $products =    $products->get();
+        if ($request->has('products') && is_array($request->products)) {
+            $selectedProducts = [];
+            foreach ($request->products as $selectedProduct) {
+                $selectedProducts[] = $this->getIdFromHash($selectedProduct);
+            }
+
+            if (count($selectedProducts) > 0) {
+                $products = $products->whereNotIn('products.id', $selectedProducts);
+            }
+        }
+
+        $limit = (int) $request->input('limit', 25);
+        $limit = $limit > 0 ? min($limit, 100) : 25;
+        $offset = max((int) $request->input('offset', 0), 0);
+
+        $products = $products
+            ->orderBy('products.name')
+            ->skip($offset)
+            ->take($limit)
+            ->get();
 
         foreach ($products as $product) {
             $stockQuantity = $product->current_stock;
@@ -129,6 +156,9 @@ class PosController extends ApiBaseController
 
         $data = [
             'products' => $allProducs,
+            'limit' => $limit,
+            'offset' => $offset,
+            'has_more' => count($allProducs) == $limit,
         ];
 
         return ApiResponse::make('Data fetched', $data);
