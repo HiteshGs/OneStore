@@ -1296,7 +1296,6 @@ onMounted(async () => {
                     brand_id: formData.value.brand_id,
                     category_id: formData.value.category_id,
                     search_term: value,
-                    products: selectedProductIds.value,
                     limit: productSearchLimit,
                     offset: productSearchOffset.value,
                 })
