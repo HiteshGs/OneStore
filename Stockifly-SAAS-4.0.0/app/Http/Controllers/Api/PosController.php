@@ -231,7 +231,7 @@ class PosController extends ApiBaseController
         $order->staff_user_id = $staffUserId;
         $order->save();
 
-        $order->invoice_number = Common::getTransactionNumber($order->order_type, $order->id);
+        $order->invoice_number = $this->getNextPosInvoiceNumber($warehouse);
         $order->save();
 
         Common::storeAndUpdateOrder($order, $oldOrderId);
@@ -302,6 +302,39 @@ class PosController extends ApiBaseController
         return ApiResponse::make('POS Data Saved', [
             'order' => $savedOrder,
         ]);
+    }
+
+    private function getNextPosInvoiceNumber($warehouse)
+    {
+        $prefix = $this->getWarehouseInvoicePrefix($warehouse);
+        $lastInvoiceNumber = Order::where('warehouse_id', $warehouse->id)
+            ->where('invoice_type', 'pos')
+            ->where('invoice_number', 'like', $prefix . '-%')
+            ->orderByRaw('CAST(SUBSTRING(invoice_number, ?) AS UNSIGNED) DESC', [strlen($prefix) + 2])
+            ->value('invoice_number');
+
+        $lastNumber = 999;
+        if ($lastInvoiceNumber && preg_match('/^' . preg_quote($prefix, '/') . '-(\d+)$/', $lastInvoiceNumber, $matches)) {
+            $lastNumber = (int) $matches[1];
+        }
+
+        return $prefix . '-' . ($lastNumber + 1);
+    }
+
+    private function getWarehouseInvoicePrefix($warehouse)
+    {
+        $slug = trim((string) ($warehouse->slug ?? ''));
+        if ($slug === '') {
+            return 'warehouse';
+        }
+
+        $slugParts = explode('-', $slug);
+        if (count($slugParts) > 1) {
+            array_pop($slugParts);
+        }
+
+        $prefix = implode('-', $slugParts);
+        return $prefix !== '' ? $prefix : $slug;
     }
 
     private function getInvoiceItemsByInvoiceNumber($invoiceNumber)
