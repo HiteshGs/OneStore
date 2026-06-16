@@ -334,6 +334,10 @@ class PosController extends ApiBaseController
         }
 
         $prefix = implode('-', $slugParts);
+        if (count($slugParts) > 2) {
+            $prefix = $slugParts[0] . '-' . $slugParts[count($slugParts) - 1];
+        }
+
         return $prefix !== '' ? $prefix : $slug;
     }
 
