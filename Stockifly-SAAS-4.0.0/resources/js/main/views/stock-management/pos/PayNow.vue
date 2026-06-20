@@ -264,6 +264,20 @@ export default {
     const dmartInvoiceVisible = ref(false);
     const dmartOrderData = ref(null);
     const dmartDescription = ref("");
+    const DIRECT_RETAIL_WAREHOUSE_SLUG = "shayona-sale-3t1dbcvw";
+
+    const getSelectedWarehouseSlug = () => {
+      try {
+        const selectedWarehouse = JSON.parse(
+          localStorage.getItem("selected_warehouse") || "{}"
+        );
+
+        return selectedWarehouse.slug || "";
+      } catch (error) {
+        console.error("Failed to read selected warehouse:", error);
+        return "";
+      }
+    };
 
     onMounted(() => {
       axiosAdmin.get("payment-modes").then(res => {
@@ -273,16 +287,12 @@ export default {
 
     const openEntryPersonDialog = () => {
 
+  const warehouseSlug = getSelectedWarehouseSlug();
+
   const savedName = localStorage.getItem(ENTRY_PERSON_KEY) || "";
 
   entryPersonName.value = savedName;
   selectedStaffMember.value = null;
-
-  const selectedWarehouse = JSON.parse(
-    localStorage.getItem("selected_warehouse") || "{}"
-  );
-
-  const warehouseSlug = selectedWarehouse.slug;
 
   if (warehouseSlug) {
 
@@ -329,6 +339,14 @@ export default {
     : localStorage.removeItem(ENTRY_PERSON_KEY);
 
   entryPersonModalVisible.value = false;
+
+  if (getSelectedWarehouseSlug() === DIRECT_RETAIL_WAREHOUSE_SLUG) {
+    selectedPrintSize.value = "retail";
+    autoOpenPrint.value = true;
+    completeOrderAndEmitPrint();
+    return;
+  }
+
   printModalVisible.value = true;
 };
 
@@ -341,7 +359,7 @@ export default {
       showAddForm.value = false;
     };
 
-    const completeOrderAndEmitPrint = () => {
+    function completeOrderAndEmitPrint() {
       // ✅ STORE HSN MAP LOCALLY
       const hsnMap = {};
       props.selectedProducts.forEach(p => {
@@ -390,7 +408,7 @@ export default {
           }
         },
       });
-    };
+    }
 
     const onDmartInvoiceSuccess = () => {
       dmartInvoiceVisible.value = false;
