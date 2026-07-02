@@ -758,12 +758,7 @@ const resolveHSN = (item) => {
 
 
     const finalCustomerAddress = computed(() => {
-      return (
-        (props.order?.user?.address ||
-          posSelectedCustomer.value?.address ||
-          ''
-        ).trim()
-      );
+      return (props.order?.user?.address || '').trim();
     });
 
     const customerState = computed(() => {
